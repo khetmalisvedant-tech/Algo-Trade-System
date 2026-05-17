@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSI Algo Trader — Nifty 50</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0a0b0d;
+    --bg2: #111318;
+    --bg3: #181b22;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8b90a0;
+    --text3: #4e5261;
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.1);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.12);
+    --purple: #a855f7;
+    --font: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    --sans: -apple-system, 'Inter', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo { font-family: var(--font); font-size: 14px; color: var(--green); letter-spacing: 0.08em; font-weight: 600; }
+  .logo span { color: var(--text2); }
+  .market-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-left: auto; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  .status-dot.closed { background: var(--text3); animation: none; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .time-display { font-family: var(--font); font-size: 12px; color: var(--text3); }
+
+  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 52px); }
+
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
+
+  .api-input-wrap { display: flex; flex-direction: column; gap: 8px; }
+  .api-row { display: flex; gap: 6px; align-items: center; }
+  .api-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 11px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .api-input:focus { border-color: var(--blue); }
+  .api-input::placeholder { color: var(--text3); }
+  .btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 11px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--border); color: var(--text); }
+  .btn.primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .btn.primary:hover { background: rgba(34,197,94,0.2); }
+  .btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: rgba(239,68,68,0.2); }
+  .btn.amber { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+
+  .conn-status { font-size: 11px; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
+  .conn-status.ok { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .conn-status.err { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .conn-status.idle { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+
+  .strategy-config { display: flex; flex-direction: column; gap: 10px; }
+  .config-row { display: flex; justify-content: space-between; align-items: center; }
+  .config-label { font-size: 12px; color: var(--text2); }
+  .config-val {
+    font-family: var(--font);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    width: 64px;
+    text-align: right;
+    outline: none;
+    color: var(--text);
+  }
+
+  .watchlist { display: flex; flex-direction: column; gap: 2px; }
+  .watch-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+  }
+  .watch-item:hover { background: var(--bg3); }
+  .watch-item.active { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
+  .watch-sym { font-family: var(--font); font-size: 12px; font-weight: 600; flex: 1; }
+  .watch-rsi { font-family: var(--font); font-size: 11px; }
+  .watch-sig { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
+  .sig-buy { background: var(--green-dim); color: var(--green); }
+  .sig-sell { background: var(--red-dim); color: var(--red); }
+  .sig-wait { background: var(--amber-dim); color: var(--amber); }
+  .sig-none { background: var(--bg3); color: var(--text3); }
+  .watch-chk { width: 14px; height: 14px; cursor: pointer; accent-color: var(--blue); }
+
+  .main-area { display: flex; flex-direction: column; overflow-y: auto; }
+
+  .stock-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .stock-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .stock-price { font-family: var(--font); font-size: 28px; font-weight: 600; }
+  .stock-chg { font-size: 13px; font-family: var(--font); }
+  .metrics-row { display: flex; gap: 12px; flex-wrap: wrap; padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 120px;
+  }
+  .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .metric-val { font-family: var(--font); font-size: 18px; font-weight: 600; }
+  .metric-val.green { color: var(--green); }
+  .metric-val.red { color: var(--red); }
+  .metric-val.amber { color: var(--amber); }
+  .metric-val.blue { color: var(--blue); }
+
+  .charts-area { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
+  .chart-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .chart-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+  .signal-banner {
+    margin: 0 24px 16px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+  }
+  .signal-banner.buy { background: var(--green-dim); border: 1px solid rgba(34,197,94,0.3); }
+  .signal-banner.sell { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.3); }
+  .signal-banner.wait { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.3); }
+  .signal-banner.hold { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); }
+  .signal-banner.none { background: var(--bg3); border: 1px solid var(--border); }
+
+  .trade-section { padding: 0 24px 24px; }
+  .trade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .trade-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .trade-table th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .trade-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: var(--font); }
+  .trade-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--sans); }
+  .badge-buy { background: var(--green-dim); color: var(--green); }
+  .badge-sell { background: var(--red-dim); color: var(--red); }
+  .badge-recov { background: var(--blue-dim); color: var(--blue); }
+  .badge-sl { background: rgba(168,85,247,0.12); color: var(--purple); }
+
+  .sl-tracker {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 0 24px 20px;
+  }
+  .sl-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .sl-progress { width: 100%; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .sl-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  .tab-row { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .tab-btn { padding: 10px 16px; font-size: 12px; color: var(--text3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: var(--sans); }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-btn:hover:not(.active) { color: var(--text2); }
+
+  .tab-content { display: none; }
+  .tab-content.visible { display: block; }
+
+  .log-wrap { padding: 12px 24px; max-height: 340px; overflow-y: auto; }
+  .log-entry { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+  .log-time { font-family: var(--font); color: var(--text3); white-space: nowrap; min-width: 120px; }
+  .log-msg { color: var(--text2); flex: 1; }
+  .log-buy { color: var(--green); }
+  .log-sell { color: var(--red); }
+  .log-warn { color: var(--amber); }
+  .log-info { color: var(--blue); }
+
+  .rank-table-wrap { padding: 0 24px 24px; overflow-x: auto; }
+  .rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .rank-table th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); font-weight: 500; }
+  .rank-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: var(--font); }
+  .rank-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
+  .rank-table tr.active-row td { background: rgba(59,130,246,0.06); }
+  .score-bar-bg { width: 50px; height: 3px; background: var(--bg3); border-radius: 2px; display: inline-block; vertical-align: middle; margin-right: 4px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; display: inline-block; }
+
+  .auto-trade-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border-radius: 8px; margin-bottom: 10px; }
+  .toggle { position: relative; width: 36px; height: 20px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider-toggle { position: absolute; inset: 0; background: var(--border2); border-radius: 10px; cursor: pointer; transition: background 0.2s; }
+  .slider-toggle:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
+  input:checked + .slider-toggle { background: var(--green); }
+  input:checked + .slider-toggle:before { transform: translateX(16px); }
+  .toggle-label { font-size: 12px; color: var(--text2); flex: 1; }
+
+  .position-panel {
+    margin: 0 24px 20px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .position-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .position-body { padding: 16px; }
+  .pos-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
+  .pos-key { color: var(--text3); }
+  .pos-val { font-family: var(--font); }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .scanning-overlay { position: absolute; inset: 0; background: rgba(10,11,13,0.85); display: flex; align-items: center; justify-content: center; z-index: 10; border-radius: 10px; font-family: var(--font); font-size: 12px; color: var(--green); }
+  .spin { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+
+<script>
+// ── LICENSE GUARD ─────────────────────────────────────────────────────────────
+(function() {
+  const LICENSE_KEY = 'rsi_trader_license_v1';
+  function getLicense() {
+    try { const r = localStorage.getItem(LICENSE_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
+  }
+  // Check on load — if no license or not logged in via Netlify Identity, redirect
+  const lic = getLicense();
+  if (!lic || !lic.key) {
+    window.location.href = '/index.html';
+  }
+})();
+</script>
+
+<div class="topbar">
+  <div class="logo">RSI<span>//</span>ALGO</div>
+  <div style="font-size:11px; color:var(--text3); font-family:var(--font)">Nifty 50 · 15m</div>
+  <div style="font-size:11px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); color:var(--blue); padding:3px 8px; border-radius:4px; font-size:10px;">Strategy: RSI 60/40/42</div>
+  <div class="market-status" style="margin-left:auto">
+    <span class="status-dot" id="mktDot"></span>
+    <span id="mktLabel" style="font-size:11px">Market Open</span>
+    <span class="time-display" id="clockEl">—</span>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Zerodha API Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-label"><i class="ti ti-key" aria-hidden="true"></i> Zerodha Kite API</div>
+      <div class="api-input-wrap">
+        <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
+        <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off">
+        <input class="api-input" id="accessToken" type="password" placeholder="Access Token" autocomplete="off">
+        <div class="api-row">
+          <button class="btn primary" onclick="connectZerodha()" style="flex:1">
+            <i class="ti ti-plug" aria-hidden="true"></i> Connect
+          </button>
+          <button class="btn" onclick="openKiteLogin()">
+            <i class="ti ti-external-link" aria-hidden="true"></i> Login
+          </button>
+        </div>
+        <div class="conn-status idle" id="connStatus">
+          <i class="ti ti-circle-dashed" aria-hidden="true"></i> Not connected
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-label"><i class="ti ti-adjustments" aria-hidden="true"></i> Strategy Parameters</div>
+      <div class="strategy-config">
+        <div class="config-row">
+          <span class="config-label">RSI Period</span>
+          <input class="config-val" type="number" id="cfgRsiPeriod" value="14" min="5" max="30">
+        </div>
+        <div class="config-row">
+          <span class="config-label">Buy threshold</span>
+          <input class="config-val" type="number" id="cfgBuy" value="60" min="50" max="80">
+        </div>
+        <div class="config-row">
+          <span class="config-label">Sell threshold</span>
+          <input class="config-val" type="number" id="cfgSell" value="40" min="20" max="50">
+        </div>
+        <div class="config-row">
+          <span class="config-label">Recovery entry</span>
+          <input class="config-val" type="number" id="cfgRecov" value="42" min="30" max="55">
+        </div>
+        <div class="config-row">
+          <span class="config-label">Trailing SL %</span>
+          <input class="config-val" type="number" id="cfgSL" value="20" min="5" max="50">
+        </div>
+        <div class="config-row">
+          <span class="config-label">Qty per trade</span>
+          <input class="config-val" type="number" id="cfgQty" value="1" min="1" max="500">
+        </div>
+        <button class="btn amber" onclick="applyConfig()" style="width:100%; justify-content:center; margin-top:4px">
+          <i class="ti ti-check" aria-hidden="true"></i> Apply Config
+        </button>
+      </div>
+    </div>
+
+    <!-- Auto-trade toggles -->
+    <div class="sidebar-section">
+      <div class="sidebar-label"><i class="ti ti-robot" aria-hidden="true"></i> Automation</div>
+
+      <!-- Auto-trade master toggle -->
+      <div class="auto-trade-row" style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.15); border-radius:8px; margin-bottom:8px;">
+        <label class="toggle"><input type="checkbox" id="tglAutoTrade" onchange="onAutoTradeToggle()"><span class="slider-toggle"></span></label>
+        <span class="toggle-label" style="color:var(--green); font-weight:600;">Auto-execute trades</span>
+      </div>
+
+      <!-- Auto-trade status indicator -->
+      <div id="autoTradeStatus" style="font-size:11px; padding:8px 10px; border-radius:6px; margin-bottom:8px; background:var(--bg3); color:var(--text3); border:1px solid var(--border); display:flex; align-items:center; gap:6px;">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block" id="atDot"></span>
+        <span id="atStatusText">Disabled — toggle to activate</span>
+      </div>
+
+      <!-- Target stock for auto-trading -->
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px; color:var(--text3); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Auto-trade target stock</div>
+        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); padding:8px 10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px;">
+          <i class="ti ti-target" aria-hidden="true" style="color:var(--blue)"></i>
+          <span id="autoTradeTarget" style="font-family:var(--font); font-weight:600; color:var(--text)">TCS</span>
+          <span style="margin-left:auto; font-size:10px; color:var(--text3)">selected stock</span>
+        </div>
+        <div style="font-size:10px; color:var(--text3); margin-top:4px; line-height:1.4;">Auto-trades follow whichever stock is active in the watchlist.</div>
+      </div>
+
+      <!-- Other toggles -->
+      <div class="auto-trade-row">
+        <label class="toggle"><input type="checkbox" id="tglAlerts" checked><span class="slider-toggle"></span></label>
+        <span class="toggle-label">Signal alerts</span>
+      </div>
+      <div class="auto-trade-row">
+        <label class="toggle"><input type="checkbox" id="tglTrailingSL" checked><span class="slider-toggle"></span></label>
+        <span class="toggle-label">Trailing stop loss</span>
+      </div>
+
+      <!-- Auto-trade session stats -->
+      <div id="autoTradeStats" style="display:none; margin-top:8px; padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border);">
+        <div style="font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Session Stats</div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+          <span style="color:var(--text3)">Auto-orders</span>
+          <span id="atOrderCount" style="font-family:var(--font); color:var(--text)">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+          <span style="color:var(--text3)">BUY orders</span>
+          <span id="atBuyCount" style="font-family:var(--font); color:var(--green)">0</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px;">
+          <span style="color:var(--text3)">SELL orders</span>
+          <span id="atSellCount" style="font-family:var(--font); color:var(--red)">0</span>
+        </div>
+      </div>
+
+      <div style="font-size:10px; color:var(--text3); line-height:1.5; margin-top:8px; padding:8px; background:var(--bg3); border-radius:6px;">
+        ⚠ Requires Zerodha connection. Orders placed via Kite API on the selected stock only. Use at your own risk.
+      </div>
+    </div>
+
+    <!-- Watchlist -->
+    <div class="sidebar-section" style="flex:1">
+      <div class="sidebar-label" style="display:flex; align-items:center; justify-content:space-between">
+        <span><i class="ti ti-list-check" aria-hidden="true"></i> Watchlist</span>
+        <button class="btn" style="padding:2px 6px; font-size:10px" onclick="refreshAll()">
+          <i class="ti ti-refresh" aria-hidden="true" style="font-size:12px"></i>
+        </button>
+      </div>
+      <div class="watchlist" id="watchlist"></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main-area">
+
+    <!-- Stock header -->
+    <div class="stock-header">
+      <div>
+        <div class="stock-title" id="hTitle">TCS.NS</div>
+        <div style="font-size:12px; color:var(--text3); font-family:var(--font); margin-top:2px" id="hFull">Tata Consultancy Services</div>
+      </div>
+      <div style="text-align:right; margin-left:auto">
+        <div class="stock-price" id="hPrice">₹—</div>
+        <div class="stock-chg" id="hChg" style="color:var(--text3)">—</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <button class="btn primary" id="btnBuy" onclick="manualOrder('BUY')">
+          <i class="ti ti-trending-up" aria-hidden="true"></i> Buy
+        </button>
+        <button class="btn danger" id="btnSell" onclick="manualOrder('SELL')">
+          <i class="ti ti-trending-down" aria-hidden="true"></i> Sell
+        </button>
+        <button class="btn" onclick="refreshActive()">
+          <i class="ti ti-refresh" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Signal banner -->
+    <div class="signal-banner none" id="signalBanner">
+      <i class="ti ti-info-circle" aria-hidden="true" style="font-size:18px"></i>
+      <div>
+        <div style="font-weight:600; font-size:13px" id="sigTitle">No active signal</div>
+        <div style="font-size:11px; color:var(--text2); margin-top:2px" id="sigDesc">Waiting for RSI crossover…</div>
+      </div>
+    </div>
+
+    <!-- Metrics row -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-label">Current RSI</div>
+        <div class="metric-val blue" id="mRsi">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Trades</div>
+        <div class="metric-val" id="mTrades">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Win Rate</div>
+        <div class="metric-val green" id="mWin">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">P&L (₹)</div>
+        <div class="metric-val" id="mPnl">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Trailing SL</div>
+        <div class="metric-val amber" id="mSl">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Confidence</div>
+        <div class="metric-val" id="mConf">—</div>
+      </div>
+    </div>
+
+    <!-- Open Position Panel -->
+    <div class="position-panel" id="posPanel" style="display:none">
+      <div class="position-head">
+        <span style="font-size:12px; font-weight:500; color:var(--green)"><i class="ti ti-circle-filled" style="font-size:8px; margin-right:4px" aria-hidden="true"></i>Open Position</span>
+        <button class="btn danger" style="padding:4px 10px; font-size:11px" onclick="closePosition()">
+          <i class="ti ti-x" aria-hidden="true"></i> Close
+        </button>
+      </div>
+      <div class="position-body">
+        <div class="pos-stat"><span class="pos-key">Entry Price</span><span class="pos-val" id="posEntry">—</span></div>
+        <div class="pos-stat"><span class="pos-key">Entry Type</span><span class="pos-val" id="posType">—</span></div>
+        <div class="pos-stat"><span class="pos-key">Qty</span><span class="pos-val" id="posQty">—</span></div>
+        <div class="pos-stat"><span class="pos-key">Unrealised P&L</span><span class="pos-val" id="posUnreal">—</span></div>
+        <div class="pos-stat" style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)">
+          <span class="pos-key">Trailing SL Price</span>
+          <span class="pos-val amber" id="posSlPrice">—</span>
+        </div>
+        <div class="pos-stat">
+          <span class="pos-key">RSI at entry</span>
+          <span class="pos-val" id="posRsiEntry">—</span>
+        </div>
+        <div class="sl-progress" style="margin-top:10px">
+          <div class="sl-fill" id="slProgressBar" style="background:var(--amber); width:0%"></div>
+        </div>
+        <div style="font-size:10px; color:var(--text3); margin-top:4px" id="slProgressLabel">Stop loss progress</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-area">
+      <div class="chart-block" style="position:relative">
+        <div class="chart-title">
+          Price · 15min candles
+          <div style="display:flex; gap:12px; margin-left:auto">
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Price</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
+          </div>
+        </div>
+        <div style="position:relative; width:100%; height:220px">
+          <canvas id="priceChart" role="img" aria-label="Stock price chart with buy, sell and trailing stop loss markers">Loading…</canvas>
+        </div>
+      </div>
+      <div class="chart-block">
+        <div class="chart-title">
+          RSI (14) · Strategy Levels
+          <div style="display:flex; gap:12px; margin-left:auto">
+            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>60 buy</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>42 recovery</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>40 sell</div>
+          </div>
+        </div>
+        <div style="position:relative; width:100%; height:160px">
+          <canvas id="rsiChart" role="img" aria-label="RSI indicator with buy sell and recovery threshold lines">Loading…</canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="showTab('trades')">Trade Log</button>
+      <button class="tab-btn" onclick="showTab('ranking')">Stock Ranking</button>
+      <button class="tab-btn" onclick="showTab('activity')">Activity Log</button>
+    </div>
+
+    <!-- Trade Log -->
+    <div class="tab-content visible" id="tab-trades">
+      <div style="padding:16px 24px 8px; display:flex; align-items:center; justify-content:space-between">
+        <span style="font-size:11px; color:var(--text3)">Completed trades this session</span>
+        <button class="btn" onclick="clearTrades()" style="font-size:10px; padding:3px 8px">Clear</button>
+      </div>
+      <div class="trade-section">
+        <table class="trade-table">
+          <thead><tr>
+            <th>Date/Time</th><th>Type</th><th>Price</th><th>RSI</th><th>P&L ₹</th><th>SL Hit</th>
+          </tr></thead>
+          <tbody id="tradeBody"></tbody>
+        </table>
+        <div id="noTrades" style="text-align:center; padding:24px; font-size:12px; color:var(--text3)">No trades yet. Strategy running…</div>
+      </div>
+    </div>
+
+    <!-- Ranking -->
+    <div class="tab-content" id="tab-ranking">
+      <div class="rank-table-wrap">
+        <table class="rank-table">
+          <thead><tr>
+            <th>#</th><th>Symbol</th><th>Last RSI</th><th>Signal</th><th>Trades</th><th>Win %</th><th>P&L ₹</th><th>Score</th>
+          </tr></thead>
+          <tbody id="rankBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Activity -->
+    <div class="tab-content" id="tab-activity">
+      <div class="log-wrap" id="activityLog"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── NIFTY 50 UNIVERSE ─────────────────────────────────────────────────────
+const NIFTY50 = [
+  {sym:'RELIANCE.NS', name:'Reliance Industries'},
+  {sym:'TCS.NS', name:'Tata Consultancy Services'},
+  {sym:'HDFCBANK.NS', name:'HDFC Bank'},
+  {sym:'INFY.NS', name:'Infosys'},
+  {sym:'ICICIBANK.NS', name:'ICICI Bank'},
+  {sym:'HINDUNILVR.NS', name:'Hindustan Unilever'},
+  {sym:'ITC.NS', name:'ITC Limited'},
+  {sym:'SBIN.NS', name:'State Bank of India'},
+  {sym:'BHARTIARTL.NS', name:'Bharti Airtel'},
+  {sym:'KOTAKBANK.NS', name:'Kotak Mahindra Bank'},
+  {sym:'LT.NS', name:'Larsen & Toubro'},
+  {sym:'BAJFINANCE.NS', name:'Bajaj Finance'},
+  {sym:'AXISBANK.NS', name:'Axis Bank'},
+  {sym:'ASIANPAINT.NS', name:'Asian Paints'},
+  {sym:'MARUTI.NS', name:'Maruti Suzuki'},
+  {sym:'HCLTECH.NS', name:'HCL Technologies'},
+  {sym:'TATAMOTORS.NS', name:'Tata Motors'},
+  {sym:'SUNPHARMA.NS', name:'Sun Pharmaceutical'},
+  {sym:'WIPRO.NS', name:'Wipro'},
+  {sym:'ULTRACEMCO.NS', name:'UltraTech Cement'},
+  {sym:'TITAN.NS', name:'Titan Company'},
+  {sym:'NTPC.NS', name:'NTPC'},
+  {sym:'POWERGRID.NS', name:'Power Grid Corp'},
+  {sym:'NESTLEIND.NS', name:'Nestlé India'},
+  {sym:'TECHM.NS', name:'Tech Mahindra'},
+  {sym:'BAJAJFINSV.NS', name:'Bajaj Finserv'},
+  {sym:'ONGC.NS', name:'ONGC'},
+  {sym:'TATASTEEL.NS', name:'Tata Steel'},
+  {sym:'INDUSINDBK.NS', name:'IndusInd Bank'},
+  {sym:'DRREDDY.NS', name:'Dr. Reddy\'s'},
+];
+
+// ─── STATE ─────────────────────────────────────────────────────────────────
+let activeStock = 'TCS.NS';
+let zerodhaConnected = false;
+let accessTokenVal = '';
+let apiKeyVal = '';
+let priceChart, rsiChart;
+let stockData = {}; // sym -> {prices, rsi, trades, position}
+let activityEntries = [];
+let globalTradesAll = [];
+let scanInterval = null;
+let clockInterval = null;
+
+// Strategy params
+let CFG = {
+  rsiPeriod: 14,
+  buyThresh: 60,
+  sellThresh: 40,
+  recovThresh: 42,
+  trailPct: 20,
+  qty: 1
+};
+
+// ─── CLOCK ─────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockEl').textContent = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  const h = now.getHours(), m = now.getMinutes();
+  const isOpen = (h > 9 || (h===9 && m>=15)) && (h < 15 || (h===15 && m<=30));
+  const dot = document.getElementById('mktDot');
+  const lbl = document.getElementById('mktLabel');
+  if (isOpen) { dot.classList.remove('closed'); lbl.textContent='Market Open'; }
+  else { dot.classList.add('closed'); lbl.textContent='Market Closed'; }
+}
+clockInterval = setInterval(updateClock, 1000);
+updateClock();
+
+// ─── RSI CALCULATION ───────────────────────────────────────────────────────
+function calcRSI(prices, period) {
+  if (prices.length < period + 1) return prices.map(() => null);
+  const rsiArr = new Array(period).fill(null);
+  let gains = 0, losses = 0;
+  for (let i = 1; i <= period; i++) {
+    const diff = prices[i] - prices[i-1];
+    if (diff > 0) gains += diff; else losses += Math.abs(diff);
+  }
+  let avgGain = gains / period, avgLoss = losses / period;
+  rsiArr.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+  for (let i = period + 1; i < prices.length; i++) {
+    const diff = prices[i] - prices[i-1];
+    const g = diff > 0 ? diff : 0, l = diff < 0 ? Math.abs(diff) : 0;
+    avgGain = (avgGain * (period - 1) + g) / period;
+    avgLoss = (avgLoss * (period - 1) + l) / period;
+    rsiArr.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+  }
+  return rsiArr;
+}
+
+// ─── STRATEGY SIMULATION ───────────────────────────────────────────────────
+function runStrategy(prices, labels) {
+  const rsi = calcRSI(prices, CFG.rsiPeriod);
+  const trades = [];
+  let pos = false, buyPrice = 0, buyRsi = 0, buyType = '', buyIdx = 0;
+  let wasBelow40 = false, completedFirst = false;
+  let trailSL = [], trailActive = false, slPrice = 0;
+
+  for (let i = 1; i < prices.length; i++) {
+    const cr = rsi[i], pr = rsi[i-1], cp = prices[i];
+    if (cr === null || pr === null) { trailSL.push(null); continue; }
+
+    if (pos) {
+      // Update trailing stop
+      if (document.getElementById('tglTrailingSL').checked) {
+        const newSL = cp * (1 - CFG.trailPct / 100);
+        slPrice = Math.max(slPrice, newSL);
+        trailSL.push(slPrice);
+        trailActive = true;
+      } else {
+        trailSL.push(null);
+      }
+
+      // Sell: RSI drops below 40 OR trailing SL hit
+      const slHit = trailActive && cp <= slPrice;
+      if (cr < CFG.sellThresh || slHit) {
+        const pnl = (cp - buyPrice) * CFG.qty;
+        trades.push({ idx: i, type: 'SELL', price: cp, rsi: cr, pnl, date: labels[i], slHit, buyType });
+        pos = false; wasBelow40 = true; completedFirst = true;
+        trailActive = false; slPrice = 0;
+      }
+    } else {
+      trailSL.push(null);
+      // First buy: RSI crosses above 60
+      if (!completedFirst && pr < CFG.buyThresh && cr >= CFG.buyThresh) {
+        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'BUY'; buyIdx = i;
+        slPrice = cp * (1 - CFG.trailPct / 100);
+        trades.push({ idx: i, type: 'BUY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'BUY' });
+      }
+      // Recovery buy: RSI rises above 42 after being below 40
+      else if (completedFirst && wasBelow40 && pr < CFG.recovThresh && cr >= CFG.recovThresh) {
+        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'RECOVERY'; buyIdx = i;
+        slPrice = cp * (1 - CFG.trailPct / 100);
+        wasBelow40 = false;
+        trades.push({ idx: i, type: 'RECOVERY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'RECOVERY' });
+      }
+      // Any subsequent buy after sell (without waiting for below 40 -> recovery)
+      else if (completedFirst && !wasBelow40 && pr < CFG.buyThresh && cr >= CFG.buyThresh) {
+        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'BUY'; buyIdx = i;
+        slPrice = cp * (1 - CFG.trailPct / 100);
+        trades.push({ idx: i, type: 'BUY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'BUY' });
+      }
+    }
+  }
+
+  // Compute metrics
+  const sells = trades.filter(t => t.type === 'SELL');
+  const n = sells.length;
+  const wins = sells.filter(t => t.pnl > 0).length;
+  const totalPnl = sells.reduce((s,t) => s + t.pnl, 0);
+  const winRate = n ? (wins/n)*100 : 0;
+  const currentRsi = rsi[rsi.length-1] || 0;
+  const conf = Math.min(100, Math.round(winRate * 0.6 + Math.min(Math.max(totalPnl,0)*0.05, 40)));
+
+  return { rsi, trades, metrics: { n, wins, totalPnl, winRate, currentRsi, conf }, trailSL, inPosition: pos };
+}
+
+// ─── SIMULATED PRICE DATA ──────────────────────────────────────────────────
+function generatePriceData(sym) {
+  // Deterministic seeded simulation per symbol
+  const seeds = { 'TCS.NS':3200,'INFY.NS':1500,'HDFCBANK.NS':1800,'RELIANCE.NS':1400,'ICICIBANK.NS':1250,
+    'HINDUNILVR.NS':2400,'ITC.NS':460,'SBIN.NS':820,'BHARTIARTL.NS':1680,'KOTAKBANK.NS':1920,
+    'LT.NS':3400,'BAJFINANCE.NS':7200,'AXISBANK.NS':1150,'ASIANPAINT.NS':2200,'MARUTI.NS':13000,
+    'HCLTECH.NS':1680,'TATAMOTORS.NS':780,'SUNPHARMA.NS':1750,'WIPRO.NS':540,'ULTRACEMCO.NS':12000,
+    'TITAN.NS':3600,'NTPC.NS':340,'POWERGRID.NS':290,'NESTLEIND.NS':2300,'TECHM.NS':1480,
+    'BAJAJFINSV.NS':1680,'ONGC.NS':270,'TATASTEEL.NS':155,'INDUSINDBK.NS':980,'DRREDDY.NS':5800 };
+  const base = seeds[sym] || 1000;
+  const prices = [base];
+  const labels = [];
+  const now = new Date();
+  for (let i = 119; i >= 0; i--) {
+    const d = new Date(now - i * 15 * 60000);
+    labels.push(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+  }
+  // seed from sym string
+  let seed = sym.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  for (let i = 1; i < 120; i++) {
+    const change = (rand() - 0.48) * base * 0.004;
+    prices.push(Math.max(prices[i-1] + change, base * 0.7));
+  }
+  return { prices, labels };
+}
+
+// ─── INIT DATA ─────────────────────────────────────────────────────────────
+function loadStockData(sym) {
+  if (stockData[sym]) return stockData[sym];
+  const { prices, labels } = generatePriceData(sym);
+  const { rsi, trades, metrics, trailSL, inPosition } = runStrategy(prices, labels);
+  stockData[sym] = { prices, labels, rsi, trades, metrics, trailSL, inPosition, position: null };
+  return stockData[sym];
+}
+
+// ─── WATCHLIST ─────────────────────────────────────────────────────────────
+function buildWatchlist() {
+  const el = document.getElementById('watchlist');
+  el.innerHTML = '';
+  NIFTY50.forEach(({sym}) => {
+    const d = loadStockData(sym);
+    const cr = d.metrics.currentRsi;
+    const sig = cr >= CFG.buyThresh ? 'BUY' : cr < CFG.sellThresh ? 'SELL' : (cr >= CFG.recovThresh && cr < CFG.sellThresh+5) ? 'WAIT' : 'HOLD';
+    const sigClass = sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
+    const rsiColor = cr >= CFG.buyThresh ? 'var(--green)' : cr < CFG.sellThresh ? 'var(--red)' : 'var(--text2)';
+    const div = document.createElement('div');
+    div.className = 'watch-item' + (sym===activeStock?' active':'');
+    div.id = 'wi_'+sym.replace('.','_');
+    div.innerHTML = `
+      <input type="checkbox" class="watch-chk" checked title="Include in scan">
+      <span class="watch-sym">${sym.replace('.NS','')}</span>
+      <span class="watch-rsi" style="color:${rsiColor}">${cr.toFixed(1)}</span>
+      <span class="watch-sig ${sigClass}">${sig}</span>
+    `;
+    div.querySelector('span.watch-sym').onclick = () => switchStock(sym);
+    div.querySelector('.watch-rsi').onclick = () => switchStock(sym);
+    div.querySelector('.watch-sig').onclick = () => switchStock(sym);
+    el.appendChild(div);
+  });
+}
+
+// ─── SWITCH STOCK ──────────────────────────────────────────────────────────
+function switchStock(sym) {
+  activeStock = sym;
+  document.querySelectorAll('.watch-item').forEach(el => el.classList.remove('active'));
+  const wi = document.getElementById('wi_'+sym.replace('.','_'));
+  if (wi) wi.classList.add('active');
+  const info = NIFTY50.find(s=>s.sym===sym);
+  document.getElementById('hTitle').textContent = sym.replace('.NS','');
+  document.getElementById('hFull').textContent = info ? info.name : '';
+  // Update auto-trade target label
+  const atTarget = document.getElementById('autoTradeTarget');
+  if (atTarget) atTarget.textContent = sym.replace('.NS','');
+  renderActive();
+}
+
+// ─── RENDER ACTIVE STOCK ───────────────────────────────────────────────────
+function renderActive() {
+  const d = loadStockData(activeStock);
+  const { prices, labels, rsi, trades, metrics, trailSL } = d;
+  const lastPrice = prices[prices.length-1];
+  const prevPrice = prices[prices.length-2] || lastPrice;
+  const chgPct = ((lastPrice - prevPrice)/prevPrice*100).toFixed(2);
+  const chgColor = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('hPrice').textContent = '₹'+lastPrice.toFixed(2);
+  document.getElementById('hChg').textContent = (chgPct>=0?'+':'')+chgPct+'%';
+  document.getElementById('hChg').style.color = chgColor;
+
+  // Metrics
+  document.getElementById('mRsi').textContent = metrics.currentRsi.toFixed(1);
+  document.getElementById('mRsi').className = 'metric-val ' + (metrics.currentRsi>=CFG.buyThresh?'green':metrics.currentRsi<CFG.sellThresh?'red':'blue');
+  document.getElementById('mTrades').textContent = metrics.n;
+  document.getElementById('mWin').textContent = metrics.winRate.toFixed(1)+'%';
+  const pnlEl = document.getElementById('mPnl');
+  pnlEl.textContent = (metrics.totalPnl>=0?'+':'')+'₹'+metrics.totalPnl.toFixed(0);
+  pnlEl.className = 'metric-val '+(metrics.totalPnl>=0?'green':'red');
+
+  // Trailing SL metric
+  const lastSL = trailSL.filter(Boolean).at(-1);
+  document.getElementById('mSl').textContent = lastSL ? '₹'+lastSL.toFixed(2) : '—';
+
+  // Confidence
+  const confEl = document.getElementById('mConf');
+  confEl.textContent = metrics.conf+'/100';
+  confEl.className = 'metric-val '+(metrics.conf>=70?'green':metrics.conf>=50?'amber':'red');
+
+  // Signal banner
+  const cr = metrics.currentRsi;
+  const pr = rsi[rsi.length-2] || cr;
+  updateSignalBanner(cr, pr, d.inPosition);
+
+  // Charts
+  renderCharts(d);
+  renderTradeLog(trades);
+  renderPosition(d, lastPrice);
+}
+
+function updateSignalBanner(cr, pr, inPos) {
+  const banner = document.getElementById('signalBanner');
+  const title = document.getElementById('sigTitle');
+  const desc = document.getElementById('sigDesc');
+  banner.className = 'signal-banner';
+
+  if (inPos) {
+    banner.classList.add('hold');
+    title.textContent = 'Position Open';
+    desc.textContent = `Holding. RSI ${cr.toFixed(1)} — watching for RSI < ${CFG.sellThresh} to sell or SL hit.`;
+  } else if (cr >= CFG.buyThresh && pr < CFG.buyThresh) {
+    banner.classList.add('buy');
+    title.textContent = '🟢 BUY Signal — RSI crossed above '+CFG.buyThresh;
+    desc.textContent = `RSI: ${cr.toFixed(1)} — Momentum building. Consider entering now.`;
+  } else if (cr < CFG.sellThresh) {
+    banner.classList.add('sell');
+    title.textContent = '🔴 SELL Signal — RSI below '+CFG.sellThresh;
+    desc.textContent = `RSI: ${cr.toFixed(1)} — Sell and watch for recovery above ${CFG.recovThresh}.`;
+  } else if (cr >= CFG.recovThresh && pr < CFG.recovThresh) {
+    banner.classList.add('buy');
+    title.textContent = '🔵 Recovery BUY — RSI above '+CFG.recovThresh;
+    desc.textContent = `RSI: ${cr.toFixed(1)} — Post-dip recovery entry. Trailing SL active.`;
+  } else if (cr >= CFG.sellThresh && cr < CFG.recovThresh) {
+    banner.classList.add('wait');
+    title.textContent = '🟡 Wait — RSI in neutral zone ('+CFG.sellThresh+'–'+CFG.recovThresh+')';
+    desc.textContent = `RSI: ${cr.toFixed(1)} — Monitoring for recovery breakout above ${CFG.recovThresh}.`;
+  } else {
+    banner.classList.add('none');
+    title.textContent = 'No signal — RSI neutral';
+    desc.textContent = `RSI: ${cr.toFixed(1)} — Watching for crossover above ${CFG.buyThresh} or below ${CFG.sellThresh}.`;
+  }
+}
+
+// ─── CHARTS ────────────────────────────────────────────────────────────────
+function renderCharts(d) {
+  const { prices, labels, rsi, trades, trailSL } = d;
+  const N = labels.length;
+
+  const buyPts = new Array(N).fill(null);
+  const sellPts = new Array(N).fill(null);
+  trades.forEach(t => {
+    if (t.type==='BUY'||t.type==='RECOVERY') buyPts[t.idx] = t.price;
+    if (t.type==='SELL') sellPts[t.idx] = t.price;
+  });
+
+  // Price chart
+  if (priceChart) priceChart.destroy();
+  const pc = document.getElementById('priceChart').getContext('2d');
+  priceChart = new Chart(pc, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
+        {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
+        {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
+        {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
+      scales:{
+        x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    }
+  });
+
+  // RSI chart
+  if (rsiChart) rsiChart.destroy();
+  const rc = document.getElementById('rsiChart').getContext('2d');
+  const buyRsiPts = new Array(N).fill(null);
+  const sellRsiPts = new Array(N).fill(null);
+  trades.forEach(t => {
+    if (t.type==='BUY'||t.type==='RECOVERY') buyRsiPts[t.idx] = t.rsi;
+    if (t.type==='SELL') sellRsiPts[t.idx] = t.rsi;
+  });
+  rsiChart = new Chart(rc, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'RSI',data:rsi,borderColor:'#a855f7',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2},
+        {label:'Buy sig',data:buyRsiPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:5,pointStyle:'triangle'},
+        {label:'Sell sig',data:sellRsiPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:5,pointStyle:'rectRot'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        annotation:{annotations:{
+          // We draw threshold lines manually via custom plugin below
+        }}
+      },
+      scales:{
+        x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}
+      }
+    },
+    plugins:[{
+      id:'rsiLines',
+      afterDraw(chart) {
+        const ctx = chart.ctx;
+        const {top,bottom,left,right} = chart.chartArea;
+        const ys = chart.scales.y;
+        const lines = [
+          {val:CFG.buyThresh,color:'rgba(34,197,94,0.5)'},
+          {val:CFG.recovThresh,color:'rgba(59,130,246,0.5)'},
+          {val:CFG.sellThresh,color:'rgba(239,68,68,0.5)'}
+        ];
+        lines.forEach(({val,color}) => {
+          const y = ys.getPixelForValue(val);
+          ctx.save();
+          ctx.setLineDash([5,4]);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(left,y); ctx.lineTo(right,y);
+          ctx.stroke();
+          ctx.fillStyle = color;
+          ctx.font = '9px monospace';
+          ctx.fillText(val, right-18, y-3);
+          ctx.restore();
+        });
+        // Shade zone between 40 and 42
+        ctx.save();
+        ctx.fillStyle = 'rgba(245,158,11,0.05)';
+        const y42 = ys.getPixelForValue(CFG.recovThresh);
+        const y40 = ys.getPixelForValue(CFG.sellThresh);
+        ctx.fillRect(left, y42, right-left, y40-y42);
+        ctx.restore();
+      }
+    }]
+  });
+}
+
+// ─── TRADE LOG TABLE ───────────────────────────────────────────────────────
+function renderTradeLog(trades) {
+  const body = document.getElementById('tradeBody');
+  const noEl = document.getElementById('noTrades');
+  const sells = trades.filter(t=>t.type==='SELL');
+  if (sells.length === 0) { body.innerHTML=''; noEl.style.display='block'; return; }
+  noEl.style.display = 'none';
+  body.innerHTML = sells.map(t => {
+    const pnlColor = t.pnl >= 0 ? 'var(--green)' : 'var(--red)';
+    const typeClass = t.buyType==='RECOVERY'?'badge-recov':'badge-buy';
+    return `<tr>
+      <td style="color:var(--text2)">${t.date}</td>
+      <td><span class="badge badge-sell">SELL</span></td>
+      <td>₹${t.price.toFixed(2)}</td>
+      <td style="color:var(--purple)">${t.rsi.toFixed(1)}</td>
+      <td style="color:${pnlColor}">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
+      <td>${t.slHit?'<span class="badge badge-sl">SL</span>':'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── POSITION PANEL ────────────────────────────────────────────────────────
+function renderPosition(d, lastPrice) {
+  const panel = document.getElementById('posPanel');
+  if (!d.inPosition) { panel.style.display='none'; return; }
+  panel.style.display='block';
+  const lastBuy = d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
+  if (!lastBuy) return;
+  const unreal = (lastPrice - lastBuy.price) * CFG.qty;
+  const slPrice = lastPrice * (1 - CFG.trailPct/100);
+  const slDist = ((lastPrice - slPrice)/lastPrice*100);
+  document.getElementById('posEntry').textContent = '₹'+lastBuy.price.toFixed(2);
+  document.getElementById('posType').innerHTML = `<span class="badge ${lastBuy.type==='RECOVERY'?'badge-recov':'badge-buy'}">${lastBuy.type}</span>`;
+  document.getElementById('posQty').textContent = CFG.qty + ' share(s)';
+  document.getElementById('posUnreal').textContent = (unreal>=0?'+':'')+'₹'+unreal.toFixed(2);
+  document.getElementById('posUnreal').style.color = unreal>=0?'var(--green)':'var(--red)';
+  document.getElementById('posSlPrice').textContent = '₹'+slPrice.toFixed(2);
+  document.getElementById('posRsiEntry').textContent = lastBuy.rsi.toFixed(1);
+  document.getElementById('slProgressBar').style.width = Math.min(slDist*5,100)+'%';
+  document.getElementById('slProgressBar').style.background = slDist > 15 ? 'var(--green)' : slDist > 8 ? 'var(--amber)' : 'var(--red)';
+  document.getElementById('slProgressLabel').textContent = `${slDist.toFixed(1)}% above stop loss`;
+}
+
+// ─── RANKING ───────────────────────────────────────────────────────────────
+function renderRanking() {
+  const rows = NIFTY50.map(({sym}) => {
+    const d = loadStockData(sym);
+    const m = d.metrics;
+    return { sym, cr:m.currentRsi, n:m.n, wr:m.winRate, pnl:m.totalPnl, conf:m.conf, inPos:d.inPosition };
+  }).sort((a,b)=>b.conf-a.conf);
+
+  document.getElementById('rankBody').innerHTML = rows.map((r,i)=>{
+    const rsiColor = r.cr>=CFG.buyThresh?'var(--green)':r.cr<CFG.sellThresh?'var(--red)':'var(--text2)';
+    const sig = r.cr>=CFG.buyThresh?'BUY':r.cr<CFG.sellThresh?'SELL':r.cr>=CFG.recovThresh?'WAIT':'HOLD';
+    const sigClass = sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
+    const pnlColor = r.pnl>=0?'var(--green)':'var(--red)';
+    const confColor = r.conf>=70?'var(--green)':r.conf>=50?'var(--amber)':'var(--red)';
+    const isAct = r.sym===activeStock;
+    return `<tr onclick="switchStock('${r.sym}')" class="${isAct?'active-row':''}">
+      <td style="color:var(--text3)">${i+1}</td>
+      <td style="color:var(--text); font-weight:600">${r.sym.replace('.NS','')}</td>
+      <td style="color:${rsiColor}">${r.cr.toFixed(1)}</td>
+      <td><span class="watch-sig ${sigClass}">${sig}</span></td>
+      <td>${r.n}</td>
+      <td>${r.wr.toFixed(1)}%</td>
+      <td style="color:${pnlColor}">${r.pnl>=0?'+':''}₹${r.pnl.toFixed(0)}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${r.conf}%;background:${confColor}"></div></div>
+          <span style="color:${confColor};font-size:11px">${r.conf}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── TABS ──────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('visible'));
+  document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('visible');
+  event.target.classList.add('active');
+  if (name==='ranking') renderRanking();
+}
+
+// ─── ACTIVITY LOG ──────────────────────────────────────────────────────────
+function addLog(msg, type='info') {
+  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  activityEntries.unshift({now, msg, type});
+  if (activityEntries.length > 200) activityEntries.pop();
+  const el = document.getElementById('activityLog');
+  el.innerHTML = activityEntries.map(e=>`
+    <div class="log-entry">
+      <span class="log-time">${e.now}</span>
+      <span class="log-msg log-${e.type}">${e.msg}</span>
+    </div>`).join('');
+}
+
+// ─── ZERODHA CONNECT ───────────────────────────────────────────────────────
+function connectZerodha() {
+  apiKeyVal = document.getElementById('apiKey').value.trim();
+  accessTokenVal = document.getElementById('accessToken').value.trim();
+  const status = document.getElementById('connStatus');
+
+  if (!apiKeyVal || !accessTokenVal) {
+    status.className = 'conn-status err';
+    status.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i> Enter API Key & Access Token';
+    addLog('Connection failed: missing credentials', 'warn');
+    return;
+  }
+
+  status.className = 'conn-status idle';
+  status.innerHTML = '<i class="ti ti-loader-2 spin" aria-hidden="true"></i> Connecting to Zerodha Kite…';
+
+  // Validate via Kite profile endpoint
+  fetch('https://api.kite.trade/user/profile', {
+    headers: { 'X-Kite-Version':'3', 'Authorization': 'token '+apiKeyVal+':'+accessTokenVal }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.status === 'success') {
+      zerodhaConnected = true;
+      status.className = 'conn-status ok';
+      status.innerHTML = `<i class="ti ti-circle-check" aria-hidden="true"></i> Connected — ${data.data.user_name}`;
+      addLog(`Zerodha connected: ${data.data.user_name} (${data.data.user_id})`, 'info');
+      startRealTimeScan();
+      // Update auto-trade status to reflect connection is available
+      const atTxt = document.getElementById('atStatusText');
+      if (atTxt && !document.getElementById('tglAutoTrade').checked) {
+        atTxt.textContent = 'Ready — enable toggle to activate';
+        document.getElementById('atDot').style.background = 'var(--amber)';
+      }
+    } else {
+      status.className = 'conn-status err';
+      status.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i> Auth failed — check token';
+      addLog('Zerodha auth failed: '+JSON.stringify(data.message), 'warn');
+    }
+  })
+  .catch(err => {
+    zerodhaConnected = false;
+    status.className = 'conn-status err';
+    status.innerHTML = '<i class="ti ti-wifi-off" aria-hidden="true"></i> Connection error';
+    addLog('Zerodha connection error: '+err.message, 'warn');
+  });
+}
+
+function openKiteLogin() {
+  const key = document.getElementById('apiKey').value.trim() || 'YOUR_API_KEY';
+  const url = `https://kite.zerodha.com/connect/login?v=3&api_key=${key}`;
+  window.open(url, '_blank');
+  addLog('Opened Kite login page for OAuth…', 'info');
+}
+
+// ─── REAL-TIME KITE SCAN ───────────────────────────────────────────────────
+async function fetchKiteQuote(symbols) {
+  const qs = symbols.map(s => `NSE:${s.replace('.NS','')}`).join(',');
+  const res = await fetch(`https://api.kite.trade/quote?i=${encodeURIComponent(qs)}`, {
+    headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal }
+  });
+  return res.json();
+}
+
+async function fetchKiteCandles(sym) {
+  const to = new Date();
+  const from = new Date(to - 60*24*60*60*1000);
+  const fmt = d => d.toISOString().split('T')[0];
+  const url = `https://api.kite.trade/instruments/historical/${sym}/15minute?from=${fmt(from)}&to=${fmt(to)}`;
+  const res = await fetch(url, {
+    headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal }
+  });
+  return res.json();
+}
+
+async function placeOrder(tradingsym, txnType, qty) {
+  if (!document.getElementById('tglAutoTrade').checked) {
+    addLog(`[SIMULATED — auto-trade off] ${txnType} ${qty}x ${tradingsym}`, 'info');
+    return;
+  }
+  const body = new URLSearchParams({
+    tradingsymbol: tradingsym,
+    exchange: 'NSE',
+    transaction_type: txnType,
+    order_type: 'MARKET',
+    quantity: qty,
+    product: 'MIS',
+    validity: 'DAY'
+  });
+  try {
+    const res = await fetch('https://api.kite.trade/orders/regular', {
+      method: 'POST',
+      headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal, 'Content-Type':'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await res.json();
+    if (data.status==='success') {
+      addLog(`Order placed: ${txnType} ${qty}x ${tradingsym} | Order ID: ${data.data.order_id}`, 'buy');
+      updateAutoTradeStats(txnType);
+    } else {
+      addLog(`Order FAILED: ${data.message}`, 'warn');
+    }
+  } catch(e) {
+    addLog(`Order error: ${e.message}`, 'warn');
+  }
+}
+
+function startRealTimeScan() {
+  if (scanInterval) clearInterval(scanInterval);
+  addLog('Real-time scan started — polling every 30s', 'info');
+  scanAndUpdate();
+  scanInterval = setInterval(scanAndUpdate, 30000);
+}
+
+async function scanAndUpdate() {
+  if (!zerodhaConnected) return;
+  try {
+    const activeSym = NIFTY50.filter((_,i)=>i<10).map(s=>s.sym);
+    const data = await fetchKiteQuote(activeSym);
+    if (data.status !== 'success') return;
+
+    for (const [key, quote] of Object.entries(data.data)) {
+      const sym = key.replace('NSE:','') + '.NS';
+      const d = stockData[sym];
+      if (!d) continue;
+      const newPrice = quote.last_price;
+      d.prices.push(newPrice);
+      d.prices.shift();
+      d.labels.push(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+      d.labels.shift();
+      const { rsi, trades, metrics, trailSL, inPosition } = runStrategy(d.prices, d.labels);
+      const prevIn = d.inPosition;
+      Object.assign(d, { rsi, trades, metrics, trailSL, inPosition });
+
+      // Check for new signals vs previous state
+      const cr = metrics.currentRsi;
+      const pr = rsi[rsi.length-2] || cr;
+      const isAutoTarget = sym === activeStock; // Only auto-trade the selected stock
+      const autoEnabled  = document.getElementById('tglAutoTrade').checked;
+
+      if (!prevIn && inPosition) {
+        const lastBuy = trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
+        if (lastBuy) {
+          addLog(`🟢 ${sym}: ${lastBuy.type} @ ₹${newPrice.toFixed(2)} | RSI ${cr.toFixed(1)}${isAutoTarget && autoEnabled ? ' → ORDER' : ''}`, 'buy');
+          if (zerodhaConnected && isAutoTarget && autoEnabled) {
+            placeOrder(sym.replace('.NS',''), 'BUY', CFG.qty);
+          }
+        }
+      } else if (prevIn && !inPosition) {
+        addLog(`🔴 ${sym}: SELL @ ₹${newPrice.toFixed(2)} | RSI ${cr.toFixed(1)}${isAutoTarget && autoEnabled ? ' → ORDER' : ''}`, 'sell');
+        if (zerodhaConnected && isAutoTarget && autoEnabled) {
+          placeOrder(sym.replace('.NS',''), 'SELL', CFG.qty);
+        }
+      }
+    }
+
+    // Update watchlist badges
+    buildWatchlist();
+    if (activeStock) renderActive();
+    addLog(`Scan complete — ${Object.keys(data.data).length} symbols updated`, 'info');
+  } catch(e) {
+    addLog('Scan error: '+e.message, 'warn');
+  }
+}
+
+// ─── MANUAL ORDER ──────────────────────────────────────────────────────────
+function manualOrder(side) {
+  if (!zerodhaConnected) {
+    addLog('Cannot place order — Zerodha not connected', 'warn');
+    alert('Please connect your Zerodha account first.');
+    return;
+  }
+  const sym = activeStock.replace('.NS','');
+  if (confirm(`Place ${side} order for ${CFG.qty} share(s) of ${sym}?`)) {
+    placeOrder(sym, side, CFG.qty);
+  }
+}
+
+function closePosition() {
+  const d = stockData[activeStock];
+  if (!d) return;
+  const lastBuy = d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
+  if (!lastBuy) return;
+  if (confirm('Close position? This will place a SELL order.')) {
+    manualOrder('SELL');
+  }
+}
+
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+function applyConfig() {
+  CFG.rsiPeriod = parseInt(document.getElementById('cfgRsiPeriod').value) || 14;
+  CFG.buyThresh = parseInt(document.getElementById('cfgBuy').value) || 60;
+  CFG.sellThresh = parseInt(document.getElementById('cfgSell').value) || 40;
+  CFG.recovThresh = parseInt(document.getElementById('cfgRecov').value) || 42;
+  CFG.trailPct = parseInt(document.getElementById('cfgSL').value) || 20;
+  CFG.qty = parseInt(document.getElementById('cfgQty').value) || 1;
+  stockData = {};
+  buildWatchlist();
+  renderActive();
+  renderRanking();
+  addLog(`Config updated: Buy>${CFG.buyThresh} Sell<${CFG.sellThresh} Recov>${CFG.recovThresh} SL=${CFG.trailPct}%`, 'info');
+}
+
+function refreshActive() { stockData[activeStock] = null; loadStockData(activeStock); renderActive(); addLog('Refreshed '+activeStock, 'info'); }
+function refreshAll() { stockData = {}; buildWatchlist(); renderActive(); addLog('All stocks refreshed', 'info'); }
+function clearTrades() { document.getElementById('tradeBody').innerHTML=''; document.getElementById('noTrades').style.display='block'; }
+
+
+// ── AUTO-TRADE SESSION COUNTERS ──────────────────────────────────────────────
+let atOrderCount = 0, atBuyCount = 0, atSellCount = 0;
+
+function onAutoTradeToggle() {
+  const enabled = document.getElementById('tglAutoTrade').checked;
+  const dot = document.getElementById('atDot');
+  const txt = document.getElementById('atStatusText');
+  const stats = document.getElementById('autoTradeStats');
+
+  if (!zerodhaConnected && enabled) {
+    document.getElementById('tglAutoTrade').checked = false;
+    addLog('Auto-trade requires Zerodha connection first.', 'warn');
+    alert('Please connect your Zerodha account before enabling auto-trade.');
+    return;
+  }
+
+  if (enabled) {
+    dot.style.background = 'var(--green)';
+    const sym = activeStock.replace('.NS','');
+    txt.textContent = 'ACTIVE — watching ' + sym;
+    stats.style.display = 'block';
+    addLog('⚡ Auto-trade ENABLED for ' + sym + ' · All RSI signals will execute orders via Kite API', 'buy');
+  } else {
+    dot.style.background = 'var(--text3)';
+    txt.textContent = 'Disabled — toggle to activate';
+    stats.style.display = 'none';
+    addLog('Auto-trade DISABLED', 'warn');
+  }
+}
+
+function updateAutoTradeStats(side) {
+  atOrderCount++;
+  if (side === 'BUY') atBuyCount++;
+  else if (side === 'SELL') atSellCount++;
+  const el = (id) => document.getElementById(id);
+  if(el('atOrderCount')) el('atOrderCount').textContent = atOrderCount;
+  if(el('atBuyCount'))   el('atBuyCount').textContent   = atBuyCount;
+  if(el('atSellCount'))  el('atSellCount').textContent  = atSellCount;
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+buildWatchlist();
+renderActive();
+addLog('RSI Algo Trader initialised — Nifty 50 strategy loaded', 'info');
+addLog('Strategy: Buy RSI > '+CFG.buyThresh+' · Sell RSI < '+CFG.sellThresh+' · Recovery > '+CFG.recovThresh+' · Trail SL '+CFG.trailPct+'%', 'info');
+addLog('Connect Zerodha Kite API to enable real-time data & live orders', 'info');
+</script>
+</body>
+</html>

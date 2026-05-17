@@ -1,0 +1,20 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# Protect /dashboard.html — only logged-in Identity users can access it
+[[redirects]]
+  from = "/dashboard.html"
+  to = "/index.html"
+  status = 401
+  force = false
+  conditions = {Role = []}
+
+# All other routes serve normally
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[build.environment]
+  NODE_VERSION = "18"

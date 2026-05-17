@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RSI Algo Trader — Access Required</title>
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0b0d; --bg2: #111318; --border: rgba(255,255,255,0.08);
+    --text: #e8eaf0; --text2: #8b90a0; --text3: #4e5261;
+    --green: #22c55e; --green-dim: rgba(34,197,94,0.1);
+    --red: #ef4444; --blue: #3b82f6; --amber: #f59e0b;
+    --font: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, 'Inter', system-ui, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(34,197,94,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,197,94,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none;
+  }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 48px 40px; width: 100%; max-width: 440px; position: relative; z-index: 1; }
+  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+  .logo-icon { width: 40px; height: 40px; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--font); font-size: 13px; color: var(--green); font-weight: 700; letter-spacing: -0.05em; }
+  .logo-text { font-family: var(--font); font-size: 15px; color: var(--text); }
+  .logo-text span { color: var(--green); }
+  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+  .subtitle { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+  .info-box { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 14px 16px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
+  .info-box strong { color: var(--blue); }
+  .warn-box { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px 16px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
+  .warn-box strong { color: var(--amber); }
+  .input-field { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.15s; font-family: var(--font); letter-spacing: 0.05em; margin-bottom: 10px; }
+  .input-field:focus { border-color: var(--blue); }
+  .input-field::placeholder { color: var(--text3); font-family: inherit; letter-spacing: 0; }
+  .btn-primary { width: 100%; background: var(--green); color: #000; border: none; border-radius: 8px; padding: 13px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em; margin-bottom: 10px; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:active { transform: scale(0.99); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text3); font-size: 11px; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .status-msg { font-size: 12px; margin-top: 10px; padding: 10px 14px; border-radius: 6px; text-align: center; display: none; }
+  .status-msg.ok  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); display: block; }
+  .status-msg.err { background: rgba(239,68,68,0.08); color: var(--red); border: 1px solid rgba(239,68,68,0.2); display: block; }
+  .step-indicator { display: flex; gap: 6px; margin-bottom: 28px; }
+  .step-dot { flex: 1; height: 2px; border-radius: 1px; background: var(--border); transition: background 0.3s; }
+  .step-dot.done { background: var(--green); }
+  .step-dot.active { background: var(--blue); }
+  .request-row { display: flex; gap: 8px; }
+  .request-row .input-field { flex: 1; margin-bottom: 0; }
+  .btn-request { background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
+  .btn-request:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .ticker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+  .tick { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; font-family: var(--font); color: var(--text3); }
+  #loggedIn { display: none; text-align: center; }
+  .user-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--green); margin: 0 auto 16px; }
+  .btn-dashboard { display: inline-block; background: var(--green); color: #000; border: none; border-radius: 8px; padding: 13px 32px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; margin-top: 20px; transition: opacity 0.15s; }
+  .btn-dashboard:hover { opacity: 0.9; }
+  .btn-logout { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: 6px; padding: 8px 16px; font-size: 12px; cursor: pointer; margin-top: 10px; font-family: inherit; transition: color 0.15s; display: block; width: 100%; }
+  .btn-logout:hover { color: var(--red); border-color: rgba(239,68,68,0.3); }
+  .footer { margin-top: 24px; font-size: 11px; color: var(--text3); text-align: center; line-height: 1.7; }
+  .license-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.25); border-radius: 4px; padding: 3px 8px; font-size: 10px; font-family: var(--font); color: var(--green); margin-top: 8px; }
+  .panel { display: none; }
+  .panel.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-row">
+    <div class="logo-icon">RSI</div>
+    <div class="logo-text">ALGO<span>TRADER</span></div>
+  </div>
+
+  <div class="step-indicator" id="stepIndicator">
+    <div class="step-dot" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+  </div>
+
+  <!-- PANEL 1: LICENSE GATE -->
+  <div class="panel" id="panelLicense">
+    <h1>Activate License</h1>
+    <p class="subtitle">This is a private trading platform. Enter the license key provided by the administrator to activate your copy.</p>
+    <div class="warn-box">
+      <strong>&#9889; One-time activation.</strong> You only need to do this once per device. After activation your license is saved locally and you won't be asked again — until you log out.
+    </div>
+    <input class="input-field" type="text" id="licenseKey" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" spellcheck="false" autocomplete="off">
+    <button class="btn-primary" id="btnActivate" onclick="activateLicense()">Activate License</button>
+    <div class="status-msg" id="licenseStatus"></div>
+    <div class="footer">Don't have a key? Contact the administrator to request access.</div>
+  </div>
+
+  <!-- PANEL 2: LOGIN -->
+  <div class="panel" id="panelLogin">
+    <h1>Access Required</h1>
+    <p class="subtitle">License verified. Log in with your invitation to access the RSI trading dashboard.</p>
+    <div class="ticker">
+      <span class="tick">TCS</span><span class="tick">INFY</span><span class="tick">RELIANCE</span>
+      <span class="tick">HDFCBANK</span><span class="tick">ICICIBANK</span><span class="tick">+25 more</span>
+    </div>
+    <div class="info-box">
+      <strong>Invite-only access.</strong> If you have received an invitation email, click below to log in. New users must request access and wait for admin approval.
+    </div>
+    <div class="license-badge">&#10003; License activated</div>
+    <button class="btn-primary" style="margin-top:16px" onclick="netlifyIdentity.open('login')">Log in with invitation</button>
+    <div class="divider">or request access</div>
+    <div class="request-row">
+      <input class="input-field" type="email" id="reqEmail" placeholder="your@email.com" style="margin-bottom:0">
+      <button class="btn-request" onclick="requestAccess()">Request</button>
+    </div>
+    <div class="status-msg" id="reqStatus"></div>
+    <div class="footer">Nifty 50 &middot; RSI Strategy &middot; Zerodha Kite API<br>Access controlled by administrator</div>
+  </div>
+
+  <!-- PANEL 3: LOGGED IN -->
+  <div id="loggedIn">
+    <div class="user-avatar" id="userInitials">&#8212;</div>
+    <div style="font-size:15px; font-weight:600; margin-bottom:4px" id="userName">Welcome</div>
+    <div style="font-size:12px; color:var(--text2)" id="userEmail">&#8212;</div>
+    <div class="license-badge">&#10003; License active on this device</div>
+    <br>
+    <a class="btn-dashboard" href="/dashboard.html">Open Trading Dashboard &rarr;</a>
+    <button class="btn-logout" onclick="doLogout()">Sign out &amp; clear license from this device</button>
+  </div>
+</div>
+
+<script>
+const LICENSE_STORAGE_KEY = 'rsi_trader_license_v1';
+
+function setStep(n) {
+  ['dot0','dot1','dot2'].forEach((id,i) => {
+    const el = document.getElementById(id);
+    el.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : '');
+  });
+  document.getElementById('panelLicense').classList.toggle('visible', n === 0);
+  document.getElementById('panelLogin').classList.toggle('visible', n === 1);
+  document.getElementById('loggedIn').style.display = n === 2 ? 'block' : 'none';
+  document.getElementById('stepIndicator').style.display = n === 2 ? 'none' : 'flex';
+}
+
+function getLicense() {
+  try { const r = localStorage.getItem(LICENSE_STORAGE_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
+}
+function saveLicense(data) { localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(data)); }
+function clearLicense() { localStorage.removeItem(LICENSE_STORAGE_KEY); }
+
+async function activateLicense() {
+  const keyInput = document.getElementById('licenseKey');
+  const btn = document.getElementById('btnActivate');
+  const status = document.getElementById('licenseStatus');
+  const raw = keyInput.value.trim();
+  if (!raw || raw.replace(/-/g,'').length < 6) {
+    status.textContent = 'Please enter a valid license key.';
+    status.className = 'status-msg err'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Validating\u2026';
+  status.textContent = 'Checking with server\u2026'; status.className = 'status-msg ok';
+  try {
+    const res = await fetch('/.netlify/functions/validate-license', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ licenseKey: raw })
+    });
+    const data = await res.json();
+    if (res.ok && data.valid) {
+      saveLicense({ key: data.key, activatedAt: data.activatedAt });
+      status.textContent = '\u2713 License activated! Proceeding to login\u2026';
+      status.className = 'status-msg ok';
+      setTimeout(() => setStep(1), 1200);
+    } else {
+      status.textContent = data.error || 'Invalid license key.';
+      status.className = 'status-msg err';
+      btn.disabled = false; btn.textContent = 'Activate License';
+    }
+  } catch(e) {
+    status.textContent = 'Network error. Please try again.';
+    status.className = 'status-msg err';
+    btn.disabled = false; btn.textContent = 'Activate License';
+  }
+}
+
+document.getElementById('licenseKey').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { activateLicense(); return; }
+  setTimeout(() => {
+    let v = e.target.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+    v = v.match(/.{1,4}/g)?.join('-') || v;
+    e.target.value = v;
+  }, 0);
+});
+
+function doLogout() { clearLicense(); netlifyIdentity.logout(); }
+
+netlifyIdentity.on('init', user => {
+  if (user && getLicense()) { showLoggedIn(user); }
+  else if (user && !getLicense()) { netlifyIdentity.logout(); }
+  else {
+    if (getLicense()) setStep(1); else setStep(0);
+  }
+});
+netlifyIdentity.on('login', user => { showLoggedIn(user); netlifyIdentity.close(); });
+netlifyIdentity.on('logout', () => { clearLicense(); setStep(0); });
+
+function showLoggedIn(user) {
+  setStep(2);
+  const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trader';
+  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('userInitials').textContent = initials;
+  document.getElementById('userName').textContent = 'Welcome, ' + name;
+  document.getElementById('userEmail').textContent = user.email;
+}
+
+async function requestAccess() {
+  const email = document.getElementById('reqEmail').value.trim();
+  const status = document.getElementById('reqStatus');
+  if (!email || !email.includes('@')) { status.textContent = 'Please enter a valid email.'; status.className = 'status-msg err'; return; }
+  status.textContent = 'Sending\u2026'; status.className = 'status-msg ok';
+  try {
+    const res = await fetch('/.netlify/functions/request-access', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email})
+    });
+    if (res.ok) { status.textContent = '\u2713 Request sent! Admin will review and invite you.'; document.getElementById('reqEmail').value=''; }
+    else throw new Error();
+  } catch { status.textContent = 'Could not send. Email admin directly.'; status.className = 'status-msg err'; }
+}
+</script>
+</body>
+</html>
