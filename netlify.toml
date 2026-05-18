@@ -1,8 +1,7 @@
 [build]
-  publish = "public"
-  functions = "netlify/functions"
+  publish = "."
+  functions = "functions"
 
-# Protect /dashboard.html — redirect unauthenticated users to login
 [[redirects]]
   from = "/dashboard.html"
   to = "/index.html"
@@ -10,16 +9,7 @@
   force = false
   conditions = {Role = []}
 
-# All other routes serve index.html (SPA fallback)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[build.environment]
-  NODE_VERSION = "18"
-
-# Inject Netlify Identity JWT into all function invocations
-# This is what makes clientContext.user work in is-admin, kite-proxy, save-token
-[functions]
-  node_bundler = "esbuild"
