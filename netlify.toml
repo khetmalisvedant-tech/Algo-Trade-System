@@ -3,13 +3,6 @@
   functions = "functions"
 
 [[redirects]]
-  from = "/dashboard.html"
-  to = "/index.html"
-  status = 401
-  force = false
-  conditions = {Role = []}
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
