@@ -3,1368 +3,1952 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RSI Algo Trader — Nifty 50</title>
+<title>RSI Algo Trader — Nifty Platform</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <style>
-  :root {
-    --bg: #0a0b0d;
-    --bg2: #111318;
-    --bg3: #181b22;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #e8eaf0;
-    --text2: #8b90a0;
-    --text3: #4e5261;
-    --green: #22c55e;
-    --green-dim: rgba(34,197,94,0.12);
-    --red: #ef4444;
-    --red-dim: rgba(239,68,68,0.12);
-    --amber: #f59e0b;
-    --amber-dim: rgba(245,158,11,0.1);
-    --blue: #3b82f6;
-    --blue-dim: rgba(59,130,246,0.12);
-    --purple: #a855f7;
-    --font: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
-    --sans: -apple-system, 'Inter', system-ui, sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
-
-  .topbar {
-    background: var(--bg2);
-    border-bottom: 1px solid var(--border);
-    padding: 0 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    height: 52px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo { font-family: var(--font); font-size: 14px; color: var(--green); letter-spacing: 0.08em; font-weight: 600; }
-  .logo span { color: var(--text2); }
-  .market-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-left: auto; }
-  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-  .status-dot.closed { background: var(--text3); animation: none; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .time-display { font-family: var(--font); font-size: 12px; color: var(--text3); }
-
-  .layout { display: grid; grid-template-columns: 300px 1fr; min-height: calc(100vh - 52px); }
-
-  .sidebar {
-    background: var(--bg2);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-  }
-  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
-  .sidebar-label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; font-weight: 500; }
-
-  .api-input-wrap { display: flex; flex-direction: column; gap: 8px; }
-  .api-row { display: flex; gap: 6px; align-items: center; }
-  .api-input {
-    flex: 1;
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--font);
-    font-size: 11px;
-    padding: 7px 10px;
-    border-radius: 6px;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .api-input:focus { border-color: var(--blue); }
-  .api-input::placeholder { color: var(--text3); }
-  .btn {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    color: var(--text2);
-    font-size: 11px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: var(--sans);
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-  }
-  .btn:hover { background: var(--border); color: var(--text); }
-  .btn.primary { background: var(--green-dim); border-color: var(--green); color: var(--green); }
-  .btn.primary:hover { background: rgba(34,197,94,0.2); }
-  .btn.danger { background: var(--red-dim); border-color: var(--red); color: var(--red); }
-  .btn.danger:hover { background: rgba(239,68,68,0.2); }
-  .btn.amber { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
-
-  .conn-status { font-size: 11px; padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
-  .conn-status.ok { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
-  .conn-status.err { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
-  .conn-status.idle { background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
-
-  .strategy-config { display: flex; flex-direction: column; gap: 10px; }
-  .config-row { display: flex; justify-content: space-between; align-items: center; }
-  .config-label { font-size: 12px; color: var(--text2); }
-  .config-val {
-    font-family: var(--font);
-    font-size: 12px;
-    color: var(--text);
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 3px 8px;
-    width: 64px;
-    text-align: right;
-    outline: none;
-    color: var(--text);
-  }
-
-  .watchlist { display: flex; flex-direction: column; gap: 2px; }
-  .watch-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.1s;
-    border: 1px solid transparent;
-  }
-  .watch-item:hover { background: var(--bg3); }
-  .watch-item.active { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.2); }
-  .watch-sym { font-family: var(--font); font-size: 12px; font-weight: 600; flex: 1; }
-  .watch-rsi { font-family: var(--font); font-size: 11px; }
-  .watch-sig { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 500; }
-  .sig-buy { background: var(--green-dim); color: var(--green); }
-  .sig-sell { background: var(--red-dim); color: var(--red); }
-  .sig-wait { background: var(--amber-dim); color: var(--amber); }
-  .sig-none { background: var(--bg3); color: var(--text3); }
-  .watch-chk { width: 14px; height: 14px; cursor: pointer; accent-color: var(--blue); }
-
-  .main-area { display: flex; flex-direction: column; overflow-y: auto; }
-
-  .stock-header {
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: flex-start;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-  .stock-title { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-  .stock-price { font-family: var(--font); font-size: 28px; font-weight: 600; }
-  .stock-chg { font-size: 13px; font-family: var(--font); }
-  .metrics-row { display: flex; gap: 12px; flex-wrap: wrap; padding: 16px 24px; border-bottom: 1px solid var(--border); }
-  .metric-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    min-width: 120px;
-  }
-  .metric-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  .metric-val { font-family: var(--font); font-size: 18px; font-weight: 600; }
-  .metric-val.green { color: var(--green); }
-  .metric-val.red { color: var(--red); }
-  .metric-val.amber { color: var(--amber); }
-  .metric-val.blue { color: var(--blue); }
-
-  .charts-area { padding: 20px 24px; display: flex; flex-direction: column; gap: 20px; }
-  .chart-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .chart-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
-  .legend-dot { width: 8px; height: 8px; border-radius: 2px; }
-
-  .signal-banner {
-    margin: 0 24px 16px;
-    padding: 14px 18px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-  }
-  .signal-banner.buy { background: var(--green-dim); border: 1px solid rgba(34,197,94,0.3); }
-  .signal-banner.sell { background: var(--red-dim); border: 1px solid rgba(239,68,68,0.3); }
-  .signal-banner.wait { background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.3); }
-  .signal-banner.hold { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); }
-  .signal-banner.none { background: var(--bg3); border: 1px solid var(--border); }
-
-  .trade-section { padding: 0 24px 24px; }
-  .trade-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-  .trade-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .trade-table th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); font-weight: 500; }
-  .trade-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-family: var(--font); }
-  .trade-table tr:hover td { background: rgba(255,255,255,0.02); }
-  .badge { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; font-family: var(--sans); }
-  .badge-buy { background: var(--green-dim); color: var(--green); }
-  .badge-sell { background: var(--red-dim); color: var(--red); }
-  .badge-recov { background: var(--blue-dim); color: var(--blue); }
-  .badge-sl { background: rgba(168,85,247,0.12); color: var(--purple); }
-
-  .sl-tracker {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-    margin: 0 24px 20px;
-  }
-  .sl-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .sl-progress { width: 100%; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .sl-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
-
-  .tab-row { display: flex; border-bottom: 1px solid var(--border); padding: 0 24px; }
-  .tab-btn { padding: 10px 16px; font-size: 12px; color: var(--text3); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; font-family: var(--sans); }
-  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
-  .tab-btn:hover:not(.active) { color: var(--text2); }
-
-  .tab-content { display: none; }
-  .tab-content.visible { display: block; }
-
-  .log-wrap { padding: 12px 24px; max-height: 340px; overflow-y: auto; }
-  .log-entry { display: flex; gap: 10px; align-items: flex-start; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
-  .log-time { font-family: var(--font); color: var(--text3); white-space: nowrap; min-width: 120px; }
-  .log-msg { color: var(--text2); flex: 1; }
-  .log-buy { color: var(--green); }
-  .log-sell { color: var(--red); }
-  .log-warn { color: var(--amber); }
-  .log-info { color: var(--blue); }
-
-  .rank-table-wrap { padding: 0 24px 24px; overflow-x: auto; }
-  .rank-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .rank-table th { text-align: left; padding: 8px 12px; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); font-weight: 500; }
-  .rank-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-family: var(--font); }
-  .rank-table tr:hover td { background: rgba(255,255,255,0.02); cursor: pointer; }
-  .rank-table tr.active-row td { background: rgba(59,130,246,0.06); }
-  .score-bar-bg { width: 50px; height: 3px; background: var(--bg3); border-radius: 2px; display: inline-block; vertical-align: middle; margin-right: 4px; }
-  .score-bar-fill { height: 100%; border-radius: 2px; display: inline-block; }
-
-  .auto-trade-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border-radius: 8px; margin-bottom: 10px; }
-  .toggle { position: relative; width: 36px; height: 20px; }
-  .toggle input { opacity: 0; width: 0; height: 0; }
-  .slider-toggle { position: absolute; inset: 0; background: var(--border2); border-radius: 10px; cursor: pointer; transition: background 0.2s; }
-  .slider-toggle:before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: transform 0.2s; }
-  input:checked + .slider-toggle { background: var(--green); }
-  input:checked + .slider-toggle:before { transform: translateX(16px); }
-  .toggle-label { font-size: 12px; color: var(--text2); flex: 1; }
-
-  .position-panel {
-    margin: 0 24px 20px;
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .position-head { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-  .position-body { padding: 16px; }
-  .pos-stat { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; }
-  .pos-key { color: var(--text3); }
-  .pos-val { font-family: var(--font); }
-
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-  .scanning-overlay { position: absolute; inset: 0; background: rgba(10,11,13,0.85); display: flex; align-items: center; justify-content: center; z-index: 10; border-radius: 10px; font-family: var(--font); font-size: 12px; color: var(--green); }
-  .spin { animation: spin 1s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+:root {
+  --bg:#0a0b0d; --bg2:#111318; --bg3:#181b22;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.12);
+  --text:#e8eaf0; --text2:#8b90a0; --text3:#4e5261;
+  --green:#22c55e; --green-dim:rgba(34,197,94,0.12);
+  --red:#ef4444;   --red-dim:rgba(239,68,68,0.12);
+  --amber:#f59e0b; --amber-dim:rgba(245,158,11,0.1);
+  --blue:#3b82f6;  --blue-dim:rgba(59,130,246,0.12);
+  --purple:#a855f7; --cyan:#06b6d4; --pink:#ec4899;
+  --font:'SF Mono','Cascadia Code','Fira Code',monospace;
+  --sans:-apple-system,'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;}
+ 
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:10px;height:52px;position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--font);font-size:14px;color:var(--green);letter-spacing:0.08em;font-weight:600;}
+.logo span{color:var(--text2);}
+.top-badge{font-size:10px;padding:3px 8px;border-radius:4px;}
+.market-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);margin-left:auto;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+.status-dot.closed{background:var(--text3);animation:none;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.time-display{font-family:var(--font);font-size:12px;color:var(--text3);}
+ 
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 52px);}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;}
+.sidebar-section{padding:14px 16px;border-bottom:1px solid var(--border);}
+.sidebar-label{font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px;}
+ 
+/* ── BUTTONS ── */
+.btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:11px;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:var(--sans);transition:all 0.15s;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+.btn:hover{background:var(--border);color:var(--text);}
+.btn.primary{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.btn.primary:hover{background:rgba(34,197,94,0.2);}
+.btn.danger{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.btn.danger:hover{background:rgba(239,68,68,0.2);}
+.btn.amber{background:var(--amber-dim);border-color:var(--amber);color:var(--amber);}
+.btn.blue{background:var(--blue-dim);border-color:var(--blue);color:var(--blue);}
+.btn.purple{background:rgba(168,85,247,0.12);border-color:rgba(168,85,247,0.3);color:var(--purple);}
+.btn.sm{font-size:10px;padding:3px 8px;}
+ 
+/* ── API / CONNECTION ── */
+.api-input-wrap{display:flex;flex-direction:column;gap:8px;}
+.api-row{display:flex;gap:6px;align-items:center;}
+.api-input{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:11px;padding:7px 10px;border-radius:6px;outline:none;transition:border-color 0.15s;}
+.api-input:focus{border-color:var(--blue);}
+.api-input::placeholder{color:var(--text3);}
+.conn-status{font-size:11px;padding:7px 10px;border-radius:6px;display:flex;align-items:center;gap:6px;}
+.conn-status.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.conn-status.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.conn-status.idle{background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+.platform-conn-box{background:var(--green-dim);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;}
+.platform-conn-title{font-size:12px;color:var(--green);font-weight:600;display:flex;align-items:center;gap:6px;}
+.platform-conn-sub{font-size:10px;color:var(--text3);}
+ 
+/* ── STRATEGY ── */
+.strategy-header{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.strategy-select{flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-size:11px;padding:7px 10px;border-radius:6px;outline:none;cursor:pointer;appearance:none;font-family:var(--sans);}
+.strategy-select:focus{border-color:var(--blue);}
+.guide-btn{background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.25);color:var(--purple);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;font-family:var(--sans);transition:all 0.15s;white-space:nowrap;}
+.guide-btn:hover{background:rgba(168,85,247,0.2);}
+ 
+/* ── CONFIG ── */
+.strategy-config{display:flex;flex-direction:column;gap:10px;}
+.param-panel{display:none;}
+.param-panel.visible{display:flex;flex-direction:column;gap:10px;}
+.config-row{display:flex;justify-content:space-between;align-items:center;}
+.config-label{font-size:12px;color:var(--text2);}
+.config-val{font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;width:64px;text-align:right;outline:none;color:var(--text);}
+ 
+/* ── MARKET TABS ── */
+.market-tabs{display:flex;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.mtab{flex:1;font-size:11px;padding:5px;text-align:center;border-radius:5px;cursor:pointer;color:var(--text3);transition:all 0.15s;border:none;background:none;font-family:var(--sans);}
+.mtab.active{background:var(--bg2);color:var(--text);border:1px solid var(--border);}
+.mtab.active.opts{color:var(--cyan);border-color:rgba(6,182,212,0.3);}
+.mtab.active.idx{color:var(--amber);border-color:rgba(245,158,11,0.3);}
+ 
+/* ── WATCHLIST ── */
+.watchlist{display:flex;flex-direction:column;gap:2px;}
+.watch-item{display:flex;align-items:center;gap:7px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:background 0.1s;border:1px solid transparent;}
+.watch-item:hover{background:var(--bg3);}
+.watch-item.active{background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.2);}
+.watch-sym{font-family:var(--font);font-size:11px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.watch-rsi{font-family:var(--font);font-size:11px;}
+.watch-sig{font-size:10px;padding:2px 5px;border-radius:3px;font-weight:500;}
+.sig-buy{background:var(--green-dim);color:var(--green);}
+.sig-sell{background:var(--red-dim);color:var(--red);}
+.sig-wait{background:var(--amber-dim);color:var(--amber);}
+.sig-none{background:var(--bg3);color:var(--text3);}
+.watch-chk{width:13px;height:13px;cursor:pointer;accent-color:var(--blue);flex-shrink:0;}
+.opt-ce{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(34,197,94,0.12);color:var(--green);font-weight:700;font-family:var(--font);}
+.opt-pe{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(239,68,68,0.12);color:var(--red);font-weight:700;font-family:var(--font);}
+.opt-atm-tag{font-size:8px;padding:1px 4px;border-radius:2px;background:rgba(245,158,11,0.15);color:var(--amber);}
+.idx-tag{font-size:9px;padding:1px 4px;border-radius:2px;background:rgba(245,158,11,0.12);color:var(--amber);font-weight:700;font-family:var(--font);}
+.wl-section-label{font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;padding:8px 10px 3px;display:flex;align-items:center;gap:6px;}
+ 
+/* ── MAIN AREA ── */
+.main-area{display:flex;flex-direction:column;overflow-y:auto;}
+.stock-header{padding:18px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;}
+.stock-title{font-size:21px;font-weight:700;letter-spacing:-0.02em;}
+.stock-price{font-family:var(--font);font-size:26px;font-weight:600;}
+.stock-chg{font-size:12px;font-family:var(--font);}
+.opt-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.opt-pill{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;font-size:11px;font-family:var(--font);color:var(--text2);}
+.opt-pill span{color:var(--text);}
+ 
+/* ── METRICS ── */
+.metrics-row{display:flex;gap:10px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--border);}
+.metric-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;min-width:100px;}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;}
+.metric-val{font-family:var(--font);font-size:17px;font-weight:600;}
+.metric-val.green{color:var(--green);} .metric-val.red{color:var(--red);}
+.metric-val.amber{color:var(--amber);} .metric-val.blue{color:var(--blue);}
+.metric-val.cyan{color:var(--cyan);} .metric-val.purple{color:var(--purple);}
+ 
+/* ── SIGNAL BANNER ── */
+.signal-banner{margin:0 24px 14px;padding:12px 16px;border-radius:8px;display:flex;align-items:center;gap:12px;font-size:13px;}
+.signal-banner.buy{background:var(--green-dim);border:1px solid rgba(34,197,94,0.3);}
+.signal-banner.sell{background:var(--red-dim);border:1px solid rgba(239,68,68,0.3);}
+.signal-banner.wait{background:var(--amber-dim);border:1px solid rgba(245,158,11,0.3);}
+.signal-banner.hold{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);}
+.signal-banner.none{background:var(--bg3);border:1px solid var(--border);}
+ 
+/* ── CHARTS ── */
+.charts-area{padding:18px 24px;display:flex;flex-direction:column;gap:18px;}
+.chart-block{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.chart-title{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);}
+.legend-dot{width:8px;height:8px;border-radius:2px;}
+.legend-line{width:16px;height:2px;border-radius:1px;}
+ 
+/* ── POSITION ── */
+.position-panel{margin:0 24px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.position-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.position-body{padding:14px;}
+.pos-stat{display:flex;justify-content:space-between;margin-bottom:7px;font-size:12px;}
+.pos-key{color:var(--text3);}
+.pos-val{font-family:var(--font);}
+.sl-progress{width:100%;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:10px;}
+.sl-fill{height:100%;border-radius:2px;transition:width 0.3s;}
+ 
+/* ── TRADE / LOG ── */
+.tab-row{display:flex;border-bottom:1px solid var(--border);padding:0 24px;}
+.tab-btn{padding:10px 14px;font-size:12px;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;font-family:var(--sans);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-btn:hover:not(.active){color:var(--text2);}
+.tab-content{display:none;}
+.tab-content.visible{display:block;}
+.trade-section{padding:0 24px 24px;}
+.trade-table{width:100%;border-collapse:collapse;font-size:12px;}
+.trade-table th{text-align:left;padding:8px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);font-weight:500;}
+.trade-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--font);}
+.trade-table tr:hover td{background:rgba(255,255,255,0.02);}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;font-family:var(--sans);}
+.badge-buy{background:var(--green-dim);color:var(--green);}
+.badge-sell{background:var(--red-dim);color:var(--red);}
+.badge-recov{background:var(--blue-dim);color:var(--blue);}
+.badge-sl{background:rgba(168,85,247,0.12);color:var(--purple);}
+ 
+/* ── RANKING ── */
+.rank-table-wrap{padding:0 24px 24px;overflow-x:auto;}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px;}
+.rank-table th{text-align:left;padding:8px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid var(--border);font-weight:500;}
+.rank-table td{padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--font);}
+.rank-table tr:hover td{background:rgba(255,255,255,0.02);cursor:pointer;}
+.rank-table tr.active-row td{background:rgba(59,130,246,0.06);}
+.score-bar-bg{width:44px;height:3px;background:var(--bg3);border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px;}
+.score-bar-fill{height:100%;border-radius:2px;display:inline-block;}
+ 
+/* ── LOG ── */
+.log-wrap{padding:12px 24px;max-height:320px;overflow-y:auto;}
+.log-entry{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;}
+.log-time{font-family:var(--font);color:var(--text3);white-space:nowrap;min-width:100px;}
+.log-msg{color:var(--text2);flex:1;}
+.log-buy{color:var(--green);} .log-sell{color:var(--red);} .log-warn{color:var(--amber);} .log-info{color:var(--blue);}
+ 
+/* ── AUTOMATION ── */
+.auto-trade-row{display:flex;align-items:center;gap:10px;padding:9px 10px;background:var(--bg3);border-radius:8px;margin-bottom:7px;}
+.toggle{position:relative;width:36px;height:20px;}
+.toggle input{opacity:0;width:0;height:0;}
+.slider-toggle{position:absolute;inset:0;background:var(--border2);border-radius:10px;cursor:pointer;transition:background 0.2s;}
+.slider-toggle:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:white;border-radius:50%;transition:transform 0.2s;}
+input:checked + .slider-toggle{background:var(--green);}
+input:checked + .slider-toggle:before{transform:translateX(16px);}
+.toggle-label{font-size:12px;color:var(--text2);flex:1;}
+ 
+/* ── GUIDE MODAL ── */
+.guide-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);z-index:500;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto;}
+.guide-overlay.open{display:flex;}
+.guide-modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;width:100%;max-width:860px;flex-shrink:0;}
+.guide-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg2);z-index:1;border-radius:16px 16px 0 0;}
+.guide-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;}
+.gtab{padding:11px 16px;font-size:12px;border:none;background:none;cursor:pointer;color:var(--text3);transition:all 0.15s;font-family:var(--sans);border-bottom:2px solid transparent;white-space:nowrap;}
+.gtab.active{color:var(--text);border-bottom-color:var(--blue);}
+.gtab:hover:not(.active){color:var(--text2);}
+.guide-body{padding:22px 24px 28px;}
+.gtab-content{display:none;}
+.gtab-content.visible{display:block;}
+.guide-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+.guide-card-head{font-size:13px;font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.guide-card-sub{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px;}
+.guide-rule{border-left:3px solid var(--border2);padding-left:12px;margin-bottom:8px;}
+.guide-rule-head{font-size:12px;font-weight:600;margin-bottom:3px;}
+.guide-rule-body{font-size:12px;color:var(--text2);line-height:1.6;}
+.guide-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.guide-table th{text-align:left;padding:5px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;border-bottom:1px solid var(--border);}
+.guide-table td{padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--font);}
+.guide-table td:first-child{color:var(--cyan);}
+ 
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
 </head>
-
+<body>
+ 
+<!-- LICENSE GUARD -->
 <script>
-// ── LICENSE GUARD ─────────────────────────────────────────────────────────────
-(function() {
-  const LICENSE_KEY = 'rsi_trader_license_v1';
-  function getLicense() {
-    try { const r = localStorage.getItem(LICENSE_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
-  }
-  // Check on load — if no license or not logged in via Netlify Identity, redirect
-  const lic = getLicense();
-  if (!lic || !lic.key) {
-    window.location.href = '/index.html';
-  }
+(function(){
+  try{const r=localStorage.getItem('rsi_trader_license_v1');const lic=r?JSON.parse(r):null;if(!lic||!lic.key){window.location.href='/index.html';}}catch{window.location.href='/index.html';}
 })();
 </script>
-
+ 
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">RSI<span>//</span>ALGO</div>
-  <div style="font-size:11px; color:var(--text3); font-family:var(--font)">Nifty 50 · 15m</div>
-  <div style="font-size:11px; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); color:var(--blue); padding:3px 8px; border-radius:4px; font-size:10px;">Strategy: RSI 60/40/42</div>
+  <span style="font-size:10px;color:var(--text3);font-family:var(--font)">Nifty Platform · 15m</span>
+  <span id="stratBadge" class="top-badge" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue)">S1 · RSI 60/40</span>
   <div class="market-status" style="margin-left:auto">
     <span class="status-dot" id="mktDot"></span>
     <span id="mktLabel" style="font-size:11px">Market Open</span>
     <span class="time-display" id="clockEl">—</span>
   </div>
 </div>
-
+ 
 <div class="layout">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-
-    <!-- Zerodha API Config -->
-    <div class="sidebar-section">
-      <div class="sidebar-label"><i class="ti ti-key" aria-hidden="true"></i> Zerodha Kite API</div>
-      <div class="api-input-wrap">
-        <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
-        <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off">
-        <input class="api-input" id="accessToken" type="password" placeholder="Access Token" autocomplete="off">
-        <div class="api-row">
-          <button class="btn primary" onclick="connectZerodha()" style="flex:1">
-            <i class="ti ti-plug" aria-hidden="true"></i> Connect
-          </button>
-          <button class="btn" onclick="openKiteLogin()">
-            <i class="ti ti-external-link" aria-hidden="true"></i> Login
-          </button>
-        </div>
-        <div class="conn-status idle" id="connStatus">
-          <i class="ti ti-circle-dashed" aria-hidden="true"></i> Not connected
-        </div>
-      </div>
+<!-- ════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════ -->
+<div class="sidebar">
+ 
+  <!-- API — ADMIN ONLY (hidden for regular users) -->
+  <div class="sidebar-section" id="adminApiSection" style="display:none">
+    <div class="sidebar-label">
+      <i class="ti ti-key"></i> Zerodha Kite API
+      <span style="margin-left:auto;font-size:9px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--purple);padding:1px 6px;border-radius:3px;letter-spacing:0.06em">ADMIN</span>
     </div>
-
-    <!-- Strategy Config -->
-    <div class="sidebar-section">
-      <div class="sidebar-label"><i class="ti ti-adjustments" aria-hidden="true"></i> Strategy Parameters</div>
-      <div class="strategy-config">
-        <div class="config-row">
-          <span class="config-label">RSI Period</span>
-          <input class="config-val" type="number" id="cfgRsiPeriod" value="14" min="5" max="30">
-        </div>
-        <div class="config-row">
-          <span class="config-label">Buy threshold</span>
-          <input class="config-val" type="number" id="cfgBuy" value="60" min="50" max="80">
-        </div>
-        <div class="config-row">
-          <span class="config-label">Sell threshold</span>
-          <input class="config-val" type="number" id="cfgSell" value="40" min="20" max="50">
-        </div>
-        <div class="config-row">
-          <span class="config-label">Recovery entry</span>
-          <input class="config-val" type="number" id="cfgRecov" value="42" min="30" max="55">
-        </div>
-        <div class="config-row">
-          <span class="config-label">Trailing SL %</span>
-          <input class="config-val" type="number" id="cfgSL" value="20" min="5" max="50">
-        </div>
-        <div class="config-row">
-          <span class="config-label">Qty per trade</span>
-          <input class="config-val" type="number" id="cfgQty" value="1" min="1" max="500">
-        </div>
-        <button class="btn amber" onclick="applyConfig()" style="width:100%; justify-content:center; margin-top:4px">
-          <i class="ti ti-check" aria-hidden="true"></i> Apply Config
-        </button>
+    <div class="api-input-wrap">
+      <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
+      <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off">
+      <input class="api-input" id="accessToken" type="password" placeholder="Access Token" autocomplete="off">
+      <div class="api-row">
+        <button class="btn primary" onclick="connectZerodha()" style="flex:1"><i class="ti ti-plug"></i> Connect</button>
+        <button class="btn" onclick="openKiteLogin()"><i class="ti ti-external-link"></i> Login</button>
       </div>
-    </div>
-
-    <!-- Auto-trade toggles -->
-    <div class="sidebar-section">
-      <div class="sidebar-label"><i class="ti ti-robot" aria-hidden="true"></i> Automation</div>
-
-      <!-- Auto-trade master toggle -->
-      <div class="auto-trade-row" style="background:rgba(34,197,94,0.06); border:1px solid rgba(34,197,94,0.15); border-radius:8px; margin-bottom:8px;">
-        <label class="toggle"><input type="checkbox" id="tglAutoTrade" onchange="onAutoTradeToggle()"><span class="slider-toggle"></span></label>
-        <span class="toggle-label" style="color:var(--green); font-weight:600;">Auto-execute trades</span>
-      </div>
-
-      <!-- Auto-trade status indicator -->
-      <div id="autoTradeStatus" style="font-size:11px; padding:8px 10px; border-radius:6px; margin-bottom:8px; background:var(--bg3); color:var(--text3); border:1px solid var(--border); display:flex; align-items:center; gap:6px;">
-        <span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block" id="atDot"></span>
-        <span id="atStatusText">Disabled — toggle to activate</span>
-      </div>
-
-      <!-- Target stock for auto-trading -->
-      <div style="margin-bottom:8px;">
-        <div style="font-size:10px; color:var(--text3); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">Auto-trade target stock</div>
-        <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); padding:8px 10px; background:var(--bg3); border:1px solid var(--border); border-radius:6px;">
-          <i class="ti ti-target" aria-hidden="true" style="color:var(--blue)"></i>
-          <span id="autoTradeTarget" style="font-family:var(--font); font-weight:600; color:var(--text)">TCS</span>
-          <span style="margin-left:auto; font-size:10px; color:var(--text3)">selected stock</span>
-        </div>
-        <div style="font-size:10px; color:var(--text3); margin-top:4px; line-height:1.4;">Auto-trades follow whichever stock is active in the watchlist.</div>
-      </div>
-
-      <!-- Other toggles -->
-      <div class="auto-trade-row">
-        <label class="toggle"><input type="checkbox" id="tglAlerts" checked><span class="slider-toggle"></span></label>
-        <span class="toggle-label">Signal alerts</span>
-      </div>
-      <div class="auto-trade-row">
-        <label class="toggle"><input type="checkbox" id="tglTrailingSL" checked><span class="slider-toggle"></span></label>
-        <span class="toggle-label">Trailing stop loss</span>
-      </div>
-
-      <!-- Auto-trade session stats -->
-      <div id="autoTradeStats" style="display:none; margin-top:8px; padding:10px; background:var(--bg3); border-radius:8px; border:1px solid var(--border);">
-        <div style="font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Session Stats</div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-          <span style="color:var(--text3)">Auto-orders</span>
-          <span id="atOrderCount" style="font-family:var(--font); color:var(--text)">0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-          <span style="color:var(--text3)">BUY orders</span>
-          <span id="atBuyCount" style="font-family:var(--font); color:var(--green)">0</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; font-size:11px;">
-          <span style="color:var(--text3)">SELL orders</span>
-          <span id="atSellCount" style="font-family:var(--font); color:var(--red)">0</span>
-        </div>
-      </div>
-
-      <div style="font-size:10px; color:var(--text3); line-height:1.5; margin-top:8px; padding:8px; background:var(--bg3); border-radius:6px;">
-        ⚠ Requires Zerodha connection. Orders placed via Kite API on the selected stock only. Use at your own risk.
-      </div>
-    </div>
-
-    <!-- Watchlist -->
-    <div class="sidebar-section" style="flex:1">
-      <div class="sidebar-label" style="display:flex; align-items:center; justify-content:space-between">
-        <span><i class="ti ti-list-check" aria-hidden="true"></i> Watchlist</span>
-        <button class="btn" style="padding:2px 6px; font-size:10px" onclick="refreshAll()">
-          <i class="ti ti-refresh" aria-hidden="true" style="font-size:12px"></i>
-        </button>
-      </div>
-      <div class="watchlist" id="watchlist"></div>
+      <div class="conn-status idle" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
     </div>
   </div>
-
-  <!-- MAIN -->
-  <div class="main-area">
-
-    <!-- Stock header -->
-    <div class="stock-header">
-      <div>
-        <div class="stock-title" id="hTitle">TCS.NS</div>
-        <div style="font-size:12px; color:var(--text3); font-family:var(--font); margin-top:2px" id="hFull">Tata Consultancy Services</div>
-      </div>
-      <div style="text-align:right; margin-left:auto">
-        <div class="stock-price" id="hPrice">₹—</div>
-        <div class="stock-chg" id="hChg" style="color:var(--text3)">—</div>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-        <button class="btn primary" id="btnBuy" onclick="manualOrder('BUY')">
-          <i class="ti ti-trending-up" aria-hidden="true"></i> Buy
-        </button>
-        <button class="btn danger" id="btnSell" onclick="manualOrder('SELL')">
-          <i class="ti ti-trending-down" aria-hidden="true"></i> Sell
-        </button>
-        <button class="btn" onclick="refreshActive()">
-          <i class="ti ti-refresh" aria-hidden="true"></i>
-        </button>
+ 
+  <!-- API — REGULAR USERS (platform proxy — uses admin's key server-side) -->
+  <div class="sidebar-section" id="platformConnSection" style="display:none">
+    <div class="sidebar-label"><i class="ti ti-cloud-check"></i> Platform API</div>
+    <div class="platform-conn-box">
+      <div class="platform-conn-title" id="platformStatusTitle"><i class="ti ti-loader-2 spin"></i> Connecting…</div>
+      <div class="platform-conn-sub">Trading powered by platform API. No personal API key needed.</div>
+    </div>
+  </div>
+ 
+  <!-- STRATEGY SELECTOR -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><i class="ti ti-circuit-board"></i> Strategy</div>
+    <div class="strategy-header">
+      <select class="strategy-select" id="strategySelect" onchange="switchStrategy(this.value)">
+        <option value="1">S1 · RSI Momentum</option>
+        <option value="2">S2 · EMA(44) + Bollinger Bands</option>
+        <option value="3">S3 · MACD Crossover</option>
+        <option value="4">S4 · RSI + MACD Combined</option>
+        <option value="5">S5 · VWAP + Stochastic</option>
+      </select>
+      <button class="guide-btn" onclick="openGuide()"><i class="ti ti-book-2"></i> Guide</button>
+    </div>
+  </div>
+ 
+  <!-- STRATEGY PARAMS — dynamic per strategy -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><i class="ti ti-adjustments"></i> Parameters</div>
+ 
+    <!-- S1 Params -->
+    <div class="param-panel visible" id="params-1">
+      <div class="config-row"><span class="config-label">RSI Period</span><input class="config-val" type="number" id="s1RsiPeriod" value="14" min="5" max="30"></div>
+      <div class="config-row"><span class="config-label">Buy threshold</span><input class="config-val" type="number" id="s1Buy" value="60" min="50" max="80"></div>
+      <div class="config-row"><span class="config-label">Sell threshold</span><input class="config-val" type="number" id="s1Sell" value="40" min="20" max="50"></div>
+      <div class="config-row"><span class="config-label">Recovery entry</span><input class="config-val" type="number" id="s1Recov" value="42" min="30" max="55"></div>
+      <div class="config-row"><span class="config-label">Trailing SL %</span><input class="config-val" type="number" id="s1SL" value="20" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">Qty per trade</span><input class="config-val" type="number" id="s1Qty" value="1" min="1" max="500"></div>
+    </div>
+ 
+    <!-- S2 Params -->
+    <div class="param-panel" id="params-2">
+      <div class="config-row"><span class="config-label">EMA Period</span><input class="config-val" type="number" id="s2EMA" value="44" min="5" max="200"></div>
+      <div class="config-row"><span class="config-label">BB Period</span><input class="config-val" type="number" id="s2BBPer" value="20" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">BB Std Dev</span><input class="config-val" type="number" id="s2BBStd" value="2" min="1" max="4" step="0.1"></div>
+      <div class="config-row"><span class="config-label">Trailing SL %</span><input class="config-val" type="number" id="s2SL" value="18" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">Qty per trade</span><input class="config-val" type="number" id="s2Qty" value="1" min="1" max="500"></div>
+    </div>
+ 
+    <!-- S3 Params -->
+    <div class="param-panel" id="params-3">
+      <div class="config-row"><span class="config-label">MACD Fast</span><input class="config-val" type="number" id="s3Fast" value="12" min="3" max="30"></div>
+      <div class="config-row"><span class="config-label">MACD Slow</span><input class="config-val" type="number" id="s3Slow" value="26" min="10" max="60"></div>
+      <div class="config-row"><span class="config-label">Signal Period</span><input class="config-val" type="number" id="s3Sig" value="9" min="3" max="20"></div>
+      <div class="config-row"><span class="config-label">Trailing SL %</span><input class="config-val" type="number" id="s3SL" value="22" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">Qty per trade</span><input class="config-val" type="number" id="s3Qty" value="1" min="1" max="500"></div>
+    </div>
+ 
+    <!-- S4 Params -->
+    <div class="param-panel" id="params-4">
+      <div class="config-row"><span class="config-label">RSI Period</span><input class="config-val" type="number" id="s4RsiPer" value="14" min="5" max="30"></div>
+      <div class="config-row"><span class="config-label">RSI Buy</span><input class="config-val" type="number" id="s4Buy" value="55" min="45" max="75"></div>
+      <div class="config-row"><span class="config-label">RSI Sell</span><input class="config-val" type="number" id="s4Sell" value="45" min="25" max="55"></div>
+      <div class="config-row"><span class="config-label">MACD Fast</span><input class="config-val" type="number" id="s4Fast" value="12" min="3" max="30"></div>
+      <div class="config-row"><span class="config-label">MACD Slow</span><input class="config-val" type="number" id="s4Slow" value="26" min="10" max="60"></div>
+      <div class="config-row"><span class="config-label">Signal Period</span><input class="config-val" type="number" id="s4Sig" value="9" min="3" max="20"></div>
+      <div class="config-row"><span class="config-label">Trailing SL %</span><input class="config-val" type="number" id="s4SL" value="20" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">Qty per trade</span><input class="config-val" type="number" id="s4Qty" value="1" min="1" max="500"></div>
+    </div>
+ 
+    <!-- S5 Params — VWAP + Stochastic -->
+    <div class="param-panel" id="params-5">
+      <div class="config-row"><span class="config-label">Stoch Period</span><input class="config-val" type="number" id="s5StochPer" value="14" min="5" max="30"></div>
+      <div class="config-row"><span class="config-label">Stoch %K Smooth</span><input class="config-val" type="number" id="s5StochK" value="3" min="1" max="10"></div>
+      <div class="config-row"><span class="config-label">Stoch %D Smooth</span><input class="config-val" type="number" id="s5StochD" value="3" min="1" max="10"></div>
+      <div class="config-row"><span class="config-label">Stoch OS level</span><input class="config-val" type="number" id="s5OS" value="20" min="10" max="35"></div>
+      <div class="config-row"><span class="config-label">Stoch OB level</span><input class="config-val" type="number" id="s5OB" value="80" min="65" max="90"></div>
+      <div class="config-row"><span class="config-label">VWAP deviation</span><input class="config-val" type="number" id="s5VwapDev" value="0.5" min="0.1" max="2" step="0.1"></div>
+      <div class="config-row"><span class="config-label">Trailing SL %</span><input class="config-val" type="number" id="s5SL" value="15" min="5" max="50"></div>
+      <div class="config-row"><span class="config-label">Qty per trade</span><input class="config-val" type="number" id="s5Qty" value="1" min="1" max="500"></div>
+    </div>
+ 
+    <div class="auto-trade-row" style="background:rgba(255,255,255,0.02);margin-top:4px;">
+      <label class="toggle"><input type="checkbox" id="tglTrailingSL" checked><span class="slider-toggle"></span></label>
+      <span class="toggle-label">Trailing Stop Loss</span>
+    </div>
+    <button class="btn amber" onclick="applyConfig()" style="width:100%;justify-content:center;margin-top:6px"><i class="ti ti-check"></i> Apply Config</button>
+  </div>
+ 
+  <!-- AUTOMATION -->
+  <div class="sidebar-section">
+    <div class="sidebar-label"><i class="ti ti-robot"></i> Automation</div>
+    <div class="auto-trade-row" style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);">
+      <label class="toggle"><input type="checkbox" id="tglAutoTrade" onchange="onAutoTradeToggle()"><span class="slider-toggle"></span></label>
+      <span class="toggle-label" style="color:var(--green);font-weight:600;">Auto-execute trades</span>
+    </div>
+    <div id="autoTradeStatus" style="font-size:11px;padding:7px 10px;border-radius:6px;margin-bottom:7px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;gap:6px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--text3);display:inline-block" id="atDot"></span>
+      <span id="atStatusText">Disabled — toggle to activate</span>
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px;">Auto-trade target</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+        <i class="ti ti-target" style="color:var(--blue)"></i>
+        <span id="autoTradeTarget" style="font-family:var(--font);font-weight:600">TCS</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">active stock</span>
       </div>
     </div>
-
-    <!-- Signal banner -->
-    <div class="signal-banner none" id="signalBanner">
-      <i class="ti ti-info-circle" aria-hidden="true" style="font-size:18px"></i>
-      <div>
-        <div style="font-weight:600; font-size:13px" id="sigTitle">No active signal</div>
-        <div style="font-size:11px; color:var(--text2); margin-top:2px" id="sigDesc">Waiting for RSI crossover…</div>
-      </div>
+    <div class="auto-trade-row"><label class="toggle"><input type="checkbox" id="tglAlerts" checked><span class="slider-toggle"></span></label><span class="toggle-label">Signal alerts</span></div>
+    <div id="autoTradeStats" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text3)">Auto-orders</span><span id="atOrderCount" style="font-family:var(--font)">0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span style="color:var(--text3)">BUY</span><span id="atBuyCount" style="font-family:var(--font);color:var(--green)">0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:var(--text3)">SELL</span><span id="atSellCount" style="font-family:var(--font);color:var(--red)">0</span></div>
     </div>
-
-    <!-- Metrics row -->
-    <div class="metrics-row">
-      <div class="metric-card">
-        <div class="metric-label">Current RSI</div>
-        <div class="metric-val blue" id="mRsi">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Total Trades</div>
-        <div class="metric-val" id="mTrades">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Win Rate</div>
-        <div class="metric-val green" id="mWin">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">P&L (₹)</div>
-        <div class="metric-val" id="mPnl">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Trailing SL</div>
-        <div class="metric-val amber" id="mSl">—</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Confidence</div>
-        <div class="metric-val" id="mConf">—</div>
-      </div>
+    <div style="font-size:10px;color:var(--text3);line-height:1.5;margin-top:7px;padding:7px;background:var(--bg3);border-radius:5px;">⚠ Real orders via Kite API on selected instrument only. Use at your own risk.</div>
+  </div>
+ 
+  <!-- WATCHLIST -->
+  <div class="sidebar-section" style="flex:1;min-height:0">
+    <div class="sidebar-label" style="display:flex;align-items:center;justify-content:space-between">
+      <span><i class="ti ti-list-check"></i> Watchlist</span>
+      <button class="btn sm" onclick="refreshAll()"><i class="ti ti-refresh" style="font-size:12px"></i></button>
     </div>
-
-    <!-- Open Position Panel -->
-    <div class="position-panel" id="posPanel" style="display:none">
-      <div class="position-head">
-        <span style="font-size:12px; font-weight:500; color:var(--green)"><i class="ti ti-circle-filled" style="font-size:8px; margin-right:4px" aria-hidden="true"></i>Open Position</span>
-        <button class="btn danger" style="padding:4px 10px; font-size:11px" onclick="closePosition()">
-          <i class="ti ti-x" aria-hidden="true"></i> Close
-        </button>
-      </div>
-      <div class="position-body">
-        <div class="pos-stat"><span class="pos-key">Entry Price</span><span class="pos-val" id="posEntry">—</span></div>
-        <div class="pos-stat"><span class="pos-key">Entry Type</span><span class="pos-val" id="posType">—</span></div>
-        <div class="pos-stat"><span class="pos-key">Qty</span><span class="pos-val" id="posQty">—</span></div>
-        <div class="pos-stat"><span class="pos-key">Unrealised P&L</span><span class="pos-val" id="posUnreal">—</span></div>
-        <div class="pos-stat" style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)">
-          <span class="pos-key">Trailing SL Price</span>
-          <span class="pos-val amber" id="posSlPrice">—</span>
-        </div>
-        <div class="pos-stat">
-          <span class="pos-key">RSI at entry</span>
-          <span class="pos-val" id="posRsiEntry">—</span>
-        </div>
-        <div class="sl-progress" style="margin-top:10px">
-          <div class="sl-fill" id="slProgressBar" style="background:var(--amber); width:0%"></div>
-        </div>
-        <div style="font-size:10px; color:var(--text3); margin-top:4px" id="slProgressLabel">Stop loss progress</div>
-      </div>
+    <!-- Market Tabs: 3 tabs now -->
+    <div class="market-tabs" style="margin-bottom:10px">
+      <button class="mtab active" id="tabEq" onclick="switchMarket('equities')">Nifty 50</button>
+      <button class="mtab idx" id="tabIdx" onclick="switchMarket('index')">📊 Index</button>
+      <button class="mtab opts" id="tabOpts" onclick="switchMarket('options')">⚡ Options</button>
     </div>
-
-    <!-- Charts -->
-    <div class="charts-area">
-      <div class="chart-block" style="position:relative">
-        <div class="chart-title">
-          Price · 15min candles
-          <div style="display:flex; gap:12px; margin-left:auto">
-            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Price</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
-          </div>
-        </div>
-        <div style="position:relative; width:100%; height:220px">
-          <canvas id="priceChart" role="img" aria-label="Stock price chart with buy, sell and trailing stop loss markers">Loading…</canvas>
-        </div>
-      </div>
-      <div class="chart-block">
-        <div class="chart-title">
-          RSI (14) · Strategy Levels
-          <div style="display:flex; gap:12px; margin-left:auto">
-            <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>60 buy</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>42 recovery</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>40 sell</div>
-          </div>
-        </div>
-        <div style="position:relative; width:100%; height:160px">
-          <canvas id="rsiChart" role="img" aria-label="RSI indicator with buy sell and recovery threshold lines">Loading…</canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tab-row">
-      <button class="tab-btn active" onclick="showTab('trades')">Trade Log</button>
-      <button class="tab-btn" onclick="showTab('ranking')">Stock Ranking</button>
-      <button class="tab-btn" onclick="showTab('activity')">Activity Log</button>
-    </div>
-
-    <!-- Trade Log -->
-    <div class="tab-content visible" id="tab-trades">
-      <div style="padding:16px 24px 8px; display:flex; align-items:center; justify-content:space-between">
-        <span style="font-size:11px; color:var(--text3)">Completed trades this session</span>
-        <button class="btn" onclick="clearTrades()" style="font-size:10px; padding:3px 8px">Clear</button>
-      </div>
-      <div class="trade-section">
-        <table class="trade-table">
-          <thead><tr>
-            <th>Date/Time</th><th>Type</th><th>Price</th><th>RSI</th><th>P&L ₹</th><th>SL Hit</th>
-          </tr></thead>
-          <tbody id="tradeBody"></tbody>
-        </table>
-        <div id="noTrades" style="text-align:center; padding:24px; font-size:12px; color:var(--text3)">No trades yet. Strategy running…</div>
-      </div>
-    </div>
-
-    <!-- Ranking -->
-    <div class="tab-content" id="tab-ranking">
-      <div class="rank-table-wrap">
-        <table class="rank-table">
-          <thead><tr>
-            <th>#</th><th>Symbol</th><th>Last RSI</th><th>Signal</th><th>Trades</th><th>Win %</th><th>P&L ₹</th><th>Score</th>
-          </tr></thead>
-          <tbody id="rankBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Activity -->
-    <div class="tab-content" id="tab-activity">
-      <div class="log-wrap" id="activityLog"></div>
-    </div>
-
+    <div class="watchlist" id="watchlist"></div>
   </div>
 </div>
-
+ 
+<!-- ════════════════════════════════════════
+     MAIN AREA
+════════════════════════════════════════ -->
+<div class="main-area">
+ 
+  <!-- Stock Header -->
+  <div class="stock-header">
+    <div>
+      <div class="stock-title" id="hTitle">TCS</div>
+      <div style="font-size:12px;color:var(--text3);font-family:var(--font);margin-top:2px" id="hFull">Tata Consultancy Services</div>
+      <div class="opt-pills" id="optPills" style="display:none"></div>
+    </div>
+    <div style="text-align:right;margin-left:auto">
+      <div class="stock-price" id="hPrice">₹—</div>
+      <div class="stock-chg" id="hChg" style="color:var(--text3)">—</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn primary" onclick="manualOrder('BUY')"><i class="ti ti-trending-up"></i> Buy</button>
+      <button class="btn danger" onclick="manualOrder('SELL')"><i class="ti ti-trending-down"></i> Sell</button>
+      <button class="btn" onclick="refreshActive()"><i class="ti ti-refresh"></i></button>
+    </div>
+  </div>
+ 
+  <!-- Signal Banner -->
+  <div class="signal-banner none" id="signalBanner">
+    <i class="ti ti-info-circle" style="font-size:18px"></i>
+    <div>
+      <div style="font-weight:600;font-size:13px" id="sigTitle">No active signal</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:2px" id="sigDesc">Waiting for signal…</div>
+    </div>
+  </div>
+ 
+  <!-- Metrics -->
+  <div class="metrics-row" id="metricsRow">
+    <div class="metric-card"><div class="metric-label">Current RSI</div><div class="metric-val blue" id="mRsi">—</div></div>
+    <div class="metric-card"><div class="metric-label">Total Trades</div><div class="metric-val" id="mTrades">—</div></div>
+    <div class="metric-card"><div class="metric-label">Win Rate</div><div class="metric-val green" id="mWin">—</div></div>
+    <div class="metric-card"><div class="metric-label">P&amp;L (₹)</div><div class="metric-val" id="mPnl">—</div></div>
+    <div class="metric-card"><div class="metric-label">Trail SL</div><div class="metric-val amber" id="mSl">—</div></div>
+    <div class="metric-card"><div class="metric-label" id="m6Label">Confidence</div><div class="metric-val" id="m6Val">—</div></div>
+    <!-- Extra indicators -->
+    <div class="metric-card"><div class="metric-label">Stoch %K</div><div class="metric-val" id="mStoch">—</div></div>
+    <div class="metric-card"><div class="metric-label">ADX</div><div class="metric-val" id="mAdx">—</div></div>
+    <div class="metric-card"><div class="metric-label">VWAP</div><div class="metric-val cyan" id="mVwap">—</div></div>
+    <!-- Options metrics (hidden for equities/index) -->
+    <div class="metric-card" id="mIvCard" style="display:none"><div class="metric-label">IV</div><div class="metric-val cyan" id="mIV">—</div></div>
+    <div class="metric-card" id="mOiCard" style="display:none"><div class="metric-label">OI (K)</div><div class="metric-val purple" id="mOI">—</div></div>
+    <div class="metric-card" id="mDeltaCard" style="display:none"><div class="metric-label">Delta</div><div class="metric-val" id="mDelta">—</div></div>
+    <div class="metric-card" id="mThetaCard" style="display:none"><div class="metric-label">Theta/day</div><div class="metric-val red" id="mTheta">—</div></div>
+  </div>
+ 
+  <!-- Open Position Panel -->
+  <div class="position-panel" id="posPanel" style="display:none">
+    <div class="position-head">
+      <span style="font-size:12px;font-weight:500;color:var(--green)"><i class="ti ti-circle-filled" style="font-size:8px;margin-right:4px"></i>Open Position</span>
+      <button class="btn danger" style="padding:4px 10px;font-size:11px" onclick="closePosition()"><i class="ti ti-x"></i> Close</button>
+    </div>
+    <div class="position-body">
+      <div class="pos-stat"><span class="pos-key">Entry Price</span><span class="pos-val" id="posEntry">—</span></div>
+      <div class="pos-stat"><span class="pos-key">Entry Type</span><span class="pos-val" id="posType">—</span></div>
+      <div class="pos-stat"><span class="pos-key">Qty</span><span class="pos-val" id="posQty">—</span></div>
+      <div class="pos-stat"><span class="pos-key">Unrealised P&amp;L</span><span class="pos-val" id="posUnreal">—</span></div>
+      <div class="pos-stat" style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border)">
+        <span class="pos-key">Trailing SL Price</span><span class="pos-val amber" id="posSlPrice">—</span>
+      </div>
+      <div class="sl-progress"><div class="sl-fill" id="slProgressBar" style="background:var(--amber);width:0%"></div></div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px" id="slProgressLabel">Stop loss progress</div>
+    </div>
+  </div>
+ 
+  <!-- Charts -->
+  <div class="charts-area">
+    <!-- Price Chart -->
+    <div class="chart-block" style="position:relative">
+      <div class="chart-title">
+        <span id="priceChartLabel">Price · 15min</span>
+        <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap" id="priceLegend">
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Price</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:230px">
+        <canvas id="priceChart" role="img" aria-label="Price chart"></canvas>
+      </div>
+    </div>
+ 
+    <!-- RSI Chart (shown for S1, S4) -->
+    <div class="chart-block" id="rsiChartBlock">
+      <div class="chart-title">
+        <span id="rsiChartLabel">RSI · Strategy Levels</span>
+        <div style="display:flex;gap:10px;margin-left:auto" id="rsiLegend">
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Recovery</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:160px">
+        <canvas id="rsiChart" role="img" aria-label="RSI chart"></canvas>
+      </div>
+    </div>
+ 
+    <!-- MACD Chart (shown for S3, S4) -->
+    <div class="chart-block" id="macdChartBlock" style="display:none">
+      <div class="chart-title">
+        MACD (12, 26, 9)
+        <div style="display:flex;gap:10px;margin-left:auto">
+          <div class="legend-item"><div class="legend-line" style="background:#06b6d4"></div>MACD</div>
+          <div class="legend-item"><div class="legend-line" style="background:#f59e0b"></div>Signal</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Histogram +</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Histogram −</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:140px">
+        <canvas id="macdChart" role="img" aria-label="MACD chart"></canvas>
+      </div>
+    </div>
+ 
+    <!-- Stochastic Chart (shown for S5) -->
+    <div class="chart-block" id="stochChartBlock" style="display:none">
+      <div class="chart-title">
+        Stochastic Oscillator (%K / %D)
+        <div style="display:flex;gap:10px;margin-left:auto">
+          <div class="legend-item"><div class="legend-line" style="background:#a855f7"></div>%K</div>
+          <div class="legend-item"><div class="legend-line" style="background:#f59e0b"></div>%D</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:140px">
+        <canvas id="stochChart" role="img" aria-label="Stochastic chart"></canvas>
+      </div>
+    </div>
+ 
+    <!-- ADX Chart (shown always as extra indicator) -->
+    <div class="chart-block" id="adxChartBlock" style="display:none">
+      <div class="chart-title">
+        ADX — Trend Strength
+        <div style="display:flex;gap:10px;margin-left:auto">
+          <div class="legend-item"><div class="legend-line" style="background:#06b6d4"></div>ADX</div>
+          <div class="legend-item"><div class="legend-line" style="background:#22c55e"></div>+DI</div>
+          <div class="legend-item"><div class="legend-line" style="background:#ef4444"></div>−DI</div>
+        </div>
+      </div>
+      <div style="position:relative;width:100%;height:130px">
+        <canvas id="adxChart" role="img" aria-label="ADX chart"></canvas>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- TABS -->
+  <div class="tab-row">
+    <button class="tab-btn active" onclick="showTab('trades',event)">Trade Log</button>
+    <button class="tab-btn" onclick="showTab('ranking',event)">Stock Ranking</button>
+    <button class="tab-btn" onclick="showTab('activity',event)">Activity Log</button>
+  </div>
+ 
+  <!-- Trade Log -->
+  <div class="tab-content visible" id="tab-trades">
+    <div style="padding:14px 24px 8px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:11px;color:var(--text3)">Completed trades this session</span>
+      <button class="btn sm" onclick="clearTrades()">Clear</button>
+    </div>
+    <div class="trade-section">
+      <table class="trade-table">
+        <thead><tr><th>Date/Time</th><th>Type</th><th>Price</th><th>Signal</th><th>P&amp;L ₹</th><th>SL Hit</th></tr></thead>
+        <tbody id="tradeBody"></tbody>
+      </table>
+      <div id="noTrades" style="text-align:center;padding:24px;font-size:12px;color:var(--text3)">No trades yet. Strategy running…</div>
+    </div>
+  </div>
+ 
+  <!-- Ranking -->
+  <div class="tab-content" id="tab-ranking">
+    <div class="rank-table-wrap">
+      <table class="rank-table">
+        <thead><tr><th>#</th><th>Symbol</th><th>RSI</th><th>ADX</th><th>Signal</th><th>Trades</th><th>Win %</th><th>P&amp;L ₹</th><th>Score</th></tr></thead>
+        <tbody id="rankBody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <!-- Activity -->
+  <div class="tab-content" id="tab-activity">
+    <div class="log-wrap" id="activityLog"></div>
+  </div>
+ 
+</div><!-- /main-area -->
+</div><!-- /layout -->
+ 
+<!-- ════════════════════════════════════════
+     STRATEGY GUIDE MODAL (5 tabs)
+════════════════════════════════════════ -->
+<div class="guide-overlay" id="guideOverlay" onclick="closeGuideIfBg(event)">
+<div class="guide-modal">
+  <div class="guide-head">
+    <div>
+      <div style="font-size:16px;font-weight:700;letter-spacing:-0.02em">Strategy Guide</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:3px">5 strategies · click any tab to learn how it works</div>
+    </div>
+    <button onclick="closeGuide()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;line-height:1;padding:4px">✕</button>
+  </div>
+ 
+  <div class="guide-tabs">
+    <button class="gtab active" onclick="showGTab(1,this)">S1 · RSI Momentum</button>
+    <button class="gtab" onclick="showGTab(2,this)">S2 · EMA + BB</button>
+    <button class="gtab" onclick="showGTab(3,this)">S3 · MACD</button>
+    <button class="gtab" onclick="showGTab(4,this)">S4 · Combined</button>
+    <button class="gtab" onclick="showGTab(5,this)">S5 · VWAP + Stoch</button>
+  </div>
+ 
+  <div class="guide-body">
+ 
+    <!-- S1 Guide -->
+    <div class="gtab-content visible" id="g1">
+      <div class="guide-card">
+        <div class="guide-card-head" style="color:var(--blue)">📈 S1 — RSI Momentum Strategy</div>
+        <div class="guide-card-sub">Uses the <strong>Relative Strength Index (RSI)</strong> to identify momentum breakouts. RSI measures the speed and magnitude of recent price changes on a scale of 0–100. Readings above 60 signal strong bullish momentum; below 40 signals weakness. This is the original strategy — battle-tested on Nifty 50 stocks and index options using 15-min candles.</div>
+      </div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--green)">🟢 BUY Signal</div><div class="guide-rule-body">RSI crosses <strong>above 60</strong> (from below). Indicates building momentum — enter a long position at market price. Trailing SL activates immediately.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--blue)">🔵 Recovery BUY</div><div class="guide-rule-body">After a sell, if RSI drops below 40 then crosses <strong>above 42</strong>, a post-dip recovery entry is triggered. Lower-risk re-entry after momentum returns.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--red)">🔴 SELL Signal</div><div class="guide-rule-body">RSI drops <strong>below 40</strong> (momentum reversal) <em>or</em> trailing SL is hit. Whichever comes first closes the position.</div></div>
+      <div class="guide-card" style="margin-top:16px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--text3)">DEFAULT PARAMETERS</div>
+        <table class="guide-table">
+          <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>RSI Period</td><td>14</td><td style="color:var(--text2);font-family:var(--sans)">Lookback candles for RSI calculation</td></tr>
+            <tr><td>Buy Threshold</td><td>60</td><td style="color:var(--text2);font-family:var(--sans)">RSI level that triggers a BUY</td></tr>
+            <tr><td>Sell Threshold</td><td>40</td><td style="color:var(--text2);font-family:var(--sans)">RSI level that triggers a SELL</td></tr>
+            <tr><td>Recovery</td><td>42</td><td style="color:var(--text2);font-family:var(--sans)">Post-dip re-entry threshold</td></tr>
+            <tr><td>Trailing SL</td><td>20%</td><td style="color:var(--text2);font-family:var(--sans)">SL trails at X% below highest price</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text2);background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:8px;padding:12px;margin-top:12px;line-height:1.7">
+        💡 <strong>Best for:</strong> Trending Nifty 50 stocks and NIFTY/BANKNIFTY index with clear momentum breakouts. Works well during morning sessions (9:30–11:30) and high-volume days. Avoid during choppy sideways markets.
+      </div>
+    </div>
+ 
+    <!-- S2 Guide -->
+    <div class="gtab-content" id="g2">
+      <div class="guide-card">
+        <div class="guide-card-head" style="color:var(--cyan)">📊 S2 — EMA(44) + Bollinger Bands Strategy</div>
+        <div class="guide-card-sub">Combines a <strong>44-period Exponential Moving Average (EMA)</strong> as a trend filter with <strong>Bollinger Bands (BB)</strong> to detect volatility expansions. The EMA tells you the trend direction; BB tells you when price is at an extreme — together they find high-probability entries with built-in volatility context.</div>
+      </div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--green)">🟢 BUY Signal</div><div class="guide-rule-body">Price is <strong>above EMA(44)</strong> (uptrend confirmed) AND price has touched or fallen to the <strong>Lower Bollinger Band</strong> (pullback to value). Price must then close back above the lower band — a mean-reversion entry within an uptrend.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--red)">🔴 SELL Signal</div><div class="guide-rule-body">Price touches or closes <strong>above the Upper Bollinger Band</strong> (overbought extension) <em>OR</em> price crosses <strong>below EMA(44)</strong> (trend reversal). Exit on whichever fires first.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--text2)">📐 Indicator Formulas</div><div class="guide-rule-body">
+        <strong>EMA(44):</strong> Exponential average with α = 2/(44+1). Recent prices weighted more heavily.<br>
+        <strong>BB Upper:</strong> SMA(20) + 2 × StdDev(20)<br>
+        <strong>BB Lower:</strong> SMA(20) − 2 × StdDev(20)<br>
+        <strong>BB Width:</strong> Narrow bands = low volatility (squeeze) → explosive move incoming
+      </div></div>
+      <div class="guide-card" style="margin-top:16px">
+        <table class="guide-table">
+          <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>EMA Period</td><td>44</td><td style="color:var(--text2);font-family:var(--sans)">Trend-following EMA period</td></tr>
+            <tr><td>BB Period</td><td>20</td><td style="color:var(--text2);font-family:var(--sans)">SMA period for Bollinger Bands</td></tr>
+            <tr><td>BB Std Dev</td><td>2.0</td><td style="color:var(--text2);font-family:var(--sans)">Band width multiplier (1.5–2.5 typical)</td></tr>
+            <tr><td>Trailing SL</td><td>18%</td><td style="color:var(--text2);font-family:var(--sans)">Percentage trailing stop loss</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text2);background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.2);border-radius:8px;padding:12px;margin-top:12px;line-height:1.7">
+        💡 <strong>Best for:</strong> Options trading (NIFTY CE/PE) and trending Nifty stocks. The EMA(44) aligns well with daily-to-weekly swing moves. Particularly powerful when BB squeeze precedes a breakout.
+      </div>
+    </div>
+ 
+    <!-- S3 Guide -->
+    <div class="gtab-content" id="g3">
+      <div class="guide-card">
+        <div class="guide-card-head" style="color:var(--amber)">⚡ S3 — MACD Crossover Strategy</div>
+        <div class="guide-card-sub">The <strong>Moving Average Convergence Divergence (MACD)</strong> measures momentum by comparing two EMAs. When the MACD line crosses the signal line, it indicates a shift in trend momentum. A classic trend-following strategy suited to medium-term moves in both equities and index options.</div>
+      </div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--green)">🟢 BUY Signal</div><div class="guide-rule-body">MACD line crosses <strong>above the Signal line</strong> (histogram turns positive). Indicates accelerating bullish momentum. The further below zero this crossover occurs, the stronger the signal.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--red)">🔴 SELL Signal</div><div class="guide-rule-body">MACD line crosses <strong>below the Signal line</strong> (histogram turns negative) <em>OR</em> trailing SL is hit.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--text2)">📐 Formula</div><div class="guide-rule-body">
+        <strong>MACD Line:</strong> EMA(12) − EMA(26)<br>
+        <strong>Signal Line:</strong> EMA(9) of MACD line<br>
+        <strong>Histogram:</strong> MACD − Signal (shows divergence speed)
+      </div></div>
+      <div class="guide-card" style="margin-top:16px">
+        <table class="guide-table">
+          <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>MACD Fast</td><td>12</td><td style="color:var(--text2);font-family:var(--sans)">Faster EMA period</td></tr>
+            <tr><td>MACD Slow</td><td>26</td><td style="color:var(--text2);font-family:var(--sans)">Slower EMA period (trend baseline)</td></tr>
+            <tr><td>Signal Period</td><td>9</td><td style="color:var(--text2);font-family:var(--sans)">Smoothing for signal line</td></tr>
+            <tr><td>Trailing SL</td><td>22%</td><td style="color:var(--text2);font-family:var(--sans)">Slightly wider for MACD (slower signals)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text2);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:12px;margin-top:12px;line-height:1.7">
+        💡 <strong>Best for:</strong> Index options with 1–5 day holding periods. MACD reacts slightly slower than RSI, reducing false signals in choppy markets.
+      </div>
+    </div>
+ 
+    <!-- S4 Guide -->
+    <div class="gtab-content" id="g4">
+      <div class="guide-card">
+        <div class="guide-card-head" style="color:var(--purple)">🔬 S4 — RSI + MACD Combined Strategy</div>
+        <div class="guide-card-sub">The most selective strategy — requires <strong>dual confirmation</strong> from both RSI (momentum gauge) and MACD (trend momentum) before entering a trade. Fewer signals but significantly higher quality. The RSI filters premature MACD crossovers, and MACD filters RSI spikes in ranging markets.</div>
+      </div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--green)">🟢 BUY (Both must confirm)</div><div class="guide-rule-body"><strong>Condition 1:</strong> RSI crosses above the buy threshold (default 55)<br><strong>Condition 2:</strong> MACD is above signal line (histogram positive)<br>Both must be true simultaneously.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--red)">🔴 SELL (Either triggers exit)</div><div class="guide-rule-body"><strong>Condition 1 (OR):</strong> RSI drops below the sell threshold (default 45)<br><strong>Condition 2 (OR):</strong> MACD crosses below signal line<br>Trailing SL also exits the position.</div></div>
+      <div class="guide-card" style="margin-top:16px;background:rgba(168,85,247,0.05);border-color:rgba(168,85,247,0.2)">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px;color:var(--purple)">WHY COMBINED IS POWERFUL</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">S4 trades less frequently (~40% fewer signals than S1 or S3 alone), but each trade has higher conviction since two independent indicators agree. Backtesting typically shows <strong>improved win rate by 10–20%</strong> compared to using either indicator alone.</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:12px;margin-top:12px;line-height:1.7">
+        💡 <strong>Best for:</strong> High-value NIFTY options and blue-chip Nifty 50 stocks. Ideal when you want fewer, higher-quality trades.
+      </div>
+    </div>
+ 
+    <!-- S5 Guide -->
+    <div class="gtab-content" id="g5">
+      <div class="guide-card">
+        <div class="guide-card-head" style="color:var(--pink)">🎯 S5 — VWAP + Stochastic Strategy</div>
+        <div class="guide-card-sub">Combines the <strong>Volume Weighted Average Price (VWAP)</strong> — the institutional benchmark price — with the <strong>Stochastic Oscillator</strong>, a momentum indicator that compares a closing price to its range over a given period. VWAP defines the fair value zone; Stochastic identifies oversold/overbought extremes within that context. Especially powerful for intraday index trading.</div>
+      </div>
+      <div class="guide-rule">
+        <div class="guide-rule-head" style="color:var(--cyan)">📐 VWAP Explained</div>
+        <div class="guide-rule-body">
+          <strong>VWAP = Σ(Price × Volume) / ΣVolume</strong><br>
+          It resets each trading day. Price <em>above VWAP</em> = buyers in control. Price <em>below VWAP</em> = sellers dominating. Institutions use VWAP as a benchmark — buying below and selling above is considered favorable.<br>
+          <strong>VWAP Bands</strong> = VWAP ± (deviation × rolling std dev). Price touching lower band = deep pullback; upper band = extended.
+        </div>
+      </div>
+      <div class="guide-rule">
+        <div class="guide-rule-head" style="color:var(--purple)">📐 Stochastic Explained</div>
+        <div class="guide-rule-body">
+          <strong>%K = (Close − Lowest Low) / (Highest High − Lowest Low) × 100</strong><br>
+          <strong>%D = SMA(3) of %K</strong> — the signal line<br>
+          Ranges 0–100. Below 20 = oversold (potential buy). Above 80 = overbought (potential sell).<br>
+          The crossover of %K above %D in oversold territory is a high-conviction buy signal.
+        </div>
+      </div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--green)">🟢 BUY Signal</div><div class="guide-rule-body">Price is <strong>above VWAP</strong> (institutional support) AND Stochastic %K is in <strong>oversold zone (&lt;20)</strong> and crosses above %D (momentum turning up). This finds pullback entries in an overall bullish day.</div></div>
+      <div class="guide-rule"><div class="guide-rule-head" style="color:var(--red)">🔴 SELL Signal</div><div class="guide-rule-body">Price crosses <strong>below VWAP</strong> (bearish flip) OR Stochastic %K crosses <strong>above 80</strong> and starts declining below %D (overbought reversal). Trailing SL also exits.</div></div>
+      <div class="guide-card" style="margin-top:16px">
+        <table class="guide-table">
+          <thead><tr><th>Parameter</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>Stoch Period</td><td>14</td><td style="color:var(--text2);font-family:var(--sans)">Lookback window for high/low range</td></tr>
+            <tr><td>%K Smooth</td><td>3</td><td style="color:var(--text2);font-family:var(--sans)">SMA smoothing on raw %K</td></tr>
+            <tr><td>%D Smooth</td><td>3</td><td style="color:var(--text2);font-family:var(--sans)">SMA smoothing on %K to get %D</td></tr>
+            <tr><td>Oversold</td><td>20</td><td style="color:var(--text2);font-family:var(--sans)">%K below this = buy zone</td></tr>
+            <tr><td>Overbought</td><td>80</td><td style="color:var(--text2);font-family:var(--sans)">%K above this = sell zone</td></tr>
+            <tr><td>VWAP Deviation</td><td>0.5</td><td style="color:var(--text2);font-family:var(--sans)">Std dev multiplier for VWAP bands</td></tr>
+            <tr><td>Trailing SL</td><td>15%</td><td style="color:var(--text2);font-family:var(--sans)">Tighter SL suitable for intraday</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--text2);background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.2);border-radius:8px;padding:12px;margin-top:12px;line-height:1.7">
+        💡 <strong>Best for:</strong> NIFTY/BANKNIFTY index and Index options on trending days. VWAP is most meaningful during active market hours. Works best when combined with market-wide trend awareness — avoid on event/expiry days.
+      </div>
+    </div>
+ 
+  </div><!-- /guide-body -->
+</div><!-- /guide-modal -->
+</div><!-- /guide-overlay -->
+ 
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
 <script>
-// ─── NIFTY 50 UNIVERSE ─────────────────────────────────────────────────────
+// ─── UNIVERSE ─────────────────────────────────────────────────────────────────
 const NIFTY50 = [
-  {sym:'RELIANCE.NS', name:'Reliance Industries'},
-  {sym:'TCS.NS', name:'Tata Consultancy Services'},
-  {sym:'HDFCBANK.NS', name:'HDFC Bank'},
-  {sym:'INFY.NS', name:'Infosys'},
-  {sym:'ICICIBANK.NS', name:'ICICI Bank'},
-  {sym:'HINDUNILVR.NS', name:'Hindustan Unilever'},
-  {sym:'ITC.NS', name:'ITC Limited'},
-  {sym:'SBIN.NS', name:'State Bank of India'},
-  {sym:'BHARTIARTL.NS', name:'Bharti Airtel'},
-  {sym:'KOTAKBANK.NS', name:'Kotak Mahindra Bank'},
-  {sym:'LT.NS', name:'Larsen & Toubro'},
-  {sym:'BAJFINANCE.NS', name:'Bajaj Finance'},
-  {sym:'AXISBANK.NS', name:'Axis Bank'},
-  {sym:'ASIANPAINT.NS', name:'Asian Paints'},
-  {sym:'MARUTI.NS', name:'Maruti Suzuki'},
-  {sym:'HCLTECH.NS', name:'HCL Technologies'},
-  {sym:'TATAMOTORS.NS', name:'Tata Motors'},
-  {sym:'SUNPHARMA.NS', name:'Sun Pharmaceutical'},
-  {sym:'WIPRO.NS', name:'Wipro'},
-  {sym:'ULTRACEMCO.NS', name:'UltraTech Cement'},
-  {sym:'TITAN.NS', name:'Titan Company'},
-  {sym:'NTPC.NS', name:'NTPC'},
-  {sym:'POWERGRID.NS', name:'Power Grid Corp'},
-  {sym:'NESTLEIND.NS', name:'Nestlé India'},
-  {sym:'TECHM.NS', name:'Tech Mahindra'},
-  {sym:'BAJAJFINSV.NS', name:'Bajaj Finserv'},
-  {sym:'ONGC.NS', name:'ONGC'},
-  {sym:'TATASTEEL.NS', name:'Tata Steel'},
-  {sym:'INDUSINDBK.NS', name:'IndusInd Bank'},
-  {sym:'DRREDDY.NS', name:'Dr. Reddy\'s'},
+  {sym:'RELIANCE.NS',name:'Reliance Industries'},{sym:'TCS.NS',name:'Tata Consultancy Services'},
+  {sym:'HDFCBANK.NS',name:'HDFC Bank'},{sym:'INFY.NS',name:'Infosys'},
+  {sym:'ICICIBANK.NS',name:'ICICI Bank'},{sym:'HINDUNILVR.NS',name:'Hindustan Unilever'},
+  {sym:'ITC.NS',name:'ITC Limited'},{sym:'SBIN.NS',name:'State Bank of India'},
+  {sym:'BHARTIARTL.NS',name:'Bharti Airtel'},{sym:'KOTAKBANK.NS',name:'Kotak Mahindra Bank'},
+  {sym:'LT.NS',name:'Larsen & Toubro'},{sym:'BAJFINANCE.NS',name:'Bajaj Finance'},
+  {sym:'AXISBANK.NS',name:'Axis Bank'},{sym:'ASIANPAINT.NS',name:'Asian Paints'},
+  {sym:'MARUTI.NS',name:'Maruti Suzuki'},{sym:'HCLTECH.NS',name:'HCL Technologies'},
+  {sym:'TATAMOTORS.NS',name:'Tata Motors'},{sym:'SUNPHARMA.NS',name:'Sun Pharmaceutical'},
+  {sym:'WIPRO.NS',name:'Wipro'},{sym:'ULTRACEMCO.NS',name:'UltraTech Cement'},
+  {sym:'TITAN.NS',name:'Titan Company'},{sym:'NTPC.NS',name:'NTPC'},
+  {sym:'POWERGRID.NS',name:'Power Grid Corp'},{sym:'NESTLEIND.NS',name:'Nestlé India'},
+  {sym:'TECHM.NS',name:'Tech Mahindra'},{sym:'BAJAJFINSV.NS',name:'Bajaj Finserv'},
+  {sym:'ONGC.NS',name:'ONGC'},{sym:'TATASTEEL.NS',name:'Tata Steel'},
+  {sym:'INDUSINDBK.NS',name:'IndusInd Bank'},{sym:'DRREDDY.NS',name:"Dr. Reddy's"},
 ];
-
-// ─── STATE ─────────────────────────────────────────────────────────────────
-let activeStock = 'TCS.NS';
-let zerodhaConnected = false;
-let accessTokenVal = '';
-let apiKeyVal = '';
-let priceChart, rsiChart;
-let stockData = {}; // sym -> {prices, rsi, trades, position}
-let activityEntries = [];
-let globalTradesAll = [];
-let scanInterval = null;
-let clockInterval = null;
-
-// Strategy params
-let CFG = {
-  rsiPeriod: 14,
-  buyThresh: 60,
-  sellThresh: 40,
-  recovThresh: 42,
-  trailPct: 20,
-  qty: 1
+ 
+// NIFTY Index (spot) — NIFTY 50 index + BANKNIFTY index
+const NIFTY_INDICES = [
+  {sym:'NIFTY50_IDX',name:'NIFTY 50 Index',type:'index',underlying:'NIFTY',sector:'Broad Market'},
+  {sym:'BANKNIFTY_IDX',name:'BANK NIFTY Index',type:'index',underlying:'BANKNIFTY',sector:'Banking'},
+  {sym:'FINNIFTY_IDX',name:'FIN NIFTY Index',type:'index',underlying:'FINNIFTY',sector:'Financial Services'},
+  {sym:'MIDCPNIFTY_IDX',name:'MIDCAP NIFTY Index',type:'index',underlying:'MIDCPNIFTY',sector:'Midcap'},
+  {sym:'NIFTYIT_IDX',name:'NIFTY IT Index',type:'index',underlying:'NIFTYIT',sector:'Technology'},
+  {sym:'NIFTYPHARMA_IDX',name:'NIFTY Pharma Index',type:'index',underlying:'NIFTYPHARMA',sector:'Pharma'},
+  {sym:'NIFTYAUTO_IDX',name:'NIFTY Auto Index',type:'index',underlying:'NIFTYAUTO',sector:'Auto'},
+  {sym:'NIFTYFMCG_IDX',name:'NIFTY FMCG Index',type:'index',underlying:'NIFTYFMCG',sector:'FMCG'},
+  {sym:'NIFTYENERGY_IDX',name:'NIFTY Energy Index',type:'index',underlying:'NIFTYENERGY',sector:'Energy'},
+  {sym:'NIFTYREALTY_IDX',name:'NIFTY Realty Index',type:'index',underlying:'NIFTYREALTY',sector:'Realty'},
+];
+ 
+// NIFTY & BANKNIFTY Options (near-the-money weekly expiry)
+const NIFTY_OPTIONS = [
+  {sym:'NIFTY25200CE',name:'NIFTY 25200 CE',underlying:'NIFTY',type:'CE',strike:25200,expiry:'29May',iv:13.2,delta:0.28,theta:-8.4,oi:4820},
+  {sym:'NIFTY25100CE',name:'NIFTY 25100 CE',underlying:'NIFTY',type:'CE',strike:25100,expiry:'29May',iv:13.8,delta:0.35,theta:-10.2,oi:6310},
+  {sym:'NIFTY25000CE',name:'NIFTY 25000 CE',underlying:'NIFTY',type:'CE',strike:25000,expiry:'29May',iv:14.5,delta:0.42,theta:-12.1,oi:8940,atm:true},
+  {sym:'NIFTY24900CE',name:'NIFTY 24900 CE',underlying:'NIFTY',type:'CE',strike:24900,expiry:'29May',iv:14.8,delta:0.52,theta:-13.4,oi:7820},
+  {sym:'NIFTY24800CE',name:'NIFTY 24800 CE',underlying:'NIFTY',type:'CE',strike:24800,expiry:'29May',iv:15.2,delta:0.61,theta:-11.8,oi:5430},
+  {sym:'NIFTY25000PE',name:'NIFTY 25000 PE',underlying:'NIFTY',type:'PE',strike:25000,expiry:'29May',iv:15.1,delta:-0.48,theta:-11.9,oi:9210,atm:true},
+  {sym:'NIFTY24900PE',name:'NIFTY 24900 PE',underlying:'NIFTY',type:'PE',strike:24900,expiry:'29May',iv:15.6,delta:-0.38,theta:-10.4,oi:6780},
+  {sym:'NIFTY24800PE',name:'NIFTY 24800 PE',underlying:'NIFTY',type:'PE',strike:24800,expiry:'29May',iv:16.2,delta:-0.28,theta:-8.6,oi:4920},
+  {sym:'NIFTY25100PE',name:'NIFTY 25100 PE',underlying:'NIFTY',type:'PE',strike:25100,expiry:'29May',iv:14.3,delta:-0.58,theta:-12.8,oi:7430},
+  {sym:'NIFTY25200PE',name:'NIFTY 25200 PE',underlying:'NIFTY',type:'PE',strike:25200,expiry:'29May',iv:13.8,delta:-0.69,theta:-10.1,oi:5120},
+  {sym:'BNIFTY54500CE',name:'BNIFTY 54500 CE',underlying:'BANKNIFTY',type:'CE',strike:54500,expiry:'28May',iv:16.4,delta:0.30,theta:-22.1,oi:3140},
+  {sym:'BNIFTY54000CE',name:'BNIFTY 54000 CE',underlying:'BANKNIFTY',type:'CE',strike:54000,expiry:'28May',iv:17.2,delta:0.44,theta:-28.4,oi:5870,atm:true},
+  {sym:'BNIFTY53500CE',name:'BNIFTY 53500 CE',underlying:'BANKNIFTY',type:'CE',strike:53500,expiry:'28May',iv:17.8,delta:0.58,theta:-26.2,oi:4320},
+  {sym:'BNIFTY54000PE',name:'BNIFTY 54000 PE',underlying:'BANKNIFTY',type:'PE',strike:54000,expiry:'28May',iv:17.5,delta:-0.46,theta:-27.8,oi:6140,atm:true},
+  {sym:'BNIFTY53500PE',name:'BNIFTY 53500 PE',underlying:'BANKNIFTY',type:'PE',strike:53500,expiry:'28May',iv:18.1,delta:-0.33,theta:-22.3,oi:3890},
+  {sym:'BNIFTY54500PE',name:'BNIFTY 54500 PE',underlying:'BANKNIFTY',type:'PE',strike:54500,expiry:'28May',iv:16.6,delta:-0.59,theta:-25.4,oi:4280},
+];
+ 
+// Seed prices for simulation
+const SEED_PRICES = {
+  'RELIANCE.NS':1400,'TCS.NS':3200,'HDFCBANK.NS':1800,'INFY.NS':1500,'ICICIBANK.NS':1250,
+  'HINDUNILVR.NS':2400,'ITC.NS':460,'SBIN.NS':820,'BHARTIARTL.NS':1680,'KOTAKBANK.NS':1920,
+  'LT.NS':3400,'BAJFINANCE.NS':7200,'AXISBANK.NS':1150,'ASIANPAINT.NS':2200,'MARUTI.NS':13000,
+  'HCLTECH.NS':1680,'TATAMOTORS.NS':780,'SUNPHARMA.NS':1750,'WIPRO.NS':540,'ULTRACEMCO.NS':12000,
+  'TITAN.NS':3600,'NTPC.NS':340,'POWERGRID.NS':290,'NESTLEIND.NS':2300,'TECHM.NS':1480,
+  'BAJAJFINSV.NS':1680,'ONGC.NS':270,'TATASTEEL.NS':155,'INDUSINDBK.NS':980,'DRREDDY.NS':5800,
+  // Index seeds
+  'NIFTY50_IDX':24850,'BANKNIFTY_IDX':53980,'FINNIFTY_IDX':23200,'MIDCPNIFTY_IDX':12400,
+  'NIFTYIT_IDX':36500,'NIFTYPHARMA_IDX':21800,'NIFTYAUTO_IDX':25600,'NIFTYFMCG_IDX':58200,
+  'NIFTYENERGY_IDX':39800,'NIFTYREALTY_IDX':9800,
 };
-
-// ─── CLOCK ─────────────────────────────────────────────────────────────────
+const OPT_BASE_PRICES = {
+  'NIFTY25200CE':82,'NIFTY25100CE':128,'NIFTY25000CE':185,'NIFTY24900CE':254,'NIFTY24800CE':338,
+  'NIFTY25000PE':190,'NIFTY24900PE':138,'NIFTY24800PE':95,'NIFTY25100PE':264,'NIFTY25200PE':348,
+  'BNIFTY54500CE':180,'BNIFTY54000CE':340,'BNIFTY53500CE':560,
+  'BNIFTY54000PE':355,'BNIFTY53500PE':210,'BNIFTY54500PE':540,
+};
+ 
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let activeStock = 'TCS.NS';
+let activeMarket = 'equities'; // 'equities' | 'index' | 'options'
+let activeStrategy = 1;
+let zerodhaConnected = false;
+let isAdminUser = false;
+let apiKeyVal = '', accessTokenVal = '';
+let priceChart, rsiChart, macdChart, stochChart, adxChart;
+let stockData = {}, optionData = {};
+let activityEntries = [], scanInterval = null;
+let atOrderCount = 0, atBuyCount = 0, atSellCount = 0;
+ 
+let CFG = {
+  // S1
+  rsiPeriod:14, buyThresh:60, sellThresh:40, recovThresh:42, trailPct:20, qty:1,
+  // S2
+  emaPeriod:44, bbPeriod:20, bbStdDev:2, s2trailPct:18, s2qty:1,
+  // S3
+  macdFast:12, macdSlow:26, macdSig:9, s3trailPct:22, s3qty:1,
+  // S4
+  s4rsiPer:14, s4buy:55, s4sell:45, s4fast:12, s4slow:26, s4sig:9, s4trailPct:20, s4qty:1,
+  // S5
+  s5stochPer:14, s5stochK:3, s5stochD:3, s5os:20, s5ob:80, s5vwapDev:0.5, s5trailPct:15, s5qty:1
+};
+ 
+// ─── CLOCK ────────────────────────────────────────────────────────────────────
 function updateClock() {
   const now = new Date();
-  document.getElementById('clockEl').textContent = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  document.getElementById('clockEl').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const h = now.getHours(), m = now.getMinutes();
-  const isOpen = (h > 9 || (h===9 && m>=15)) && (h < 15 || (h===15 && m<=30));
-  const dot = document.getElementById('mktDot');
-  const lbl = document.getElementById('mktLabel');
-  if (isOpen) { dot.classList.remove('closed'); lbl.textContent='Market Open'; }
-  else { dot.classList.add('closed'); lbl.textContent='Market Closed'; }
+  const isOpen = (h>9||(h===9&&m>=15)) && (h<15||(h===15&&m<=30));
+  const dot = document.getElementById('mktDot'), lbl = document.getElementById('mktLabel');
+  if (isOpen){dot.classList.remove('closed');lbl.textContent='Market Open';}
+  else{dot.classList.add('closed');lbl.textContent='Market Closed';}
 }
-clockInterval = setInterval(updateClock, 1000);
-updateClock();
-
-// ─── RSI CALCULATION ───────────────────────────────────────────────────────
-function calcRSI(prices, period) {
-  if (prices.length < period + 1) return prices.map(() => null);
-  const rsiArr = new Array(period).fill(null);
-  let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const diff = prices[i] - prices[i-1];
-    if (diff > 0) gains += diff; else losses += Math.abs(diff);
+setInterval(updateClock,1000); updateClock();
+ 
+// ─── ADMIN CHECK ──────────────────────────────────────────────────────────────
+async function checkAdminStatus() {
+  try {
+    const res = await fetch('/.netlify/functions/is-admin');
+    const data = await res.json();
+    isAdminUser = data.isAdmin;
+  } catch { isAdminUser = false; }
+ 
+  if (isAdminUser) {
+    document.getElementById('adminApiSection').style.display = 'block';
+    document.getElementById('platformConnSection').style.display = 'none';
+    addLog('👑 Admin access detected — enter Kite API credentials to connect', 'info');
+  } else {
+    document.getElementById('adminApiSection').style.display = 'none';
+    document.getElementById('platformConnSection').style.display = 'block';
+    addLog('Platform API mode — connecting via server…', 'info');
+    connectViaPlatform();
   }
-  let avgGain = gains / period, avgLoss = losses / period;
-  rsiArr.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
-  for (let i = period + 1; i < prices.length; i++) {
-    const diff = prices[i] - prices[i-1];
-    const g = diff > 0 ? diff : 0, l = diff < 0 ? Math.abs(diff) : 0;
-    avgGain = (avgGain * (period - 1) + g) / period;
-    avgLoss = (avgLoss * (period - 1) + l) / period;
-    rsiArr.push(avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss));
+}
+ 
+async function connectViaPlatform() {
+  try {
+    const data = await kiteProxy('/user/profile','GET');
+    if (data.status === 'success') {
+      zerodhaConnected = true;
+      const el = document.getElementById('platformStatusTitle');
+      el.innerHTML = '<i class="ti ti-circle-check"></i> Platform API Connected';
+      el.style.color = 'var(--green)';
+      addLog('Platform Kite API active — ' + (data.data?.user_name || 'Connected'), 'info');
+      startRealTimeScan();
+    } else {
+      const el = document.getElementById('platformStatusTitle');
+      el.innerHTML = '<i class="ti ti-alert-circle"></i> API token may be expired';
+      el.style.color = 'var(--amber)';
+      addLog('Platform API responded but Kite token may be expired — demo mode active', 'warn');
+    }
+  } catch {
+    const el = document.getElementById('platformStatusTitle');
+    el.innerHTML = '<i class="ti ti-wifi-off"></i> Demo Mode (no live API)';
+    el.style.color = 'var(--text3)';
+    addLog('Platform API not reachable — running in demo mode with simulated data', 'info');
+  }
+}
+ 
+// Universal Kite API caller: admin uses own key, users route through server proxy
+async function kiteProxy(endpoint, method='GET', params=null) {
+  if (isAdminUser && apiKeyVal && accessTokenVal) {
+    const opts = {headers:{'X-Kite-Version':'3','Authorization':'token '+apiKeyVal+':'+accessTokenVal}};
+    if (method !== 'GET' && params) { opts.method='POST'; opts.body=new URLSearchParams(params).toString(); opts.headers['Content-Type']='application/x-www-form-urlencoded'; }
+    const res = await fetch('https://api.kite.trade'+endpoint, opts);
+    return res.json();
+  } else {
+    const res = await fetch('/.netlify/functions/kite-proxy',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({endpoint,method,params})
+    });
+    return res.json();
+  }
+}
+ 
+// ─── INDICATOR CALCULATIONS ───────────────────────────────────────────────────
+function calcRSI(prices, period) {
+  if (prices.length < period+1) return prices.map(()=>null);
+  const rsiArr = new Array(period).fill(null);
+  let gains=0,losses=0;
+  for(let i=1;i<=period;i++){const d=prices[i]-prices[i-1];if(d>0)gains+=d;else losses+=Math.abs(d);}
+  let ag=gains/period,al=losses/period;
+  rsiArr.push(al===0?100:100-100/(1+ag/al));
+  for(let i=period+1;i<prices.length;i++){
+    const d=prices[i]-prices[i-1];const g=d>0?d:0,l=d<0?Math.abs(d):0;
+    ag=(ag*(period-1)+g)/period; al=(al*(period-1)+l)/period;
+    rsiArr.push(al===0?100:100-100/(1+ag/al));
   }
   return rsiArr;
 }
-
-// ─── STRATEGY SIMULATION ───────────────────────────────────────────────────
-function runStrategy(prices, labels) {
-  const rsi = calcRSI(prices, CFG.rsiPeriod);
-  const trades = [];
-  let pos = false, buyPrice = 0, buyRsi = 0, buyType = '', buyIdx = 0;
-  let wasBelow40 = false, completedFirst = false;
-  let trailSL = [], trailActive = false, slPrice = 0;
-
-  for (let i = 1; i < prices.length; i++) {
-    const cr = rsi[i], pr = rsi[i-1], cp = prices[i];
-    if (cr === null || pr === null) { trailSL.push(null); continue; }
-
-    if (pos) {
-      // Update trailing stop
-      if (document.getElementById('tglTrailingSL').checked) {
-        const newSL = cp * (1 - CFG.trailPct / 100);
-        slPrice = Math.max(slPrice, newSL);
-        trailSL.push(slPrice);
-        trailActive = true;
-      } else {
-        trailSL.push(null);
-      }
-
-      // Sell: RSI drops below 40 OR trailing SL hit
-      const slHit = trailActive && cp <= slPrice;
-      if (cr < CFG.sellThresh || slHit) {
-        const pnl = (cp - buyPrice) * CFG.qty;
-        trades.push({ idx: i, type: 'SELL', price: cp, rsi: cr, pnl, date: labels[i], slHit, buyType });
-        pos = false; wasBelow40 = true; completedFirst = true;
-        trailActive = false; slPrice = 0;
+ 
+function calcEMA(prices, period) {
+  const ema = new Array(period-1).fill(null);
+  const k = 2/(period+1);
+  let seed = prices.slice(0,period).reduce((a,b)=>a+b,0)/period;
+  ema.push(seed);
+  for(let i=period;i<prices.length;i++){seed=prices[i]*k+seed*(1-k);ema.push(seed);}
+  return ema;
+}
+ 
+function calcBollingerBands(prices, period, stdDev=2) {
+  const upper=[],mid=[],lower=[];
+  for(let i=0;i<prices.length;i++){
+    if(i<period-1){upper.push(null);mid.push(null);lower.push(null);continue;}
+    const slice=prices.slice(i-period+1,i+1);
+    const mean=slice.reduce((a,b)=>a+b,0)/period;
+    const variance=slice.reduce((s,p)=>s+(p-mean)**2,0)/period;
+    const sd=Math.sqrt(variance)*stdDev;
+    mid.push(mean); upper.push(mean+sd); lower.push(mean-sd);
+  }
+  return {upper,mid,lower};
+}
+ 
+function calcMACD(prices, fast=12, slow=26, signal=9) {
+  const emaFast=calcEMA(prices,fast), emaSlow=calcEMA(prices,slow);
+  const macdLine=prices.map((_,i)=>(emaFast[i]!==null&&emaSlow[i]!==null)?emaFast[i]-emaSlow[i]:null);
+  const validMacd=macdLine.filter(v=>v!==null);
+  const sigLine=new Array(macdLine.length).fill(null);
+  const firstValid=macdLine.findIndex(v=>v!==null);
+  if(validMacd.length>=signal){
+    const rawSig=calcEMA(validMacd,signal);
+    let si=0;
+    for(let i=firstValid;i<macdLine.length;i++){sigLine[i]=rawSig[si]??null;si++;}
+  }
+  const histogram=macdLine.map((m,i)=>(m!==null&&sigLine[i]!==null)?m-sigLine[i]:null);
+  return {macdLine,sigLine,histogram};
+}
+ 
+// Stochastic Oscillator (%K and %D)
+function calcStochastic(prices, period=14, kSmooth=3, dSmooth=3) {
+  const rawK = [];
+  for(let i=0;i<prices.length;i++){
+    if(i<period-1){rawK.push(null);continue;}
+    const slice=prices.slice(i-period+1,i+1);
+    const lo=Math.min(...slice), hi=Math.max(...slice);
+    rawK.push(hi===lo?50:(prices[i]-lo)/(hi-lo)*100);
+  }
+  // Smooth %K
+  const kArr=[];
+  for(let i=0;i<rawK.length;i++){
+    const window=rawK.slice(Math.max(0,i-kSmooth+1),i+1).filter(v=>v!==null);
+    kArr.push(window.length>=1?window.reduce((a,b)=>a+b,0)/window.length:null);
+  }
+  // %D = SMA(kSmooth) of %K
+  const dArr=[];
+  for(let i=0;i<kArr.length;i++){
+    const window=kArr.slice(Math.max(0,i-dSmooth+1),i+1).filter(v=>v!==null);
+    dArr.push(window.length>=1?window.reduce((a,b)=>a+b,0)/window.length:null);
+  }
+  return {k:kArr, d:dArr};
+}
+ 
+// VWAP (simplified — uses equal-weight volumes since tick volume not available in sim)
+function calcVWAP(prices) {
+  let cumTPV=0, cumVol=0;
+  const vwap=[];
+  const upperBand=[], lowerBand=[];
+  let sumSqDev=0;
+  for(let i=0;i<prices.length;i++){
+    const vol=1; // equal weight in simulation
+    cumTPV+=prices[i]*vol;
+    cumVol+=vol;
+    const v=cumTPV/cumVol;
+    sumSqDev+=(prices[i]-v)**2;
+    const sd=Math.sqrt(sumSqDev/(i+1));
+    vwap.push(v);
+    upperBand.push(v+sd*0.5);
+    lowerBand.push(v-sd*0.5);
+  }
+  return {vwap, upperBand, lowerBand};
+}
+ 
+// ADX (Average Directional Index)
+function calcADX(prices, period=14) {
+  const adx=new Array(prices.length).fill(null);
+  const plusDI=new Array(prices.length).fill(null);
+  const minusDI=new Array(prices.length).fill(null);
+  if(prices.length<period*2) return {adx,plusDI,minusDI};
+ 
+  const trArr=[], plusDMArr=[], minusDMArr=[];
+  for(let i=1;i<prices.length;i++){
+    const hi=prices[i]*1.002, lo=prices[i]*0.998, phi=prices[i-1]*1.002, plo=prices[i-1]*0.998, pClose=prices[i-1];
+    const tr=Math.max(hi-lo,Math.abs(hi-pClose),Math.abs(lo-pClose));
+    const upMove=hi-phi, downMove=plo-lo;
+    trArr.push(tr);
+    plusDMArr.push(upMove>downMove&&upMove>0?upMove:0);
+    minusDMArr.push(downMove>upMove&&downMove>0?downMove:0);
+  }
+  let atr=trArr.slice(0,period).reduce((a,b)=>a+b,0);
+  let sPlusDM=plusDMArr.slice(0,period).reduce((a,b)=>a+b,0);
+  let sMinusDM=minusDMArr.slice(0,period).reduce((a,b)=>a+b,0);
+  let dxArr=[];
+  for(let i=period;i<trArr.length;i++){
+    atr=atr-atr/period+trArr[i];
+    sPlusDM=sPlusDM-sPlusDM/period+plusDMArr[i];
+    sMinusDM=sMinusDM-sMinusDM/period+minusDMArr[i];
+    const pdi=atr>0?100*sPlusDM/atr:0;
+    const mdi=atr>0?100*sMinusDM/atr:0;
+    const idx=i+1;
+    plusDI[idx]=pdi; minusDI[idx]=mdi;
+    const dx=(pdi+mdi>0)?Math.abs(pdi-mdi)/(pdi+mdi)*100:0;
+    dxArr.push(dx);
+    if(dxArr.length>=period){
+      const adxVal=dxArr.slice(-period).reduce((a,b)=>a+b,0)/period;
+      adx[idx]=adxVal;
+    }
+  }
+  return {adx,plusDI,minusDI};
+}
+ 
+// ─── STRATEGY RUNNERS ─────────────────────────────────────────────────────────
+function runStrategy1(prices, labels) {
+  const rsi=calcRSI(prices,CFG.rsiPeriod);
+  const trades=[];
+  let pos=false,buyPrice=0,buyType='',wasBelow40=false,completedFirst=false;
+  let trailSL=[],trailActive=false,slPrice=0;
+  const SL=CFG.trailPct/100;
+  for(let i=1;i<prices.length;i++){
+    const cr=rsi[i],pr=rsi[i-1],cp=prices[i];
+    if(cr===null||pr===null){trailSL.push(null);continue;}
+    if(pos){
+      if(document.getElementById('tglTrailingSL').checked){const ns=cp*(1-SL);slPrice=Math.max(slPrice,ns);trailSL.push(slPrice);trailActive=true;}else trailSL.push(null);
+      const slHit=trailActive&&cp<=slPrice;
+      if(cr<CFG.sellThresh||slHit){
+        const pnl=(cp-buyPrice)*CFG.qty;
+        trades.push({idx:i,type:'SELL',price:cp,rsi:cr,pnl,date:labels[i],slHit,buyType});
+        pos=false;wasBelow40=true;completedFirst=true;trailActive=false;slPrice=0;
       }
     } else {
       trailSL.push(null);
-      // First buy: RSI crosses above 60
-      if (!completedFirst && pr < CFG.buyThresh && cr >= CFG.buyThresh) {
-        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'BUY'; buyIdx = i;
-        slPrice = cp * (1 - CFG.trailPct / 100);
-        trades.push({ idx: i, type: 'BUY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'BUY' });
-      }
-      // Recovery buy: RSI rises above 42 after being below 40
-      else if (completedFirst && wasBelow40 && pr < CFG.recovThresh && cr >= CFG.recovThresh) {
-        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'RECOVERY'; buyIdx = i;
-        slPrice = cp * (1 - CFG.trailPct / 100);
-        wasBelow40 = false;
-        trades.push({ idx: i, type: 'RECOVERY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'RECOVERY' });
-      }
-      // Any subsequent buy after sell (without waiting for below 40 -> recovery)
-      else if (completedFirst && !wasBelow40 && pr < CFG.buyThresh && cr >= CFG.buyThresh) {
-        pos = true; buyPrice = cp; buyRsi = cr; buyType = 'BUY'; buyIdx = i;
-        slPrice = cp * (1 - CFG.trailPct / 100);
-        trades.push({ idx: i, type: 'BUY', price: cp, rsi: cr, pnl: null, date: labels[i], slHit: false, buyType: 'BUY' });
-      }
+      if(!completedFirst&&pr<CFG.buyThresh&&cr>=CFG.buyThresh){pos=true;buyPrice=cp;buyType='BUY';slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:cr,pnl:null,date:labels[i],slHit:false,buyType:'BUY'});}
+      else if(completedFirst&&wasBelow40&&pr<CFG.recovThresh&&cr>=CFG.recovThresh){pos=true;buyPrice=cp;buyType='RECOVERY';slPrice=cp*(1-SL);wasBelow40=false;trades.push({idx:i,type:'RECOVERY',price:cp,rsi:cr,pnl:null,date:labels[i],slHit:false,buyType:'RECOVERY'});}
+      else if(completedFirst&&!wasBelow40&&pr<CFG.buyThresh&&cr>=CFG.buyThresh){pos=true;buyPrice=cp;buyType='BUY';slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:cr,pnl:null,date:labels[i],slHit:false,buyType:'BUY'});}
     }
   }
-
-  // Compute metrics
-  const sells = trades.filter(t => t.type === 'SELL');
-  const n = sells.length;
-  const wins = sells.filter(t => t.pnl > 0).length;
-  const totalPnl = sells.reduce((s,t) => s + t.pnl, 0);
-  const winRate = n ? (wins/n)*100 : 0;
-  const currentRsi = rsi[rsi.length-1] || 0;
-  const conf = Math.min(100, Math.round(winRate * 0.6 + Math.min(Math.max(totalPnl,0)*0.05, 40)));
-
-  return { rsi, trades, metrics: { n, wins, totalPnl, winRate, currentRsi, conf }, trailSL, inPosition: pos };
+  return packMetrics(rsi,trades,trailSL,pos,{rsi});
 }
-
-// ─── SIMULATED PRICE DATA ──────────────────────────────────────────────────
+ 
+function runStrategy2(prices, labels) {
+  const ema=calcEMA(prices,CFG.emaPeriod);
+  const {upper,mid,lower}=calcBollingerBands(prices,CFG.bbPeriod,CFG.bbStdDev);
+  const rsiForSig=calcRSI(prices,14);
+  const trades=[];
+  let pos=false,buyPrice=0,trailActive=false,slPrice=0;
+  const SL=CFG.s2trailPct/100;
+  const trailSL=[];
+  for(let i=1;i<prices.length;i++){
+    const cp=prices[i],pp=prices[i-1];
+    const e=ema[i],eu=upper[i],el=lower[i];
+    if(e===null||eu===null){trailSL.push(null);continue;}
+    if(pos){
+      if(document.getElementById('tglTrailingSL').checked){const ns=cp*(1-SL);slPrice=Math.max(slPrice,ns);trailSL.push(slPrice);trailActive=true;}else trailSL.push(null);
+      const slHit=trailActive&&cp<=slPrice;
+      const sellSig=cp>=eu||cp<e;
+      if(sellSig||slHit){const pnl=(cp-buyPrice)*CFG.s2qty;trades.push({idx:i,type:'SELL',price:cp,rsi:rsiForSig[i]||50,pnl,date:labels[i],slHit,buyType:'BB-EMA'});pos=false;trailActive=false;slPrice=0;}
+    } else {
+      trailSL.push(null);
+      const wasBelowBB=prices[i-1]<=lower[i-1];
+      const crossedAboveBB=cp>el&&pp<=lower[i-1];
+      if(cp>e&&(wasBelowBB||crossedAboveBB)&&!pos){pos=true;buyPrice=cp;slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:rsiForSig[i]||50,pnl:null,date:labels[i],slHit:false,buyType:'BB-EMA'});}
+    }
+  }
+  return packMetrics(rsiForSig,trades,trailSL,pos,{ema,bbUpper:upper,bbMid:mid,bbLower:lower});
+}
+ 
+function runStrategy3(prices, labels) {
+  const {macdLine,sigLine,histogram}=calcMACD(prices,CFG.macdFast,CFG.macdSlow,CFG.macdSig);
+  const rsiForInfo=calcRSI(prices,14);
+  const trades=[];
+  let pos=false,buyPrice=0,trailActive=false,slPrice=0;
+  const SL=CFG.s3trailPct/100;
+  const trailSL=[];
+  for(let i=1;i<prices.length;i++){
+    const cp=prices[i];const m=macdLine[i],pm=macdLine[i-1],s=sigLine[i],ps=sigLine[i-1];
+    if(m===null||s===null||pm===null||ps===null){trailSL.push(null);continue;}
+    if(pos){
+      if(document.getElementById('tglTrailingSL').checked){const ns=cp*(1-SL);slPrice=Math.max(slPrice,ns);trailSL.push(slPrice);trailActive=true;}else trailSL.push(null);
+      const slHit=trailActive&&cp<=slPrice;
+      const macdSell=pm>ps&&m<s;
+      if(macdSell||slHit){const pnl=(cp-buyPrice)*CFG.s3qty;trades.push({idx:i,type:'SELL',price:cp,rsi:rsiForInfo[i]||50,pnl,date:labels[i],slHit,buyType:'MACD'});pos=false;trailActive=false;slPrice=0;}
+    } else {
+      trailSL.push(null);
+      const macdBuy=pm<ps&&m>s;
+      if(macdBuy&&!pos){pos=true;buyPrice=cp;slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:rsiForInfo[i]||50,pnl:null,date:labels[i],slHit:false,buyType:'MACD'});}
+    }
+  }
+  return packMetrics(rsiForInfo,trades,trailSL,pos,{macdLine,sigLine,histogram});
+}
+ 
+function runStrategy4(prices, labels) {
+  const rsi=calcRSI(prices,CFG.s4rsiPer);
+  const {macdLine,sigLine,histogram}=calcMACD(prices,CFG.s4fast,CFG.s4slow,CFG.s4sig);
+  const trades=[];
+  let pos=false,buyPrice=0,trailActive=false,slPrice=0;
+  const SL=CFG.s4trailPct/100;
+  const trailSL=[];
+  for(let i=1;i<prices.length;i++){
+    const cp=prices[i];const cr=rsi[i],pr=rsi[i-1];const m=macdLine[i],s=sigLine[i];
+    if(cr===null||m===null||s===null){trailSL.push(null);continue;}
+    if(pos){
+      if(document.getElementById('tglTrailingSL').checked){const ns=cp*(1-SL);slPrice=Math.max(slPrice,ns);trailSL.push(slPrice);trailActive=true;}else trailSL.push(null);
+      const slHit=trailActive&&cp<=slPrice;const sellSig=cr<CFG.s4sell||m<s;
+      if(sellSig||slHit){const pnl=(cp-buyPrice)*CFG.s4qty;trades.push({idx:i,type:'SELL',price:cp,rsi:cr,pnl,date:labels[i],slHit,buyType:'RSI+MACD'});pos=false;trailActive=false;slPrice=0;}
+    } else {
+      trailSL.push(null);
+      const buySig=cr>=CFG.s4buy&&m>s;
+      if(buySig&&!pos){pos=true;buyPrice=cp;slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:cr,pnl:null,date:labels[i],slHit:false,buyType:'RSI+MACD'});}
+    }
+  }
+  return packMetrics(rsi,trades,trailSL,pos,{rsi,macdLine,sigLine,histogram});
+}
+ 
+function runStrategy5(prices, labels) {
+  const {k,d} = calcStochastic(prices,CFG.s5stochPer,CFG.s5stochK,CFG.s5stochD);
+  const {vwap} = calcVWAP(prices);
+  const rsiForInfo=calcRSI(prices,14);
+  const trades=[];
+  let pos=false,buyPrice=0,trailActive=false,slPrice=0;
+  const SL=CFG.s5trailPct/100;
+  const trailSL=[];
+  for(let i=1;i<prices.length;i++){
+    const cp=prices[i],pp=prices[i-1];
+    const ck=k[i],pk=k[i-1],cd=d[i],pd=d[i-1];
+    const vw=vwap[i];
+    if(ck===null||cd===null||vw===null){trailSL.push(null);continue;}
+    if(pos){
+      if(document.getElementById('tglTrailingSL').checked){const ns=cp*(1-SL);slPrice=Math.max(slPrice,ns);trailSL.push(slPrice);trailActive=true;}else trailSL.push(null);
+      const slHit=trailActive&&cp<=slPrice;
+      // Sell: price below VWAP OR stoch overbought and crossing down
+      const sellSig=cp<vw||(ck>CFG.s5ob&&pk>=pd&&ck<cd);
+      if(sellSig||slHit){const pnl=(cp-buyPrice)*CFG.s5qty;trades.push({idx:i,type:'SELL',price:cp,rsi:rsiForInfo[i]||50,pnl,date:labels[i],slHit,buyType:'VWAP+Stoch'});pos=false;trailActive=false;slPrice=0;}
+    } else {
+      trailSL.push(null);
+      // Buy: price above VWAP AND stoch oversold and crossing up
+      const buySig=cp>vw&&ck<CFG.s5os&&pk<cd&&ck>=cd;
+      if(buySig&&!pos){pos=true;buyPrice=cp;slPrice=cp*(1-SL);trades.push({idx:i,type:'BUY',price:cp,rsi:rsiForInfo[i]||50,pnl:null,date:labels[i],slHit:false,buyType:'VWAP+Stoch'});}
+    }
+  }
+  return packMetrics(rsiForInfo,trades,trailSL,pos,{stochK:k,stochD:d,vwap,rsi:rsiForInfo});
+}
+ 
+function packMetrics(rsi,trades,trailSL,pos,indicators={}) {
+  const sells=trades.filter(t=>t.type==='SELL');
+  const n=sells.length,wins=sells.filter(t=>t.pnl>0).length;
+  const totalPnl=sells.reduce((s,t)=>s+t.pnl,0);
+  const winRate=n?(wins/n)*100:0;
+  const currentRsi=rsi.filter(Boolean).at(-1)||0;
+  const conf=Math.min(100,Math.round(winRate*0.6+Math.min(Math.max(totalPnl,0)*0.05,40)));
+  return {rsi,trades,metrics:{n,wins,totalPnl,winRate,currentRsi,conf},trailSL,inPosition:pos,indicators};
+}
+ 
+function runActiveStrategy(prices,labels) {
+  switch(activeStrategy){
+    case 2: return runStrategy2(prices,labels);
+    case 3: return runStrategy3(prices,labels);
+    case 4: return runStrategy4(prices,labels);
+    case 5: return runStrategy5(prices,labels);
+    default: return runStrategy1(prices,labels);
+  }
+}
+ 
+// ─── DATA & SIMULATION ────────────────────────────────────────────────────────
 function generatePriceData(sym) {
-  // Deterministic seeded simulation per symbol
-  const seeds = { 'TCS.NS':3200,'INFY.NS':1500,'HDFCBANK.NS':1800,'RELIANCE.NS':1400,'ICICIBANK.NS':1250,
-    'HINDUNILVR.NS':2400,'ITC.NS':460,'SBIN.NS':820,'BHARTIARTL.NS':1680,'KOTAKBANK.NS':1920,
-    'LT.NS':3400,'BAJFINANCE.NS':7200,'AXISBANK.NS':1150,'ASIANPAINT.NS':2200,'MARUTI.NS':13000,
-    'HCLTECH.NS':1680,'TATAMOTORS.NS':780,'SUNPHARMA.NS':1750,'WIPRO.NS':540,'ULTRACEMCO.NS':12000,
-    'TITAN.NS':3600,'NTPC.NS':340,'POWERGRID.NS':290,'NESTLEIND.NS':2300,'TECHM.NS':1480,
-    'BAJAJFINSV.NS':1680,'ONGC.NS':270,'TATASTEEL.NS':155,'INDUSINDBK.NS':980,'DRREDDY.NS':5800 };
-  const base = seeds[sym] || 1000;
-  const prices = [base];
-  const labels = [];
-  const now = new Date();
-  for (let i = 119; i >= 0; i--) {
-    const d = new Date(now - i * 15 * 60000);
+  const base = SEED_PRICES[sym] || OPT_BASE_PRICES[sym] || 200;
+  const prices=[base];
+  const labels=[];
+  const now=new Date();
+  for(let i=119;i>=0;i--){
+    const d=new Date(now-i*15*60000);
     labels.push(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
   }
-  // seed from sym string
-  let seed = sym.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  for (let i = 1; i < 120; i++) {
-    const change = (rand() - 0.48) * base * 0.004;
-    prices.push(Math.max(prices[i-1] + change, base * 0.7));
+  let seed=sym.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const rand=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
+  for(let i=1;i<120;i++){
+    const isIndex=sym.includes('_IDX');
+    const isOpt=sym.includes('NIFTY')&&!isIndex;
+    const vol = isIndex ? 0.003 : isOpt ? 0.008 : 0.004;
+    const drift = isIndex ? 0.0002 : 0; // indices have slight upward drift
+    const change=(rand()-0.48+drift)*base*vol;
+    prices.push(Math.max(prices[i-1]+change,base*0.5));
   }
-  return { prices, labels };
+  return {prices,labels};
 }
-
-// ─── INIT DATA ─────────────────────────────────────────────────────────────
+ 
 function loadStockData(sym) {
-  if (stockData[sym]) return stockData[sym];
-  const { prices, labels } = generatePriceData(sym);
-  const { rsi, trades, metrics, trailSL, inPosition } = runStrategy(prices, labels);
-  stockData[sym] = { prices, labels, rsi, trades, metrics, trailSL, inPosition, position: null };
+  if(stockData[sym]) return stockData[sym];
+  const {prices,labels}=generatePriceData(sym);
+  const result=runActiveStrategy(prices,labels);
+  stockData[sym]={prices,labels,...result,position:null};
   return stockData[sym];
 }
-
-// ─── WATCHLIST ─────────────────────────────────────────────────────────────
-function buildWatchlist() {
-  const el = document.getElementById('watchlist');
-  el.innerHTML = '';
-  NIFTY50.forEach(({sym}) => {
-    const d = loadStockData(sym);
-    const cr = d.metrics.currentRsi;
-    const sig = cr >= CFG.buyThresh ? 'BUY' : cr < CFG.sellThresh ? 'SELL' : (cr >= CFG.recovThresh && cr < CFG.sellThresh+5) ? 'WAIT' : 'HOLD';
-    const sigClass = sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
-    const rsiColor = cr >= CFG.buyThresh ? 'var(--green)' : cr < CFG.sellThresh ? 'var(--red)' : 'var(--text2)';
-    const div = document.createElement('div');
-    div.className = 'watch-item' + (sym===activeStock?' active':'');
-    div.id = 'wi_'+sym.replace('.','_');
-    div.innerHTML = `
-      <input type="checkbox" class="watch-chk" checked title="Include in scan">
-      <span class="watch-sym">${sym.replace('.NS','')}</span>
-      <span class="watch-rsi" style="color:${rsiColor}">${cr.toFixed(1)}</span>
-      <span class="watch-sig ${sigClass}">${sig}</span>
-    `;
-    div.querySelector('span.watch-sym').onclick = () => switchStock(sym);
-    div.querySelector('.watch-rsi').onclick = () => switchStock(sym);
-    div.querySelector('.watch-sig').onclick = () => switchStock(sym);
-    el.appendChild(div);
+ 
+// ─── STRATEGY SWITCHING ───────────────────────────────────────────────────────
+function switchStrategy(val) {
+  activeStrategy=parseInt(val);
+  document.querySelectorAll('.param-panel').forEach(el=>el.classList.remove('visible'));
+  document.getElementById('params-'+activeStrategy).classList.add('visible');
+  stockData={};optionData={};
+  applyConfig();
+  updateStrategyUI();
+  addLog('Strategy switched to S'+activeStrategy,'info');
+}
+ 
+function updateStrategyUI() {
+  const names={1:'S1 · RSI 60/40',2:'S2 · EMA(44)+BB',3:'S3 · MACD(12,26)',4:'S4 · RSI+MACD',5:'S5 · VWAP+Stoch'};
+  document.getElementById('stratBadge').textContent=names[activeStrategy]||'S1';
+ 
+  const showRsi = activeStrategy===1||activeStrategy===4;
+  const showMacd = activeStrategy===3||activeStrategy===4;
+  const showStoch = activeStrategy===5;
+  const showAdx = activeStrategy>=3;
+  document.getElementById('rsiChartBlock').style.display=showRsi?'block':'none';
+  document.getElementById('macdChartBlock').style.display=showMacd?'block':'none';
+  document.getElementById('stochChartBlock').style.display=showStoch?'block':'none';
+  document.getElementById('adxChartBlock').style.display=showAdx?'block':'none';
+ 
+  const legendEl=document.getElementById('priceLegend');
+  let extra='';
+  if(activeStrategy===2) extra='<div class="legend-item"><div class="legend-line" style="background:#f59e0b;height:1.5px"></div>EMA(44)</div><div class="legend-item"><div style="width:14px;height:8px;border:1px dashed #06b6d4;border-radius:2px"></div>BB</div>';
+  if(activeStrategy===5) extra='<div class="legend-item"><div class="legend-line" style="background:#ec4899;height:2px"></div>VWAP</div>';
+  legendEl.innerHTML='<div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Price</div><div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div><div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div><div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>'+extra;
+}
+ 
+// ─── MARKET SWITCHING ─────────────────────────────────────────────────────────
+function switchMarket(market) {
+  activeMarket=market;
+  ['tabEq','tabIdx','tabOpts'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.remove('active');
+    el.className=el.className.replace(' opts','').replace(' idx','');
   });
+  if(market==='equities'){document.getElementById('tabEq').classList.add('active');}
+  else if(market==='index'){const t=document.getElementById('tabIdx');t.classList.add('active','idx');}
+  else if(market==='options'){const t=document.getElementById('tabOpts');t.classList.add('active','opts');}
+ 
+  buildWatchlist();
+ 
+  const isOpt=market==='options';
+  ['mIvCard','mOiCard','mDeltaCard','mThetaCard'].forEach(id=>document.getElementById(id).style.display=isOpt?'block':'none');
+ 
+  if(market==='equities'){activeStock='TCS.NS';document.getElementById('optPills').style.display='none';}
+  else if(market==='index'){activeStock='NIFTY50_IDX';document.getElementById('optPills').style.display='flex';}
+  else{activeStock='NIFTY25000CE';document.getElementById('optPills').style.display='flex';}
+  switchStock(activeStock);
 }
-
-// ─── SWITCH STOCK ──────────────────────────────────────────────────────────
-function switchStock(sym) {
-  activeStock = sym;
-  document.querySelectorAll('.watch-item').forEach(el => el.classList.remove('active'));
-  const wi = document.getElementById('wi_'+sym.replace('.','_'));
-  if (wi) wi.classList.add('active');
-  const info = NIFTY50.find(s=>s.sym===sym);
-  document.getElementById('hTitle').textContent = sym.replace('.NS','');
-  document.getElementById('hFull').textContent = info ? info.name : '';
-  // Update auto-trade target label
-  const atTarget = document.getElementById('autoTradeTarget');
-  if (atTarget) atTarget.textContent = sym.replace('.NS','');
-  renderActive();
-}
-
-// ─── RENDER ACTIVE STOCK ───────────────────────────────────────────────────
-function renderActive() {
-  const d = loadStockData(activeStock);
-  const { prices, labels, rsi, trades, metrics, trailSL } = d;
-  const lastPrice = prices[prices.length-1];
-  const prevPrice = prices[prices.length-2] || lastPrice;
-  const chgPct = ((lastPrice - prevPrice)/prevPrice*100).toFixed(2);
-  const chgColor = chgPct >= 0 ? 'var(--green)' : 'var(--red)';
-
-  document.getElementById('hPrice').textContent = '₹'+lastPrice.toFixed(2);
-  document.getElementById('hChg').textContent = (chgPct>=0?'+':'')+chgPct+'%';
-  document.getElementById('hChg').style.color = chgColor;
-
-  // Metrics
-  document.getElementById('mRsi').textContent = metrics.currentRsi.toFixed(1);
-  document.getElementById('mRsi').className = 'metric-val ' + (metrics.currentRsi>=CFG.buyThresh?'green':metrics.currentRsi<CFG.sellThresh?'red':'blue');
-  document.getElementById('mTrades').textContent = metrics.n;
-  document.getElementById('mWin').textContent = metrics.winRate.toFixed(1)+'%';
-  const pnlEl = document.getElementById('mPnl');
-  pnlEl.textContent = (metrics.totalPnl>=0?'+':'')+'₹'+metrics.totalPnl.toFixed(0);
-  pnlEl.className = 'metric-val '+(metrics.totalPnl>=0?'green':'red');
-
-  // Trailing SL metric
-  const lastSL = trailSL.filter(Boolean).at(-1);
-  document.getElementById('mSl').textContent = lastSL ? '₹'+lastSL.toFixed(2) : '—';
-
-  // Confidence
-  const confEl = document.getElementById('mConf');
-  confEl.textContent = metrics.conf+'/100';
-  confEl.className = 'metric-val '+(metrics.conf>=70?'green':metrics.conf>=50?'amber':'red');
-
-  // Signal banner
-  const cr = metrics.currentRsi;
-  const pr = rsi[rsi.length-2] || cr;
-  updateSignalBanner(cr, pr, d.inPosition);
-
-  // Charts
-  renderCharts(d);
-  renderTradeLog(trades);
-  renderPosition(d, lastPrice);
-}
-
-function updateSignalBanner(cr, pr, inPos) {
-  const banner = document.getElementById('signalBanner');
-  const title = document.getElementById('sigTitle');
-  const desc = document.getElementById('sigDesc');
-  banner.className = 'signal-banner';
-
-  if (inPos) {
-    banner.classList.add('hold');
-    title.textContent = 'Position Open';
-    desc.textContent = `Holding. RSI ${cr.toFixed(1)} — watching for RSI < ${CFG.sellThresh} to sell or SL hit.`;
-  } else if (cr >= CFG.buyThresh && pr < CFG.buyThresh) {
-    banner.classList.add('buy');
-    title.textContent = '🟢 BUY Signal — RSI crossed above '+CFG.buyThresh;
-    desc.textContent = `RSI: ${cr.toFixed(1)} — Momentum building. Consider entering now.`;
-  } else if (cr < CFG.sellThresh) {
-    banner.classList.add('sell');
-    title.textContent = '🔴 SELL Signal — RSI below '+CFG.sellThresh;
-    desc.textContent = `RSI: ${cr.toFixed(1)} — Sell and watch for recovery above ${CFG.recovThresh}.`;
-  } else if (cr >= CFG.recovThresh && pr < CFG.recovThresh) {
-    banner.classList.add('buy');
-    title.textContent = '🔵 Recovery BUY — RSI above '+CFG.recovThresh;
-    desc.textContent = `RSI: ${cr.toFixed(1)} — Post-dip recovery entry. Trailing SL active.`;
-  } else if (cr >= CFG.sellThresh && cr < CFG.recovThresh) {
-    banner.classList.add('wait');
-    title.textContent = '🟡 Wait — RSI in neutral zone ('+CFG.sellThresh+'–'+CFG.recovThresh+')';
-    desc.textContent = `RSI: ${cr.toFixed(1)} — Monitoring for recovery breakout above ${CFG.recovThresh}.`;
+ 
+// ─── WATCHLIST ────────────────────────────────────────────────────────────────
+function buildWatchlist() {
+  const el=document.getElementById('watchlist');
+  el.innerHTML='';
+  if(activeMarket==='equities'){
+    NIFTY50.forEach(({sym})=>{
+      const d=loadStockData(sym);const cr=d.metrics.currentRsi;
+      const sig=cr>=CFG.buyThresh?'BUY':cr<CFG.sellThresh?'SELL':cr>=CFG.recovThresh?'WAIT':'HOLD';
+      const sigClass=sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
+      const rsiColor=cr>=CFG.buyThresh?'var(--green)':cr<CFG.sellThresh?'var(--red)':'var(--text2)';
+      const div=document.createElement('div');
+      div.className='watch-item'+(sym===activeStock?' active':'');
+      div.id='wi_'+sym.replace('.','_');
+      div.innerHTML=`<input type="checkbox" class="watch-chk" checked title="Include in scan">
+        <span class="watch-sym" onclick="switchStock('${sym}')">${sym.replace('.NS','')}</span>
+        <span class="watch-rsi" style="color:${rsiColor}" onclick="switchStock('${sym}')">${cr.toFixed(1)}</span>
+        <span class="watch-sig ${sigClass}" onclick="switchStock('${sym}')">${sig}</span>`;
+      el.appendChild(div);
+    });
+  } else if(activeMarket==='index'){
+    const lbl=document.createElement('div');lbl.className='wl-section-label';
+    lbl.innerHTML='<span style="color:var(--amber)">NSE</span> Indices';
+    el.appendChild(lbl);
+    NIFTY_INDICES.forEach(idx=>{
+      const d=loadStockData(idx.sym);const cr=d.metrics.currentRsi;
+      const lp=d.prices?.[d.prices.length-1]?.toFixed(0)||'—';
+      const sig=cr>=CFG.buyThresh?'BUY':cr<CFG.sellThresh?'SELL':'HOLD';
+      const sigClass=sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':'sig-none';
+      const div=document.createElement('div');
+      div.className='watch-item'+(idx.sym===activeStock?' active':'');
+      div.id='wi_'+idx.sym;
+      div.innerHTML=`<span class="idx-tag">IDX</span>
+        <span class="watch-sym" onclick="switchStock('${idx.sym}')">${idx.underlying}</span>
+        <span class="watch-rsi" style="color:var(--text2)" onclick="switchStock('${idx.sym}')">${lp}</span>
+        <span class="watch-sig ${sigClass}" onclick="switchStock('${idx.sym}')">${sig}</span>`;
+      el.appendChild(div);
+    });
   } else {
-    banner.classList.add('none');
-    title.textContent = 'No signal — RSI neutral';
-    desc.textContent = `RSI: ${cr.toFixed(1)} — Watching for crossover above ${CFG.buyThresh} or below ${CFG.sellThresh}.`;
+    ['NIFTY','BANKNIFTY'].forEach(underly=>{
+      const label=document.createElement('div');label.className='wl-section-label';
+      label.innerHTML='<span style="color:var(--cyan)">'+(underly==='BANKNIFTY'?'BNIFTY':underly)+'</span> Options';
+      el.appendChild(label);
+      NIFTY_OPTIONS.filter(o=>o.underlying===underly).forEach(opt=>{
+        const d=loadStockData(opt.sym);const cr=d.metrics.currentRsi;
+        const sig=cr>=CFG.buyThresh?'BUY':cr<CFG.sellThresh?'SELL':'HOLD';
+        const sigClass=sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':'sig-none';
+        const div=document.createElement('div');
+        div.className='watch-item'+(opt.sym===activeStock?' active':'');
+        div.id='wi_'+opt.sym;
+        const typeTag=opt.type==='CE'?'opt-ce':'opt-pe';
+        const atmTag=opt.atm?'<span class="opt-atm-tag">ATM</span>':'';
+        div.innerHTML=`<span class="${typeTag}">${opt.type}</span>
+          <span class="watch-sym" onclick="switchStock('${opt.sym}')">${opt.strike}${atmTag}</span>
+          <span class="watch-rsi" style="color:var(--text2)" onclick="switchStock('${opt.sym}')">${d.prices?.[d.prices.length-1]?.toFixed(0)||'—'}</span>
+          <span class="watch-sig ${sigClass}" onclick="switchStock('${opt.sym}')">${sig}</span>`;
+        el.appendChild(div);
+      });
+      const sep=document.createElement('div');sep.style.cssText='height:1px;background:var(--border);margin:6px 0';
+      el.appendChild(sep);
+    });
   }
 }
-
-// ─── CHARTS ────────────────────────────────────────────────────────────────
-function renderCharts(d) {
-  const { prices, labels, rsi, trades, trailSL } = d;
-  const N = labels.length;
-
-  const buyPts = new Array(N).fill(null);
-  const sellPts = new Array(N).fill(null);
-  trades.forEach(t => {
-    if (t.type==='BUY'||t.type==='RECOVERY') buyPts[t.idx] = t.price;
-    if (t.type==='SELL') sellPts[t.idx] = t.price;
-  });
-
-  // Price chart
-  if (priceChart) priceChart.destroy();
-  const pc = document.getElementById('priceChart').getContext('2d');
-  priceChart = new Chart(pc, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[
-        {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
-        {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
-        {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
-        {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
-      scales:{
-        x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}
-      }
+ 
+// ─── SWITCH STOCK ─────────────────────────────────────────────────────────────
+function switchStock(sym) {
+  activeStock=sym;
+  document.querySelectorAll('.watch-item').forEach(el=>el.classList.remove('active'));
+  const wi=document.getElementById('wi_'+sym.replace('.','_').replace(/\./g,'_'));
+  if(wi) wi.classList.add('active');
+ 
+  const isOpt=activeMarket==='options';
+  const isIdx=activeMarket==='index';
+  const optInfo=NIFTY_OPTIONS.find(o=>o.sym===sym);
+  const eqInfo=NIFTY50.find(s=>s.sym===sym);
+  const idxInfo=NIFTY_INDICES.find(s=>s.sym===sym);
+ 
+  if(isOpt&&optInfo){
+    document.getElementById('hTitle').textContent=optInfo.name;
+    document.getElementById('hFull').textContent=optInfo.underlying+' · Strike '+optInfo.strike+' · Exp '+optInfo.expiry;
+    document.getElementById('optPills').style.display='flex';
+    document.getElementById('optPills').innerHTML=
+      '<div class="opt-pill">Type: <span>'+(optInfo.type==='CE'?'Call (CE)':'Put (PE)')+'</span></div>'+
+      '<div class="opt-pill">IV: <span>'+optInfo.iv+'%</span></div>'+
+      '<div class="opt-pill">Delta: <span>'+optInfo.delta+'</span></div>'+
+      '<div class="opt-pill">Expiry: <span>'+optInfo.expiry+'</span></div>';
+  } else if(isIdx&&idxInfo){
+    document.getElementById('hTitle').textContent=idxInfo.name;
+    document.getElementById('hFull').textContent='NSE Index · '+idxInfo.sector+' · Spot';
+    document.getElementById('optPills').style.display='flex';
+    document.getElementById('optPills').innerHTML=
+      '<div class="opt-pill">Sector: <span>'+idxInfo.sector+'</span></div>'+
+      '<div class="opt-pill">Underlying: <span>'+idxInfo.underlying+'</span></div>';
+  } else if(eqInfo){
+    document.getElementById('hTitle').textContent=sym.replace('.NS','');
+    document.getElementById('hFull').textContent=eqInfo.name;
+    document.getElementById('optPills').style.display='none';
+  }
+ 
+  const atTarget=document.getElementById('autoTradeTarget');
+  if(atTarget) atTarget.textContent=sym.replace('.NS','').replace('_IDX','').replace('BANKNIFTY','BNIFTY');
+  renderActive();
+}
+ 
+// ─── RENDER ACTIVE ────────────────────────────────────────────────────────────
+function renderActive() {
+  const d=loadStockData(activeStock);
+  const {prices,labels,rsi,trades,metrics,trailSL,indicators}=d;
+  const lastPrice=prices[prices.length-1];
+  const prevPrice=prices[prices.length-2]||lastPrice;
+  const chgPct=((lastPrice-prevPrice)/prevPrice*100).toFixed(2);
+ 
+  document.getElementById('hPrice').textContent='₹'+lastPrice.toFixed(2);
+  const chgEl=document.getElementById('hChg');
+  chgEl.textContent=(chgPct>=0?'+':'')+chgPct+'%';
+  chgEl.style.color=chgPct>=0?'var(--green)':'var(--red)';
+ 
+  document.getElementById('mRsi').textContent=metrics.currentRsi.toFixed(1);
+  document.getElementById('mRsi').className='metric-val '+(metrics.currentRsi>=CFG.buyThresh?'green':metrics.currentRsi<CFG.sellThresh?'red':'blue');
+  document.getElementById('mTrades').textContent=metrics.n;
+  document.getElementById('mWin').textContent=metrics.winRate.toFixed(1)+'%';
+  const pnlEl=document.getElementById('mPnl');
+  pnlEl.textContent=(metrics.totalPnl>=0?'+':'')+'₹'+metrics.totalPnl.toFixed(0);
+  pnlEl.className='metric-val '+(metrics.totalPnl>=0?'green':'red');
+ 
+  const slPct=activeStrategy===2?CFG.s2trailPct:activeStrategy===3?CFG.s3trailPct:activeStrategy===4?CFG.s4trailPct:activeStrategy===5?CFG.s5trailPct:CFG.trailPct;
+  document.getElementById('mSl').textContent=lastPrice*(1-slPct/100)|0===0?'—':'₹'+(lastPrice*(1-slPct/100)).toFixed(0);
+ 
+  // m6 — strategy-specific
+  const m6lbl=document.getElementById('m6Label');const m6val=document.getElementById('m6Val');
+  if(activeStrategy===2){
+    m6lbl.textContent='BB Width';
+    const bb=indicators?.bbUpper;const bbl=indicators?.bbLower;
+    if(bb&&bbl){const w=((bb.at(-1)-bbl.at(-1))/(prices.at(-1)||1)*100).toFixed(1);m6val.textContent=w+'%';m6val.className='metric-val cyan';}
+  } else if(activeStrategy===3||activeStrategy===4){
+    m6lbl.textContent='MACD Hist';
+    const h=indicators?.histogram?.at(-1);
+    m6val.textContent=h!=null?h.toFixed(2):'—';
+    m6val.className='metric-val '+(h>0?'green':h<0?'red':'blue');
+  } else if(activeStrategy===5){
+    m6lbl.textContent='VWAP Dist';
+    const vw=indicators?.vwap?.at(-1);
+    if(vw){const dist=((lastPrice-vw)/vw*100).toFixed(2);m6val.textContent=(dist>=0?'+':'')+dist+'%';m6val.className='metric-val '+(dist>=0?'green':'red');}
+  } else {
+    m6lbl.textContent='Confidence';
+    m6val.textContent=metrics.conf+'/100';
+    m6val.className='metric-val '+(metrics.conf>=70?'green':metrics.conf>=50?'amber':'red');
+  }
+ 
+  // Stochastic metric
+  const stochEl=document.getElementById('mStoch');
+  const stoch=activeStrategy===5?indicators?.stochK?.at(-1):calcStochastic(prices,14,3,3).k.at(-1);
+  if(stoch!=null){stochEl.textContent=stoch.toFixed(1);stochEl.className='metric-val '+(stoch<20?'green':stoch>80?'red':'amber');}
+  else stochEl.textContent='—';
+ 
+  // ADX metric
+  const adxEl=document.getElementById('mAdx');
+  const {adx}=calcADX(prices,14);
+  const adxVal=adx.filter(Boolean).at(-1);
+  if(adxVal!=null){adxEl.textContent=adxVal.toFixed(1);adxEl.className='metric-val '+(adxVal>25?'green':adxVal>15?'amber':'red');}
+  else adxEl.textContent='—';
+ 
+  // VWAP metric
+  const vwapEl=document.getElementById('mVwap');
+  const {vwap}=calcVWAP(prices);
+  const vwapVal=vwap.at(-1);
+  vwapEl.textContent=vwapVal?'₹'+vwapVal.toFixed(0):'—';
+ 
+  // Options-specific metrics
+  if(activeMarket==='options'){
+    const optInfo=NIFTY_OPTIONS.find(o=>o.sym===activeStock);
+    if(optInfo){
+      document.getElementById('mIV').textContent=optInfo.iv+'%';
+      document.getElementById('mOI').textContent=(optInfo.oi/100).toFixed(1)+'K';
+      document.getElementById('mDelta').textContent=optInfo.delta.toFixed(2);
+      document.getElementById('mDelta').className='metric-val '+(optInfo.delta>0?'green':'red');
+      document.getElementById('mTheta').textContent='₹'+optInfo.theta.toFixed(1);
     }
+  }
+ 
+  // Signal banner
+  const cr=metrics.currentRsi;
+  const pr=rsi.filter(Boolean).at(-2)||cr;
+  updateSignalBanner(cr,pr,d.inPosition,indicators,prices,vwap);
+  renderCharts(d,vwap,adx);
+  renderTradeLog(trades);
+  renderPosition(d,lastPrice);
+}
+ 
+function updateSignalBanner(cr,pr,inPos,indicators,prices,vwap) {
+  const banner=document.getElementById('signalBanner');
+  const title=document.getElementById('sigTitle');
+  const desc=document.getElementById('sigDesc');
+  banner.className='signal-banner';
+  const lp=prices?prices.at(-1):0;
+  const vw=vwap?vwap.at(-1):null;
+ 
+  if(activeStrategy===2){
+    banner.classList.add('none');title.textContent='EMA+BB Strategy Active';
+    desc.textContent='Price vs EMA(44) and Bollinger Bands monitored · RSI shown for reference';return;
+  }
+  if(activeStrategy===3){
+    const h=indicators?.histogram?.at(-1)||0;const ph=indicators?.histogram?.filter(Boolean).at(-2)||0;
+    if(inPos){banner.classList.add('hold');title.textContent='Position Open';desc.textContent='MACD histogram: '+h.toFixed(2)+' · Watching for bearish crossover';}
+    else if(h>0&&ph<=0){banner.classList.add('buy');title.textContent='🟢 MACD BUY — Bullish crossover';desc.textContent='MACD crossed above signal · Histogram: +'+h.toFixed(2);}
+    else if(h<0){banner.classList.add('sell');title.textContent='🔴 MACD SELL — Bearish momentum';desc.textContent='Histogram: '+h.toFixed(2)+' · Awaiting next bullish crossover';}
+    else{banner.classList.add('none');title.textContent='MACD Neutral';desc.textContent='Histogram: '+h.toFixed(2)+' · No crossover signal';}
+    return;
+  }
+  if(activeStrategy===5){
+    const k=indicators?.stochK?.at(-1)||50;
+    const aboveVwap=vw?lp>vw:false;
+    if(inPos){banner.classList.add('hold');title.textContent='Position Open';desc.textContent='VWAP: ₹'+(vw?vw.toFixed(0):'—')+' · Stoch %K: '+k.toFixed(1);}
+    else if(aboveVwap&&k<20){banner.classList.add('buy');title.textContent='🟢 BUY — Above VWAP + Stoch Oversold';desc.textContent='Price ₹'+lp.toFixed(0)+' above VWAP ₹'+(vw?vw.toFixed(0):'—')+' · Stoch %K: '+k.toFixed(1);}
+    else if(!aboveVwap){banner.classList.add('sell');title.textContent='🔴 Bearish — Price below VWAP';desc.textContent='Price ₹'+lp.toFixed(0)+' < VWAP ₹'+(vw?vw.toFixed(0):'—');}
+    else if(k>80){banner.classList.add('sell');title.textContent='🔴 Overbought — Stoch above 80';desc.textContent='%K: '+k.toFixed(1)+' — watch for bearish crossover';}
+    else{banner.classList.add('none');title.textContent='VWAP+Stoch Neutral';desc.textContent='Stoch %K: '+k.toFixed(1)+' · No signal';}
+    return;
+  }
+  const buy=activeStrategy===4?CFG.s4buy:CFG.buyThresh;
+  const sell=activeStrategy===4?CFG.s4sell:CFG.sellThresh;
+  const recov=CFG.recovThresh;
+  if(inPos){banner.classList.add('hold');title.textContent='Position Open';desc.textContent='RSI '+cr.toFixed(1)+' · SL watching below '+sell;}
+  else if(cr>=buy&&pr<buy){banner.classList.add('buy');title.textContent='🟢 BUY Signal — RSI crossed '+buy;desc.textContent='RSI: '+cr.toFixed(1)+' · Momentum building';}
+  else if(cr<sell){banner.classList.add('sell');title.textContent='🔴 SELL — RSI below '+sell;desc.textContent='RSI: '+cr.toFixed(1)+' · Bearish momentum';}
+  else if(activeStrategy===1&&cr>=recov&&pr<recov){banner.classList.add('buy');title.textContent='🔵 Recovery BUY — RSI '+recov;desc.textContent='RSI: '+cr.toFixed(1)+' · Post-dip re-entry';}
+  else{banner.classList.add('none');title.textContent='No signal — RSI neutral';desc.textContent='RSI: '+cr.toFixed(1)+' · Monitoring';}
+}
+ 
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function renderCharts(d, vwapArr, adxData) {
+  const {prices,labels,rsi,trades,trailSL,indicators}=d;
+  const N=labels.length;
+  const buyPts=new Array(N).fill(null);const sellPts=new Array(N).fill(null);
+  trades.forEach(t=>{
+    if(t.type==='BUY'||t.type==='RECOVERY') buyPts[t.idx]=t.price;
+    if(t.type==='SELL') sellPts[t.idx]=t.price;
   });
-
-  // RSI chart
-  if (rsiChart) rsiChart.destroy();
-  const rc = document.getElementById('rsiChart').getContext('2d');
-  const buyRsiPts = new Array(N).fill(null);
-  const sellRsiPts = new Array(N).fill(null);
-  trades.forEach(t => {
-    if (t.type==='BUY'||t.type==='RECOVERY') buyRsiPts[t.idx] = t.rsi;
-    if (t.type==='SELL') sellRsiPts[t.idx] = t.rsi;
+ 
+  // ── Price Chart ──
+  if(priceChart) priceChart.destroy();
+  const pc=document.getElementById('priceChart').getContext('2d');
+  const priceDsets=[
+    {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
+    {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
+    {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
+    {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
+  ];
+  if(activeStrategy===2&&indicators){
+    priceDsets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
+    priceDsets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
+    priceDsets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
+    priceDsets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
+  }
+  if(activeStrategy===5&&vwapArr){
+    priceDsets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
+  }
+  if(activeStrategy===4&&indicators?.rsi){
+    const e44=calcEMA(prices,44);
+    priceDsets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
+  }
+  priceChart=new Chart(pc,{
+    type:'line',data:{labels,datasets:priceDsets},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
+      scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
   });
-  rsiChart = new Chart(rc, {
-    type:'line',
-    data:{
-      labels,
-      datasets:[
+ 
+  // ── RSI Chart (S1, S4) ──
+  if(activeStrategy===1||activeStrategy===4){
+    if(rsiChart) rsiChart.destroy();
+    const buyRsiPts=new Array(N).fill(null),sellRsiPts=new Array(N).fill(null);
+    trades.forEach(t=>{
+      if(t.type==='BUY'||t.type==='RECOVERY') buyRsiPts[t.idx]=t.rsi;
+      if(t.type==='SELL') sellRsiPts[t.idx]=t.rsi;
+    });
+    const buyT=activeStrategy===4?CFG.s4buy:CFG.buyThresh;
+    const sellT=activeStrategy===4?CFG.s4sell:CFG.sellThresh;
+    const recovT=activeStrategy===1?CFG.recovThresh:null;
+    rsiChart=new Chart(document.getElementById('rsiChart').getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[
         {label:'RSI',data:rsi,borderColor:'#a855f7',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2},
         {label:'Buy sig',data:buyRsiPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:5,pointStyle:'triangle'},
         {label:'Sell sig',data:sellRsiPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:5,pointStyle:'rectRot'},
-      ]
-    },
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},
-        annotation:{annotations:{
-          // We draw threshold lines manually via custom plugin below
-        }}
-      },
-      scales:{
-        x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}
-      }
-    },
-    plugins:[{
-      id:'rsiLines',
-      afterDraw(chart) {
-        const ctx = chart.ctx;
-        const {top,bottom,left,right} = chart.chartArea;
-        const ys = chart.scales.y;
-        const lines = [
-          {val:CFG.buyThresh,color:'rgba(34,197,94,0.5)'},
-          {val:CFG.recovThresh,color:'rgba(59,130,246,0.5)'},
-          {val:CFG.sellThresh,color:'rgba(239,68,68,0.5)'}
-        ];
-        lines.forEach(({val,color}) => {
-          const y = ys.getPixelForValue(val);
-          ctx.save();
-          ctx.setLineDash([5,4]);
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(left,y); ctx.lineTo(right,y);
-          ctx.stroke();
-          ctx.fillStyle = color;
-          ctx.font = '9px monospace';
-          ctx.fillText(val, right-18, y-3);
-          ctx.restore();
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}}},
+      plugins:[{id:'rsiLines',afterDraw(chart){
+        const ctx=chart.ctx;const{top,bottom,left,right}=chart.chartArea;const ys=chart.scales.y;
+        const lines=[{val:buyT,color:'rgba(34,197,94,0.5)'},{val:sellT,color:'rgba(239,68,68,0.5)'}];
+        if(recovT) lines.push({val:recovT,color:'rgba(59,130,246,0.5)'});
+        lines.forEach(({val,color})=>{
+          const y=ys.getPixelForValue(val);
+          ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=color;ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+          ctx.fillStyle=color;ctx.font='9px monospace';ctx.fillText(val,right-18,y-3);ctx.restore();
         });
-        // Shade zone between 40 and 42
-        ctx.save();
-        ctx.fillStyle = 'rgba(245,158,11,0.05)';
-        const y42 = ys.getPixelForValue(CFG.recovThresh);
-        const y40 = ys.getPixelForValue(CFG.sellThresh);
-        ctx.fillRect(left, y42, right-left, y40-y42);
-        ctx.restore();
-      }
-    }]
-  });
+      }}]
+    });
+  }
+ 
+  // ── MACD Chart (S3, S4) ──
+  if((activeStrategy===3||activeStrategy===4)&&indicators?.macdLine){
+    if(macdChart) macdChart.destroy();
+    const {macdLine,sigLine,histogram}=indicators;
+    const histPos=histogram.map(v=>(v!==null&&v>=0)?v:null);
+    const histNeg=histogram.map(v=>(v!==null&&v<0)?v:null);
+    macdChart=new Chart(document.getElementById('macdChart').getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[
+        {type:'bar',label:'Hist+',data:histPos,backgroundColor:'rgba(34,197,94,0.5)',borderWidth:0,order:3},
+        {type:'bar',label:'Hist−',data:histNeg,backgroundColor:'rgba(239,68,68,0.5)',borderWidth:0,order:4},
+        {type:'line',label:'MACD',data:macdLine,borderColor:'#06b6d4',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:1},
+        {type:'line',label:'Signal',data:sigLine,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:2},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>v.toFixed(2)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+    });
+  }
+ 
+  // ── Stochastic Chart (S5) ──
+  if(activeStrategy===5&&indicators?.stochK){
+    if(stochChart) stochChart.destroy();
+    stochChart=new Chart(document.getElementById('stochChart').getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[
+        {label:'%K',data:indicators.stochK,borderColor:'#a855f7',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
+        {label:'%D',data:indicators.stochD,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}}},
+      plugins:[{id:'stochLines',afterDraw(chart){
+        const ctx=chart.ctx;const{left,right}=chart.chartArea;const ys=chart.scales.y;
+        [{val:80,color:'rgba(239,68,68,0.5)'},{val:20,color:'rgba(34,197,94,0.5)'}].forEach(({val,color})=>{
+          const y=ys.getPixelForValue(val);
+          ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle=color;ctx.lineWidth=1;
+          ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+          ctx.fillStyle=color;ctx.font='9px monospace';ctx.fillText(val,right-18,y-3);ctx.restore();
+        });
+      }}]
+    });
+  }
+ 
+  // ── ADX Chart (S3, S4, S5) ──
+  if((activeStrategy>=3)&&adxData?.adx){
+    if(adxChart) adxChart.destroy();
+    adxChart=new Chart(document.getElementById('adxChart').getContext('2d'),{
+      type:'line',
+      data:{labels,datasets:[
+        {label:'ADX',data:adxData.adx,borderColor:'#06b6d4',borderWidth:2,pointRadius:0,fill:false,tension:0.3},
+        {label:'+DI',data:adxData.plusDI,borderColor:'#22c55e',borderWidth:1,pointRadius:0,fill:false,tension:0.3,borderDash:[3,2]},
+        {label:'−DI',data:adxData.minusDI,borderColor:'#ef4444',borderWidth:1,pointRadius:0,fill:false,tension:0.3,borderDash:[3,2]},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{min:0,ticks:{color:'#4e5261',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}},
+      plugins:[{id:'adxLine',afterDraw(chart){
+        const ctx=chart.ctx;const{left,right}=chart.chartArea;const ys=chart.scales.y;
+        const y=ys.getPixelForValue(25);
+        ctx.save();ctx.setLineDash([5,4]);ctx.strokeStyle='rgba(245,158,11,0.5)';ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(right,y);ctx.stroke();
+        ctx.fillStyle='rgba(245,158,11,0.6)';ctx.font='9px monospace';ctx.fillText('25',right-20,y-3);ctx.restore();
+      }}]
+    });
+  }
 }
-
-// ─── TRADE LOG TABLE ───────────────────────────────────────────────────────
+ 
+// Helper for chart colors
+function rgba(r,g,b,a){return 'rgba('+r+','+g+','+b+','+a+')';}
+ 
+// ─── TRADE LOG ────────────────────────────────────────────────────────────────
 function renderTradeLog(trades) {
-  const body = document.getElementById('tradeBody');
-  const noEl = document.getElementById('noTrades');
-  const sells = trades.filter(t=>t.type==='SELL');
-  if (sells.length === 0) { body.innerHTML=''; noEl.style.display='block'; return; }
-  noEl.style.display = 'none';
-  body.innerHTML = sells.map(t => {
-    const pnlColor = t.pnl >= 0 ? 'var(--green)' : 'var(--red)';
-    const typeClass = t.buyType==='RECOVERY'?'badge-recov':'badge-buy';
-    return `<tr>
-      <td style="color:var(--text2)">${t.date}</td>
-      <td><span class="badge badge-sell">SELL</span></td>
-      <td>₹${t.price.toFixed(2)}</td>
-      <td style="color:var(--purple)">${t.rsi.toFixed(1)}</td>
-      <td style="color:${pnlColor}">${t.pnl>=0?'+':''}₹${t.pnl.toFixed(2)}</td>
-      <td>${t.slHit?'<span class="badge badge-sl">SL</span>':'—'}</td>
-    </tr>`;
+  const body=document.getElementById('tradeBody');const noEl=document.getElementById('noTrades');
+  const sells=trades.filter(t=>t.type==='SELL');
+  if(sells.length===0){body.innerHTML='';noEl.style.display='block';return;}
+  noEl.style.display='none';
+  const sigLabels={'BUY':'RSI','RECOVERY':'RSI-Recov','BB-EMA':'BB+EMA','MACD':'MACD','RSI+MACD':'S4-Combo','VWAP+Stoch':'S5-VWAP'};
+  body.innerHTML=sells.map(t=>{
+    const pnlColor=t.pnl>=0?'var(--green)':'var(--red)';
+    return '<tr><td style="color:var(--text2)">'+t.date+'</td><td><span class="badge badge-sell">SELL</span></td><td>₹'+t.price.toFixed(2)+'</td><td><span style="font-size:10px;color:var(--text3)">'+(sigLabels[t.buyType]||t.buyType)+'</span></td><td style="color:'+pnlColor+'">'+(t.pnl>=0?'+':'')+'₹'+t.pnl.toFixed(2)+'</td><td>'+(t.slHit?'<span class="badge badge-sl">SL</span>':'—')+'</td></tr>';
   }).join('');
 }
-
-// ─── POSITION PANEL ────────────────────────────────────────────────────────
+ 
+// ─── POSITION PANEL ───────────────────────────────────────────────────────────
 function renderPosition(d, lastPrice) {
-  const panel = document.getElementById('posPanel');
-  if (!d.inPosition) { panel.style.display='none'; return; }
+  const panel=document.getElementById('posPanel');
+  if(!d.inPosition){panel.style.display='none';return;}
   panel.style.display='block';
-  const lastBuy = d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
-  if (!lastBuy) return;
-  const unreal = (lastPrice - lastBuy.price) * CFG.qty;
-  const slPrice = lastPrice * (1 - CFG.trailPct/100);
-  const slDist = ((lastPrice - slPrice)/lastPrice*100);
-  document.getElementById('posEntry').textContent = '₹'+lastBuy.price.toFixed(2);
-  document.getElementById('posType').innerHTML = `<span class="badge ${lastBuy.type==='RECOVERY'?'badge-recov':'badge-buy'}">${lastBuy.type}</span>`;
-  document.getElementById('posQty').textContent = CFG.qty + ' share(s)';
-  document.getElementById('posUnreal').textContent = (unreal>=0?'+':'')+'₹'+unreal.toFixed(2);
-  document.getElementById('posUnreal').style.color = unreal>=0?'var(--green)':'var(--red)';
-  document.getElementById('posSlPrice').textContent = '₹'+slPrice.toFixed(2);
-  document.getElementById('posRsiEntry').textContent = lastBuy.rsi.toFixed(1);
-  document.getElementById('slProgressBar').style.width = Math.min(slDist*5,100)+'%';
-  document.getElementById('slProgressBar').style.background = slDist > 15 ? 'var(--green)' : slDist > 8 ? 'var(--amber)' : 'var(--red)';
-  document.getElementById('slProgressLabel').textContent = `${slDist.toFixed(1)}% above stop loss`;
+  const lastBuy=d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
+  if(!lastBuy) return;
+  const qty=activeStrategy===2?CFG.s2qty:activeStrategy===3?CFG.s3qty:activeStrategy===4?CFG.s4qty:activeStrategy===5?CFG.s5qty:CFG.qty;
+  const unreal=(lastPrice-lastBuy.price)*qty;
+  const slPct=activeStrategy===2?CFG.s2trailPct:activeStrategy===3?CFG.s3trailPct:activeStrategy===4?CFG.s4trailPct:activeStrategy===5?CFG.s5trailPct:CFG.trailPct;
+  const slPrice=lastPrice*(1-slPct/100);
+  const slDist=((lastPrice-slPrice)/lastPrice*100);
+  document.getElementById('posEntry').textContent='₹'+lastBuy.price.toFixed(2);
+  document.getElementById('posType').innerHTML='<span class="badge badge-buy">'+(lastBuy.buyType||'BUY')+'</span>';
+  document.getElementById('posQty').textContent=qty+' unit(s)';
+  document.getElementById('posUnreal').textContent=(unreal>=0?'+':'')+'₹'+unreal.toFixed(2);
+  document.getElementById('posUnreal').style.color=unreal>=0?'var(--green)':'var(--red)';
+  document.getElementById('posSlPrice').textContent='₹'+slPrice.toFixed(2);
+  document.getElementById('slProgressBar').style.width=Math.min(slDist*5,100)+'%';
+  document.getElementById('slProgressBar').style.background=slDist>15?'var(--green)':slDist>8?'var(--amber)':'var(--red)';
+  document.getElementById('slProgressLabel').textContent=slDist.toFixed(1)+'% above stop loss';
 }
-
-// ─── RANKING ───────────────────────────────────────────────────────────────
+ 
+// ─── RANKING ──────────────────────────────────────────────────────────────────
 function renderRanking() {
-  const rows = NIFTY50.map(({sym}) => {
-    const d = loadStockData(sym);
-    const m = d.metrics;
-    return { sym, cr:m.currentRsi, n:m.n, wr:m.winRate, pnl:m.totalPnl, conf:m.conf, inPos:d.inPosition };
+  const universe = activeMarket==='equities' ? NIFTY50.map(s=>s.sym) :
+                   activeMarket==='index' ? NIFTY_INDICES.map(s=>s.sym) :
+                   NIFTY_OPTIONS.map(s=>s.sym);
+  const rows=universe.map(sym=>{
+    const d=loadStockData(sym);const m=d.metrics;
+    const {adx}=calcADX(d.prices,14);
+    const adxVal=adx.filter(Boolean).at(-1)||0;
+    return{sym,cr:m.currentRsi,n:m.n,wr:m.winRate,pnl:m.totalPnl,conf:m.conf,adx:adxVal};
   }).sort((a,b)=>b.conf-a.conf);
-
-  document.getElementById('rankBody').innerHTML = rows.map((r,i)=>{
-    const rsiColor = r.cr>=CFG.buyThresh?'var(--green)':r.cr<CFG.sellThresh?'var(--red)':'var(--text2)';
-    const sig = r.cr>=CFG.buyThresh?'BUY':r.cr<CFG.sellThresh?'SELL':r.cr>=CFG.recovThresh?'WAIT':'HOLD';
-    const sigClass = sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
-    const pnlColor = r.pnl>=0?'var(--green)':'var(--red)';
-    const confColor = r.conf>=70?'var(--green)':r.conf>=50?'var(--amber)':'var(--red)';
-    const isAct = r.sym===activeStock;
-    return `<tr onclick="switchStock('${r.sym}')" class="${isAct?'active-row':''}">
-      <td style="color:var(--text3)">${i+1}</td>
-      <td style="color:var(--text); font-weight:600">${r.sym.replace('.NS','')}</td>
-      <td style="color:${rsiColor}">${r.cr.toFixed(1)}</td>
-      <td><span class="watch-sig ${sigClass}">${sig}</span></td>
-      <td>${r.n}</td>
-      <td>${r.wr.toFixed(1)}%</td>
-      <td style="color:${pnlColor}">${r.pnl>=0?'+':''}₹${r.pnl.toFixed(0)}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:6px">
-          <div class="score-bar-bg"><div class="score-bar-fill" style="width:${r.conf}%;background:${confColor}"></div></div>
-          <span style="color:${confColor};font-size:11px">${r.conf}</span>
-        </div>
-      </td>
-    </tr>`;
+  document.getElementById('rankBody').innerHTML=rows.map((r,i)=>{
+    const rc=r.cr>=CFG.buyThresh?'var(--green)':r.cr<CFG.sellThresh?'var(--red)':'var(--text2)';
+    const sig=r.cr>=CFG.buyThresh?'BUY':r.cr<CFG.sellThresh?'SELL':r.cr>=CFG.recovThresh?'WAIT':'HOLD';
+    const sc=sig==='BUY'?'sig-buy':sig==='SELL'?'sig-sell':sig==='WAIT'?'sig-wait':'sig-none';
+    const pc=r.pnl>=0?'var(--green)':'var(--red)';
+    const cc=r.conf>=70?'var(--green)':r.conf>=50?'var(--amber)':'var(--red)';
+    const adxColor=r.adx>25?'var(--green)':r.adx>15?'var(--amber)':'var(--red)';
+    const dispSym=r.sym.replace('.NS','').replace('_IDX','');
+    return '<tr onclick="switchStock(\''+r.sym+'\')" class="'+(r.sym===activeStock?'active-row':'')+'">'+
+      '<td style="color:var(--text3)">'+(i+1)+'</td>'+
+      '<td style="font-weight:600">'+dispSym+'</td>'+
+      '<td style="color:'+rc+'">'+r.cr.toFixed(1)+'</td>'+
+      '<td style="color:'+adxColor+'">'+r.adx.toFixed(0)+'</td>'+
+      '<td><span class="watch-sig '+sc+'">'+sig+'</span></td>'+
+      '<td>'+r.n+'</td><td>'+r.wr.toFixed(1)+'%</td>'+
+      '<td style="color:'+pc+'">'+(r.pnl>=0?'+':'')+'₹'+r.pnl.toFixed(0)+'</td>'+
+      '<td><div class="score-bar-bg"><div class="score-bar-fill" style="width:'+r.conf+'%;background:'+cc+'"></div></div><span style="color:'+cc+';font-size:11px">'+r.conf+'</span></td>'+
+      '</tr>';
   }).join('');
 }
-
-// ─── TABS ──────────────────────────────────────────────────────────────────
-function showTab(name) {
+ 
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function showTab(name,e) {
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('visible'));
   document.querySelectorAll('.tab-btn').forEach(el=>el.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('visible');
-  event.target.classList.add('active');
-  if (name==='ranking') renderRanking();
+  if(e) e.target.classList.add('active');
+  if(name==='ranking') renderRanking();
 }
-
-// ─── ACTIVITY LOG ──────────────────────────────────────────────────────────
-function addLog(msg, type='info') {
-  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  activityEntries.unshift({now, msg, type});
-  if (activityEntries.length > 200) activityEntries.pop();
-  const el = document.getElementById('activityLog');
-  el.innerHTML = activityEntries.map(e=>`
-    <div class="log-entry">
-      <span class="log-time">${e.now}</span>
-      <span class="log-msg log-${e.type}">${e.msg}</span>
-    </div>`).join('');
+ 
+// ─── ACTIVITY LOG ─────────────────────────────────────────────────────────────
+function addLog(msg,type='info') {
+  const now=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  activityEntries.unshift({now,msg,type});
+  if(activityEntries.length>200) activityEntries.pop();
+  const el=document.getElementById('activityLog');
+  el.innerHTML=activityEntries.map(e=>'<div class="log-entry"><span class="log-time">'+e.now+'</span><span class="log-msg log-'+e.type+'">'+e.msg+'</span></div>').join('');
 }
-
-// ─── ZERODHA CONNECT ───────────────────────────────────────────────────────
+ 
+// ─── ZERODHA (ADMIN) ──────────────────────────────────────────────────────────
 function connectZerodha() {
-  apiKeyVal = document.getElementById('apiKey').value.trim();
-  accessTokenVal = document.getElementById('accessToken').value.trim();
-  const status = document.getElementById('connStatus');
-
-  if (!apiKeyVal || !accessTokenVal) {
-    status.className = 'conn-status err';
-    status.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i> Enter API Key & Access Token';
-    addLog('Connection failed: missing credentials', 'warn');
-    return;
-  }
-
-  status.className = 'conn-status idle';
-  status.innerHTML = '<i class="ti ti-loader-2 spin" aria-hidden="true"></i> Connecting to Zerodha Kite…';
-
-  // Validate via Kite profile endpoint
-  fetch('https://api.kite.trade/user/profile', {
-    headers: { 'X-Kite-Version':'3', 'Authorization': 'token '+apiKeyVal+':'+accessTokenVal }
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.status === 'success') {
-      zerodhaConnected = true;
-      status.className = 'conn-status ok';
-      status.innerHTML = `<i class="ti ti-circle-check" aria-hidden="true"></i> Connected — ${data.data.user_name}`;
-      addLog(`Zerodha connected: ${data.data.user_name} (${data.data.user_id})`, 'info');
-      startRealTimeScan();
-      // Update auto-trade status to reflect connection is available
-      const atTxt = document.getElementById('atStatusText');
-      if (atTxt && !document.getElementById('tglAutoTrade').checked) {
-        atTxt.textContent = 'Ready — enable toggle to activate';
-        document.getElementById('atDot').style.background = 'var(--amber)';
-      }
-    } else {
-      status.className = 'conn-status err';
-      status.innerHTML = '<i class="ti ti-alert-circle" aria-hidden="true"></i> Auth failed — check token';
-      addLog('Zerodha auth failed: '+JSON.stringify(data.message), 'warn');
-    }
-  })
-  .catch(err => {
-    zerodhaConnected = false;
-    status.className = 'conn-status err';
-    status.innerHTML = '<i class="ti ti-wifi-off" aria-hidden="true"></i> Connection error';
-    addLog('Zerodha connection error: '+err.message, 'warn');
-  });
-}
-
-function openKiteLogin() {
-  const key = document.getElementById('apiKey').value.trim() || 'YOUR_API_KEY';
-  const url = `https://kite.zerodha.com/connect/login?v=3&api_key=${key}`;
-  window.open(url, '_blank');
-  addLog('Opened Kite login page for OAuth…', 'info');
-}
-
-// ─── REAL-TIME KITE SCAN ───────────────────────────────────────────────────
-async function fetchKiteQuote(symbols) {
-  const qs = symbols.map(s => `NSE:${s.replace('.NS','')}`).join(',');
-  const res = await fetch(`https://api.kite.trade/quote?i=${encodeURIComponent(qs)}`, {
-    headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal }
-  });
-  return res.json();
-}
-
-async function fetchKiteCandles(sym) {
-  const to = new Date();
-  const from = new Date(to - 60*24*60*60*1000);
-  const fmt = d => d.toISOString().split('T')[0];
-  const url = `https://api.kite.trade/instruments/historical/${sym}/15minute?from=${fmt(from)}&to=${fmt(to)}`;
-  const res = await fetch(url, {
-    headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal }
-  });
-  return res.json();
-}
-
-async function placeOrder(tradingsym, txnType, qty) {
-  if (!document.getElementById('tglAutoTrade').checked) {
-    addLog(`[SIMULATED — auto-trade off] ${txnType} ${qty}x ${tradingsym}`, 'info');
-    return;
-  }
-  const body = new URLSearchParams({
-    tradingsymbol: tradingsym,
-    exchange: 'NSE',
-    transaction_type: txnType,
-    order_type: 'MARKET',
-    quantity: qty,
-    product: 'MIS',
-    validity: 'DAY'
-  });
-  try {
-    const res = await fetch('https://api.kite.trade/orders/regular', {
-      method: 'POST',
-      headers: { 'X-Kite-Version':'3', 'Authorization':'token '+apiKeyVal+':'+accessTokenVal, 'Content-Type':'application/x-www-form-urlencoded' },
-      body
-    });
-    const data = await res.json();
-    if (data.status==='success') {
-      addLog(`Order placed: ${txnType} ${qty}x ${tradingsym} | Order ID: ${data.data.order_id}`, 'buy');
-      updateAutoTradeStats(txnType);
-    } else {
-      addLog(`Order FAILED: ${data.message}`, 'warn');
-    }
-  } catch(e) {
-    addLog(`Order error: ${e.message}`, 'warn');
-  }
-}
-
-function startRealTimeScan() {
-  if (scanInterval) clearInterval(scanInterval);
-  addLog('Real-time scan started — polling every 30s', 'info');
-  scanAndUpdate();
-  scanInterval = setInterval(scanAndUpdate, 30000);
-}
-
-async function scanAndUpdate() {
-  if (!zerodhaConnected) return;
-  try {
-    const activeSym = NIFTY50.filter((_,i)=>i<10).map(s=>s.sym);
-    const data = await fetchKiteQuote(activeSym);
-    if (data.status !== 'success') return;
-
-    for (const [key, quote] of Object.entries(data.data)) {
-      const sym = key.replace('NSE:','') + '.NS';
-      const d = stockData[sym];
-      if (!d) continue;
-      const newPrice = quote.last_price;
-      d.prices.push(newPrice);
-      d.prices.shift();
-      d.labels.push(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
-      d.labels.shift();
-      const { rsi, trades, metrics, trailSL, inPosition } = runStrategy(d.prices, d.labels);
-      const prevIn = d.inPosition;
-      Object.assign(d, { rsi, trades, metrics, trailSL, inPosition });
-
-      // Check for new signals vs previous state
-      const cr = metrics.currentRsi;
-      const pr = rsi[rsi.length-2] || cr;
-      const isAutoTarget = sym === activeStock; // Only auto-trade the selected stock
-      const autoEnabled  = document.getElementById('tglAutoTrade').checked;
-
-      if (!prevIn && inPosition) {
-        const lastBuy = trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
-        if (lastBuy) {
-          addLog(`🟢 ${sym}: ${lastBuy.type} @ ₹${newPrice.toFixed(2)} | RSI ${cr.toFixed(1)}${isAutoTarget && autoEnabled ? ' → ORDER' : ''}`, 'buy');
-          if (zerodhaConnected && isAutoTarget && autoEnabled) {
-            placeOrder(sym.replace('.NS',''), 'BUY', CFG.qty);
-          }
+  apiKeyVal=document.getElementById('apiKey').value.trim();
+  accessTokenVal=document.getElementById('accessToken').value.trim();
+  const status=document.getElementById('connStatus');
+  if(!apiKeyVal||!accessTokenVal){status.className='conn-status err';status.innerHTML='<i class="ti ti-alert-circle"></i> Enter API Key & Access Token';return;}
+  status.className='conn-status idle';status.innerHTML='<i class="ti ti-loader-2 spin"></i> Connecting…';
+  kiteProxy('/user/profile').then(async data=>{
+    if(data.status==='success'){
+      zerodhaConnected=true;status.className='conn-status ok';status.innerHTML='<i class="ti ti-circle-check"></i> '+data.data.user_name;
+      addLog('Kite connected: '+data.data.user_name,'info');startRealTimeScan();
+      // Push credentials server-side so regular users can trade via platform API
+      try {
+        const saveRes=await fetch('/.netlify/functions/save-token',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({apiKey:apiKeyVal,accessToken:accessTokenVal})
+        });
+        const saveData=await saveRes.json();
+        if(saveData.ok){
+          addLog('✅ Platform token saved — regular users will use your Kite API automatically'+(saveData.persisted?' (persisted)':' (session only)'),'info');
         }
-      } else if (prevIn && !inPosition) {
-        addLog(`🔴 ${sym}: SELL @ ₹${newPrice.toFixed(2)} | RSI ${cr.toFixed(1)}${isAutoTarget && autoEnabled ? ' → ORDER' : ''}`, 'sell');
-        if (zerodhaConnected && isAutoTarget && autoEnabled) {
-          placeOrder(sym.replace('.NS',''), 'SELL', CFG.qty);
-        }
-      }
-    }
-
-    // Update watchlist badges
-    buildWatchlist();
-    if (activeStock) renderActive();
-    addLog(`Scan complete — ${Object.keys(data.data).length} symbols updated`, 'info');
-  } catch(e) {
-    addLog('Scan error: '+e.message, 'warn');
-  }
+      } catch(e){addLog('Token push failed (non-critical): '+e.message,'warn');}
+    } else {status.className='conn-status err';status.innerHTML='<i class="ti ti-alert-circle"></i> Auth failed — check token';addLog('Kite auth failed: '+data.message,'warn');}
+  }).catch(e=>{status.className='conn-status err';status.innerHTML='<i class="ti ti-wifi-off"></i> Connection error';addLog('Kite error: '+e.message,'warn');});
 }
-
-// ─── MANUAL ORDER ──────────────────────────────────────────────────────────
-function manualOrder(side) {
-  if (!zerodhaConnected) {
-    addLog('Cannot place order — Zerodha not connected', 'warn');
-    alert('Please connect your Zerodha account first.');
-    return;
-  }
-  const sym = activeStock.replace('.NS','');
-  if (confirm(`Place ${side} order for ${CFG.qty} share(s) of ${sym}?`)) {
-    placeOrder(sym, side, CFG.qty);
-  }
-}
-
-function closePosition() {
-  const d = stockData[activeStock];
-  if (!d) return;
-  const lastBuy = d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
-  if (!lastBuy) return;
-  if (confirm('Close position? This will place a SELL order.')) {
-    manualOrder('SELL');
-  }
-}
-
-// ─── CONFIG ────────────────────────────────────────────────────────────────
+ 
+function openKiteLogin(){const key=document.getElementById('apiKey')?.value.trim()||'YOUR_API_KEY';window.open('https://kite.zerodha.com/connect/login?v=3&api_key='+key,'_blank');}
+ 
+// ─── CONFIG ───────────────────────────────────────────────────────────────────
 function applyConfig() {
-  CFG.rsiPeriod = parseInt(document.getElementById('cfgRsiPeriod').value) || 14;
-  CFG.buyThresh = parseInt(document.getElementById('cfgBuy').value) || 60;
-  CFG.sellThresh = parseInt(document.getElementById('cfgSell').value) || 40;
-  CFG.recovThresh = parseInt(document.getElementById('cfgRecov').value) || 42;
-  CFG.trailPct = parseInt(document.getElementById('cfgSL').value) || 20;
-  CFG.qty = parseInt(document.getElementById('cfgQty').value) || 1;
-  stockData = {};
-  buildWatchlist();
-  renderActive();
-  renderRanking();
-  addLog(`Config updated: Buy>${CFG.buyThresh} Sell<${CFG.sellThresh} Recov>${CFG.recovThresh} SL=${CFG.trailPct}%`, 'info');
+  CFG.rsiPeriod=parseInt(document.getElementById('s1RsiPeriod').value)||14;
+  CFG.buyThresh=parseInt(document.getElementById('s1Buy').value)||60;
+  CFG.sellThresh=parseInt(document.getElementById('s1Sell').value)||40;
+  CFG.recovThresh=parseInt(document.getElementById('s1Recov').value)||42;
+  CFG.trailPct=parseInt(document.getElementById('s1SL').value)||20;
+  CFG.qty=parseInt(document.getElementById('s1Qty').value)||1;
+  CFG.emaPeriod=parseInt(document.getElementById('s2EMA').value)||44;
+  CFG.bbPeriod=parseInt(document.getElementById('s2BBPer').value)||20;
+  CFG.bbStdDev=parseFloat(document.getElementById('s2BBStd').value)||2;
+  CFG.s2trailPct=parseInt(document.getElementById('s2SL').value)||18;
+  CFG.s2qty=parseInt(document.getElementById('s2Qty').value)||1;
+  CFG.macdFast=parseInt(document.getElementById('s3Fast').value)||12;
+  CFG.macdSlow=parseInt(document.getElementById('s3Slow').value)||26;
+  CFG.macdSig=parseInt(document.getElementById('s3Sig').value)||9;
+  CFG.s3trailPct=parseInt(document.getElementById('s3SL').value)||22;
+  CFG.s3qty=parseInt(document.getElementById('s3Qty').value)||1;
+  CFG.s4rsiPer=parseInt(document.getElementById('s4RsiPer').value)||14;
+  CFG.s4buy=parseInt(document.getElementById('s4Buy').value)||55;
+  CFG.s4sell=parseInt(document.getElementById('s4Sell').value)||45;
+  CFG.s4fast=parseInt(document.getElementById('s4Fast').value)||12;
+  CFG.s4slow=parseInt(document.getElementById('s4Slow').value)||26;
+  CFG.s4sig=parseInt(document.getElementById('s4Sig').value)||9;
+  CFG.s4trailPct=parseInt(document.getElementById('s4SL').value)||20;
+  CFG.s4qty=parseInt(document.getElementById('s4Qty').value)||1;
+  CFG.s5stochPer=parseInt(document.getElementById('s5StochPer').value)||14;
+  CFG.s5stochK=parseInt(document.getElementById('s5StochK').value)||3;
+  CFG.s5stochD=parseInt(document.getElementById('s5StochD').value)||3;
+  CFG.s5os=parseInt(document.getElementById('s5OS').value)||20;
+  CFG.s5ob=parseInt(document.getElementById('s5OB').value)||80;
+  CFG.s5vwapDev=parseFloat(document.getElementById('s5VwapDev').value)||0.5;
+  CFG.s5trailPct=parseInt(document.getElementById('s5SL').value)||15;
+  CFG.s5qty=parseInt(document.getElementById('s5Qty').value)||1;
+  stockData={};optionData={};
+  buildWatchlist();renderActive();
+  addLog('Config applied — S'+activeStrategy+' parameters updated','info');
 }
-
-function refreshActive() { stockData[activeStock] = null; loadStockData(activeStock); renderActive(); addLog('Refreshed '+activeStock, 'info'); }
-function refreshAll() { stockData = {}; buildWatchlist(); renderActive(); addLog('All stocks refreshed', 'info'); }
-function clearTrades() { document.getElementById('tradeBody').innerHTML=''; document.getElementById('noTrades').style.display='block'; }
-
-
-// ── AUTO-TRADE SESSION COUNTERS ──────────────────────────────────────────────
-let atOrderCount = 0, atBuyCount = 0, atSellCount = 0;
-
+ 
+// ─── REAL-TIME SCAN ───────────────────────────────────────────────────────────
+function startRealTimeScan() {
+  if(scanInterval) clearInterval(scanInterval);
+  addLog('Real-time scan started — polling every 30s','info');
+  scanAndUpdate();
+  scanInterval=setInterval(scanAndUpdate,30000);
+}
+ 
+async function scanAndUpdate() {
+  if(!zerodhaConnected) return;
+  try {
+    let syms,qs;
+    if(activeMarket==='equities'){
+      syms=NIFTY50.slice(0,10).map(s=>s.sym);
+      qs=syms.map(s=>'NSE:'+s.replace('.NS','')).join(',');
+    } else if(activeMarket==='index'){
+      syms=NIFTY_INDICES.slice(0,5).map(s=>s.sym);
+      qs=syms.map(s=>'NSE:'+s.replace('_IDX','')).join(',');
+    } else {
+      syms=NIFTY_OPTIONS.slice(0,10).map(s=>s.sym);
+      qs=syms.map(s=>'NFO:'+s).join(',');
+    }
+    const data=await kiteProxy('/quote?i='+encodeURIComponent(qs));
+    if(data.status!=='success') return;
+    for(const [key,quote] of Object.entries(data.data)){
+      const rawSym=key.replace('NSE:','').replace('NFO:','');
+      const sym=activeMarket==='equities'?rawSym+'.NS':activeMarket==='index'?rawSym+'_IDX':rawSym;
+      const d=stockData[sym];if(!d) continue;
+      const np=quote.last_price;
+      d.prices.push(np);d.prices.shift();
+      d.labels.push(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));d.labels.shift();
+      const res=runActiveStrategy(d.prices,d.labels);
+      const prevIn=d.inPosition;Object.assign(d,res);
+      const isTarget=sym===activeStock;const autoOn=document.getElementById('tglAutoTrade').checked;
+      if(!prevIn&&d.inPosition){addLog('🟢 '+sym+': BUY @ ₹'+np.toFixed(2)+(isTarget&&autoOn?' → ORDER':''),'buy');if(zerodhaConnected&&isTarget&&autoOn) placeOrder(rawSym,'BUY',getQty());}
+      else if(prevIn&&!d.inPosition){addLog('🔴 '+sym+': SELL @ ₹'+np.toFixed(2)+(isTarget&&autoOn?' → ORDER':''),'sell');if(zerodhaConnected&&isTarget&&autoOn) placeOrder(rawSym,'SELL',getQty());}
+    }
+    buildWatchlist();if(activeStock) renderActive();
+    addLog('Scan complete — '+Object.keys(data.data).length+' symbols updated','info');
+  } catch(e){addLog('Scan error: '+e.message,'warn');}
+}
+ 
+function getQty(){return activeStrategy===2?CFG.s2qty:activeStrategy===3?CFG.s3qty:activeStrategy===4?CFG.s4qty:activeStrategy===5?CFG.s5qty:CFG.qty;}
+ 
+// ─── ORDER PLACEMENT ──────────────────────────────────────────────────────────
+async function placeOrder(tradingSym,txnType,qty) {
+  if(!document.getElementById('tglAutoTrade').checked){addLog('[SIMULATED] '+txnType+' '+qty+'x '+tradingSym,'info');return;}
+  const exchange=activeMarket==='options'?'NFO':activeMarket==='index'?'NSE':'NSE';
+  const product=activeMarket==='options'?'NRML':'MIS';
+  try {
+    const data=await kiteProxy('/orders/regular','POST',{tradingsymbol:tradingSym,exchange,transaction_type:txnType,order_type:'MARKET',quantity:qty,product,validity:'DAY'});
+    if(data.status==='success'){addLog('Order placed: '+txnType+' '+qty+'x '+tradingSym+' | ID: '+data.data.order_id,'buy');updateAutoTradeStats(txnType);}
+    else addLog('Order FAILED: '+data.message,'warn');
+  } catch(e){addLog('Order error: '+e.message,'warn');}
+}
+ 
+function manualOrder(side) {
+  if(!zerodhaConnected){addLog('Cannot place order — not connected','warn');alert('Connect Zerodha first.');return;}
+  const sym=activeStock.replace('.NS','').replace('_IDX','');
+  if(confirm('Place '+side+' order for '+sym+'?')) placeOrder(sym,side,getQty());
+}
+ 
+function closePosition() {
+  const d=stockData[activeStock];if(!d) return;
+  const lb=d.trades.filter(t=>t.type==='BUY'||t.type==='RECOVERY').at(-1);
+  if(!lb) return;
+  if(confirm('Close position? This will place a SELL order.')) manualOrder('SELL');
+}
+ 
+// ─── AUTO TRADE ───────────────────────────────────────────────────────────────
 function onAutoTradeToggle() {
-  const enabled = document.getElementById('tglAutoTrade').checked;
-  const dot = document.getElementById('atDot');
-  const txt = document.getElementById('atStatusText');
-  const stats = document.getElementById('autoTradeStats');
-
-  if (!zerodhaConnected && enabled) {
-    document.getElementById('tglAutoTrade').checked = false;
-    addLog('Auto-trade requires Zerodha connection first.', 'warn');
-    alert('Please connect your Zerodha account before enabling auto-trade.');
-    return;
-  }
-
-  if (enabled) {
-    dot.style.background = 'var(--green)';
-    const sym = activeStock.replace('.NS','');
-    txt.textContent = 'ACTIVE — watching ' + sym;
-    stats.style.display = 'block';
-    addLog('⚡ Auto-trade ENABLED for ' + sym + ' · All RSI signals will execute orders via Kite API', 'buy');
-  } else {
-    dot.style.background = 'var(--text3)';
-    txt.textContent = 'Disabled — toggle to activate';
-    stats.style.display = 'none';
-    addLog('Auto-trade DISABLED', 'warn');
-  }
+  const enabled=document.getElementById('tglAutoTrade').checked;
+  const dot=document.getElementById('atDot');const txt=document.getElementById('atStatusText');const stats=document.getElementById('autoTradeStats');
+  if(!zerodhaConnected&&enabled){document.getElementById('tglAutoTrade').checked=false;addLog('Auto-trade requires connection first.','warn');alert('Connect Kite API (or wait for platform API) before enabling auto-trade.');return;}
+  if(enabled){dot.style.background='var(--green)';txt.textContent='ACTIVE — watching '+activeStock.replace('.NS','').replace('_IDX','');stats.style.display='block';addLog('⚡ Auto-trade ENABLED for '+activeStock,'buy');}
+  else{dot.style.background='var(--text3)';txt.textContent='Disabled — toggle to activate';stats.style.display='none';addLog('Auto-trade DISABLED','warn');}
 }
-
+ 
 function updateAutoTradeStats(side) {
-  atOrderCount++;
-  if (side === 'BUY') atBuyCount++;
-  else if (side === 'SELL') atSellCount++;
-  const el = (id) => document.getElementById(id);
-  if(el('atOrderCount')) el('atOrderCount').textContent = atOrderCount;
-  if(el('atBuyCount'))   el('atBuyCount').textContent   = atBuyCount;
-  if(el('atSellCount'))  el('atSellCount').textContent  = atSellCount;
+  atOrderCount++;if(side==='BUY') atBuyCount++;else if(side==='SELL') atSellCount++;
+  const g=id=>document.getElementById(id);
+  if(g('atOrderCount')) g('atOrderCount').textContent=atOrderCount;
+  if(g('atBuyCount')) g('atBuyCount').textContent=atBuyCount;
+  if(g('atSellCount')) g('atSellCount').textContent=atSellCount;
 }
-
-// ─── INIT ──────────────────────────────────────────────────────────────────
+ 
+// ─── GUIDE MODAL ──────────────────────────────────────────────────────────────
+function openGuide(){document.getElementById('guideOverlay').classList.add('open');}
+function closeGuide(){document.getElementById('guideOverlay').classList.remove('open');}
+function closeGuideIfBg(e){if(e.target===document.getElementById('guideOverlay')) closeGuide();}
+function showGTab(n,btn){
+  document.querySelectorAll('.gtab-content').forEach(el=>el.classList.remove('visible'));
+  document.querySelectorAll('.gtab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('g'+n).classList.add('visible');btn.classList.add('active');
+}
+ 
+// ─── MISC ─────────────────────────────────────────────────────────────────────
+function refreshActive(){stockData[activeStock]=null;renderActive();addLog('Refreshed '+activeStock,'info');}
+function refreshAll(){stockData={};optionData={};buildWatchlist();renderActive();addLog('All data refreshed','info');}
+function clearTrades(){document.getElementById('tradeBody').innerHTML='';document.getElementById('noTrades').style.display='block';}
+ 
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 buildWatchlist();
 renderActive();
-addLog('RSI Algo Trader initialised — Nifty 50 strategy loaded', 'info');
-addLog('Strategy: Buy RSI > '+CFG.buyThresh+' · Sell RSI < '+CFG.sellThresh+' · Recovery > '+CFG.recovThresh+' · Trail SL '+CFG.trailPct+'%', 'info');
-addLog('Connect Zerodha Kite API to enable real-time data & live orders', 'info');
+updateStrategyUI();
+checkAdminStatus();
+addLog('RSI Algo Trader v3 loaded — Nifty 50 + Index + Options platform','info');
+addLog('S1 active: Buy RSI>'+CFG.buyThresh+' · Sell RSI<'+CFG.sellThresh+' · Recovery RSI>'+CFG.recovThresh,'info');
+addLog('New: Index tab (NIFTY/BANKNIFTY spot) · S5 VWAP+Stoch · ADX indicator','info');
 </script>
 </body>
 </html>
