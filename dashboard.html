@@ -220,6 +220,19 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
 .guide-table td{padding:7px 10px;border-bottom:1px solid var(--border);font-family:var(--font);}
 .guide-table td:first-child{color:var(--cyan);}
  
+/* ── TIMEFRAME BAR ── */
+.tf-bar{display:flex;align-items:center;gap:4px;padding:10px 24px 0;flex-wrap:wrap;}
+.tf-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-size:11px;font-family:var(--font);padding:4px 10px;border-radius:5px;cursor:pointer;transition:all 0.15s;letter-spacing:0.03em;white-space:nowrap;}
+.tf-btn:hover{background:var(--border);color:var(--text);}
+.tf-btn.active{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.5);color:var(--blue);}
+.tf-sep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.tf-live-pill{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--font);color:var(--green);background:var(--green-dim);border:1px solid rgba(34,197,94,0.25);border-radius:4px;padding:3px 9px;margin-left:auto;}
+.tf-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+.tf-candle-type{display:flex;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:2px;}
+.tf-ctype-btn{background:none;border:none;color:var(--text3);font-size:11px;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
+.tf-ctype-btn.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
+.tf-ctype-btn:hover:not(.active){color:var(--text);}
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -474,6 +487,29 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
     </div>
   </div>
  
+  <!-- Timeframe Bar -->
+  <div class="tf-bar" id="tfBar">
+    <div class="tf-candle-type">
+      <button class="tf-ctype-btn active" id="ctLine" onclick="setCandleType('line',this)" title="Line chart">Line</button>
+      <button class="tf-ctype-btn" id="ctCandle" onclick="setCandleType('candle',this)" title="Simulated candle area">Area</button>
+    </div>
+    <div class="tf-sep"></div>
+    <button class="tf-btn active" onclick="setTimeframe('1m',this)">1m</button>
+    <button class="tf-btn" onclick="setTimeframe('2m',this)">2m</button>
+    <button class="tf-btn" onclick="setTimeframe('5m',this)">5m</button>
+    <button class="tf-btn" onclick="setTimeframe('15m',this)">15m</button>
+    <button class="tf-btn" onclick="setTimeframe('30m',this)">30m</button>
+    <button class="tf-btn" onclick="setTimeframe('1h',this)">1H</button>
+    <button class="tf-btn" onclick="setTimeframe('4h',this)">4H</button>
+    <button class="tf-btn" onclick="setTimeframe('1d',this)">1D</button>
+    <button class="tf-btn" onclick="setTimeframe('1w',this)">1W</button>
+    <div class="tf-sep"></div>
+    <button class="tf-btn" onclick="setTimeframe('ytd',this)" title="Year to date">YTD</button>
+    <div class="tf-live-pill" id="livePill">
+      <div class="tf-live-dot"></div><span id="liveLabel">LIVE · 1m</span>
+    </div>
+  </div>
+
   <!-- Charts -->
   <div class="charts-area">
     <!-- Price Chart -->
@@ -855,6 +891,23 @@ let priceChart, rsiChart, macdChart, stochChart, adxChart;
 let stockData = {}, optionData = {};
 let activityEntries = [], scanInterval = null;
 let atOrderCount = 0, atBuyCount = 0, atSellCount = 0;
+let liveTickInterval = null;
+
+// Timeframe config: { label, intervalMinutes, candles, pollMs }
+const TF_CONFIG = {
+  '1m':  { label:'1m',   intervalMin:1,    candles:120, pollMs:5000  },
+  '2m':  { label:'2m',   intervalMin:2,    candles:120, pollMs:8000  },
+  '5m':  { label:'5m',   intervalMin:5,    candles:100, pollMs:10000 },
+  '15m': { label:'15m',  intervalMin:15,   candles:90,  pollMs:15000 },
+  '30m': { label:'30m',  intervalMin:30,   candles:80,  pollMs:20000 },
+  '1h':  { label:'1H',   intervalMin:60,   candles:72,  pollMs:30000 },
+  '4h':  { label:'4H',   intervalMin:240,  candles:60,  pollMs:60000 },
+  '1d':  { label:'1D',   intervalMin:1440, candles:252, pollMs:60000 },
+  '1w':  { label:'1W',   intervalMin:10080,candles:104, pollMs:60000 },
+  'ytd': { label:'YTD',  intervalMin:1440, candles:150, pollMs:60000 },
+};
+let activeTF = '1m';
+let activeCandleType = 'line'; // 'line' | 'candle'
  
 let CFG = {
   // S1
@@ -1227,27 +1280,107 @@ function runActiveStrategy(prices,labels) {
   }
 }
  
+// ─── TIMEFRAME SWITCHING ──────────────────────────────────────────────────────
+function setTimeframe(tf, btn) {
+  activeTF = tf;
+  document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const cfg = TF_CONFIG[tf];
+  document.getElementById('liveLabel').textContent = 'LIVE · ' + cfg.label;
+  // Clear cached data so new TF generates fresh candles
+  stockData = {}; optionData = {};
+  startLiveTick();
+  renderActive();
+  addLog('Timeframe switched to ' + cfg.label + ' · ' + cfg.candles + ' candles', 'info');
+}
+
+function setCandleType(type, btn) {
+  activeCandleType = type;
+  document.querySelectorAll('.tf-ctype-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderActive();
+}
+
+// ─── LIVE TICK ENGINE ─────────────────────────────────────────────────────────
+function startLiveTick() {
+  if (liveTickInterval) clearInterval(liveTickInterval);
+  const cfg = TF_CONFIG[activeTF];
+  const pollMs = zerodhaConnected ? cfg.pollMs : Math.min(cfg.pollMs, 3000);
+  liveTickInterval = setInterval(() => {
+    tickAllStocks();
+  }, pollMs);
+}
+
+function tickAllStocks() {
+  // Simulate live price tick for active stock + nearby ones
+  const allSyms = activeMarket === 'equities' ? NIFTY50.map(s=>s.sym)
+    : activeMarket === 'index' ? NIFTY_INDICES.map(s=>s.sym)
+    : NIFTY_OPTIONS.map(s=>s.sym);
+  const cfg = TF_CONFIG[activeTF];
+  allSyms.forEach(sym => {
+    const d = stockData[sym];
+    if (!d) return;
+    const base = d.prices[d.prices.length - 1];
+    const isIdx = sym.includes('_IDX');
+    const isOpt = sym.includes('NIFTY') && !isIdx;
+    const vol = isIdx ? 0.003 : isOpt ? 0.009 : 0.004;
+    const drift = isIdx ? 0.0001 : 0;
+    const change = (Math.random() - 0.48 + drift) * base * vol;
+    const newPrice = Math.max(base + change, base * 0.5);
+    const now = new Date();
+    const newLabel = cfg.intervalMin >= 1440
+      ? now.toLocaleDateString('en-IN', {day:'2-digit',month:'short'})
+      : now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    d.prices.push(newPrice);
+    d.prices.shift();
+    d.labels.push(newLabel);
+    d.labels.shift();
+    const res = runActiveStrategy(d.prices, d.labels);
+    Object.assign(d, res);
+  });
+  buildWatchlist();
+  renderActive();
+}
+
 // ─── DATA & SIMULATION ────────────────────────────────────────────────────────
 function generatePriceData(sym) {
+  const cfg = TF_CONFIG[activeTF];
+  const N = cfg.candles;
+  const intervalMin = cfg.intervalMin;
   const base = SEED_PRICES[sym] || OPT_BASE_PRICES[sym] || 200;
-  const prices=[base];
-  const labels=[];
-  const now=new Date();
-  for(let i=119;i>=0;i--){
-    const d=new Date(now-i*15*60000);
-    labels.push(d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+  const prices = [base];
+  const labels = [];
+  const now = new Date();
+
+  for (let i = N - 1; i >= 0; i--) {
+    const d = new Date(now - i * intervalMin * 60000);
+    let lbl;
+    if (intervalMin >= 10080) {
+      lbl = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'2-digit'});
+    } else if (intervalMin >= 1440) {
+      lbl = d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'});
+    } else {
+      lbl = d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+    }
+    labels.push(lbl);
   }
-  let seed=sym.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
-  const rand=()=>{seed=(seed*9301+49297)%233280;return seed/233280;};
-  for(let i=1;i<120;i++){
-    const isIndex=sym.includes('_IDX');
-    const isOpt=sym.includes('NIFTY')&&!isIndex;
-    const vol = isIndex ? 0.003 : isOpt ? 0.008 : 0.004;
-    const drift = isIndex ? 0.0002 : 0; // indices have slight upward drift
-    const change=(rand()-0.48+drift)*base*vol;
-    prices.push(Math.max(prices[i-1]+change,base*0.5));
+
+  let seed = sym.split('').reduce((a, c) => a + c.charCodeAt(0), 0) + intervalMin * 7;
+  const rand = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+
+  // Larger moves on higher timeframes
+  const tfVolMult = intervalMin >= 10080 ? 3.5 : intervalMin >= 1440 ? 2.5 : intervalMin >= 240 ? 1.8 : intervalMin >= 60 ? 1.3 : intervalMin >= 30 ? 1.0 : intervalMin >= 15 ? 0.8 : intervalMin >= 5 ? 0.6 : 0.45;
+
+  for (let i = 1; i < N; i++) {
+    const isIndex = sym.includes('_IDX');
+    const isOpt = sym.includes('NIFTY') && !isIndex;
+    const vol = (isIndex ? 0.003 : isOpt ? 0.008 : 0.004) * tfVolMult;
+    const drift = isIndex ? 0.00015 : 0;
+    const change = (rand() - 0.48 + drift) * base * vol;
+    prices.push(Math.max(prices[i - 1] + change, base * 0.5));
   }
-  return {prices,labels};
+
+  return { prices, labels };
 }
  
 function loadStockData(sym) {
@@ -1549,12 +1682,29 @@ function renderCharts(d, vwapArr, adxData) {
     if(t.type==='BUY'||t.type==='RECOVERY') buyPts[t.idx]=t.price;
     if(t.type==='SELL') sellPts[t.idx]=t.price;
   });
- 
+
+  // Update timeframe label on chart header
+  const tfLabel = TF_CONFIG[activeTF]?.label || activeTF;
+  document.getElementById('priceChartLabel').textContent = 'Price · ' + tfLabel;
+
   // ── Price Chart ──
   if(priceChart) priceChart.destroy();
   const pc=document.getElementById('priceChart').getContext('2d');
+
+  const isUp = prices.at(-1) >= prices[0];
+  const upColor='#22c55e', downColor='#ef4444', lineColor='#3b82f6';
+  let fillMode = false, fillBg = 'transparent';
+  if (activeCandleType === 'candle') {
+    const grad = pc.createLinearGradient(0,0,0,230);
+    grad.addColorStop(0, isUp ? 'rgba(34,197,94,0.20)' : 'rgba(239,68,68,0.16)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    fillMode = 'origin'; fillBg = grad;
+  }
+  const priceColor = activeCandleType==='candle' ? (isUp ? upColor : downColor) : lineColor;
+
   const priceDsets=[
-    {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
+    {label:'Price',data:prices,borderColor:priceColor,borderWidth:activeCandleType==='candle'?2:1.5,
+     pointRadius:0,fill:fillMode,backgroundColor:fillBg,tension:0.2,order:0},
     {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
     {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
     {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
@@ -1575,6 +1725,7 @@ function renderCharts(d, vwapArr, adxData) {
   priceChart=new Chart(pc,{
     type:'line',data:{labels,datasets:priceDsets},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      animation:{duration:150},
       plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
       scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
         y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
@@ -1946,9 +2097,10 @@ buildWatchlist();
 renderActive();
 updateStrategyUI();
 checkAdminStatus();
+startLiveTick();
 addLog('RSI Algo Trader v3 loaded — Nifty 50 + Index + Options platform','info');
 addLog('S1 active: Buy RSI>'+CFG.buyThresh+' · Sell RSI<'+CFG.sellThresh+' · Recovery RSI>'+CFG.recovThresh,'info');
-addLog('New: Index tab (NIFTY/BANKNIFTY spot) · S5 VWAP+Stoch · ADX indicator','info');
+addLog('New: Index tab (NIFTY/BANKNIFTY spot) · S5 VWAP+Stoch · ADX indicator · Live timeframe charts','info');
 </script>
 </body>
 </html>
