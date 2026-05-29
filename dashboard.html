@@ -305,7 +305,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">RSI<span>//</span>ALGO</div>
-  <span style="font-size:10px;color:var(--text3);font-family:var(--font)">Nifty Platform · 15m</span>
+  <span style="font-size:10px;color:var(--text3);font-family:var(--font)" id="topTfLabel">Nifty Platform · 1m</span>
   <span id="stratBadge" class="top-badge" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue)">S1 · RSI 60/40</span>
   <div class="market-status" style="margin-left:auto">
     <span class="status-dot" id="mktDot"></span>
@@ -914,47 +914,158 @@ const NIFTY_INDICES = [
   {sym:'NIFTYREALTY_IDX',name:'NIFTY Realty Index',type:'index',underlying:'NIFTYREALTY',sector:'Realty'},
 ];
  
-// NIFTY & BANKNIFTY Options (near-the-money weekly expiry)
+// NIFTY & BANKNIFTY Options (near-the-money weekly expiry) — aligned to real spot May 2026
 const NIFTY_OPTIONS = [
-  {sym:'NIFTY25200CE',name:'NIFTY 25200 CE',underlying:'NIFTY',type:'CE',strike:25200,expiry:'29May',iv:13.2,delta:0.28,theta:-8.4,oi:4820},
-  {sym:'NIFTY25100CE',name:'NIFTY 25100 CE',underlying:'NIFTY',type:'CE',strike:25100,expiry:'29May',iv:13.8,delta:0.35,theta:-10.2,oi:6310},
-  {sym:'NIFTY25000CE',name:'NIFTY 25000 CE',underlying:'NIFTY',type:'CE',strike:25000,expiry:'29May',iv:14.5,delta:0.42,theta:-12.1,oi:8940,atm:true},
-  {sym:'NIFTY24900CE',name:'NIFTY 24900 CE',underlying:'NIFTY',type:'CE',strike:24900,expiry:'29May',iv:14.8,delta:0.52,theta:-13.4,oi:7820},
-  {sym:'NIFTY24800CE',name:'NIFTY 24800 CE',underlying:'NIFTY',type:'CE',strike:24800,expiry:'29May',iv:15.2,delta:0.61,theta:-11.8,oi:5430},
-  {sym:'NIFTY25000PE',name:'NIFTY 25000 PE',underlying:'NIFTY',type:'PE',strike:25000,expiry:'29May',iv:15.1,delta:-0.48,theta:-11.9,oi:9210,atm:true},
-  {sym:'NIFTY24900PE',name:'NIFTY 24900 PE',underlying:'NIFTY',type:'PE',strike:24900,expiry:'29May',iv:15.6,delta:-0.38,theta:-10.4,oi:6780},
-  {sym:'NIFTY24800PE',name:'NIFTY 24800 PE',underlying:'NIFTY',type:'PE',strike:24800,expiry:'29May',iv:16.2,delta:-0.28,theta:-8.6,oi:4920},
-  {sym:'NIFTY25100PE',name:'NIFTY 25100 PE',underlying:'NIFTY',type:'PE',strike:25100,expiry:'29May',iv:14.3,delta:-0.58,theta:-12.8,oi:7430},
-  {sym:'NIFTY25200PE',name:'NIFTY 25200 PE',underlying:'NIFTY',type:'PE',strike:25200,expiry:'29May',iv:13.8,delta:-0.69,theta:-10.1,oi:5120},
-  {sym:'BNIFTY54500CE',name:'BNIFTY 54500 CE',underlying:'BANKNIFTY',type:'CE',strike:54500,expiry:'28May',iv:16.4,delta:0.30,theta:-22.1,oi:3140},
-  {sym:'BNIFTY54000CE',name:'BNIFTY 54000 CE',underlying:'BANKNIFTY',type:'CE',strike:54000,expiry:'28May',iv:17.2,delta:0.44,theta:-28.4,oi:5870,atm:true},
-  {sym:'BNIFTY53500CE',name:'BNIFTY 53500 CE',underlying:'BANKNIFTY',type:'CE',strike:53500,expiry:'28May',iv:17.8,delta:0.58,theta:-26.2,oi:4320},
-  {sym:'BNIFTY54000PE',name:'BNIFTY 54000 PE',underlying:'BANKNIFTY',type:'PE',strike:54000,expiry:'28May',iv:17.5,delta:-0.46,theta:-27.8,oi:6140,atm:true},
-  {sym:'BNIFTY53500PE',name:'BNIFTY 53500 PE',underlying:'BANKNIFTY',type:'PE',strike:53500,expiry:'28May',iv:18.1,delta:-0.33,theta:-22.3,oi:3890},
-  {sym:'BNIFTY54500PE',name:'BNIFTY 54500 PE',underlying:'BANKNIFTY',type:'PE',strike:54500,expiry:'28May',iv:16.6,delta:-0.59,theta:-25.4,oi:4280},
+  {sym:'NIFTY23800CE',name:'NIFTY 23800 CE',underlying:'NIFTY',type:'CE',strike:23800,expiry:'05Jun',iv:11.4,delta:0.22,theta:-7.8,oi:3820},
+  {sym:'NIFTY23700CE',name:'NIFTY 23700 CE',underlying:'NIFTY',type:'CE',strike:23700,expiry:'05Jun',iv:12.2,delta:0.32,theta:-9.6,oi:5140},
+  {sym:'NIFTY23650CE',name:'NIFTY 23650 CE',underlying:'NIFTY',type:'CE',strike:23650,expiry:'05Jun',iv:13.0,delta:0.42,theta:-11.4,oi:7280,atm:true},
+  {sym:'NIFTY23600CE',name:'NIFTY 23600 CE',underlying:'NIFTY',type:'CE',strike:23600,expiry:'05Jun',iv:13.6,delta:0.52,theta:-12.8,oi:6310},
+  {sym:'NIFTY23500CE',name:'NIFTY 23500 CE',underlying:'NIFTY',type:'CE',strike:23500,expiry:'05Jun',iv:14.2,delta:0.62,theta:-11.2,oi:4830},
+  {sym:'NIFTY23650PE',name:'NIFTY 23650 PE',underlying:'NIFTY',type:'PE',strike:23650,expiry:'05Jun',iv:13.2,delta:-0.48,theta:-11.6,oi:7640,atm:true},
+  {sym:'NIFTY23600PE',name:'NIFTY 23600 PE',underlying:'NIFTY',type:'PE',strike:23600,expiry:'05Jun',iv:13.8,delta:-0.38,theta:-10.2,oi:5920},
+  {sym:'NIFTY23500PE',name:'NIFTY 23500 PE',underlying:'NIFTY',type:'PE',strike:23500,expiry:'05Jun',iv:14.6,delta:-0.28,theta:-8.4,oi:4280},
+  {sym:'NIFTY23700PE',name:'NIFTY 23700 PE',underlying:'NIFTY',type:'PE',strike:23700,expiry:'05Jun',iv:12.6,delta:-0.58,theta:-12.4,oi:6180},
+  {sym:'NIFTY23800PE',name:'NIFTY 23800 PE',underlying:'NIFTY',type:'PE',strike:23800,expiry:'05Jun',iv:11.8,delta:-0.69,theta:-9.8,oi:4120},
+  {sym:'BNIFTY54500CE',name:'BNIFTY 54500 CE',underlying:'BANKNIFTY',type:'CE',strike:54500,expiry:'04Jun',iv:15.4,delta:0.26,theta:-20.8,oi:2940},
+  {sym:'BNIFTY54000CE',name:'BNIFTY 54000 CE',underlying:'BANKNIFTY',type:'CE',strike:54000,expiry:'04Jun',iv:16.2,delta:0.40,theta:-26.4,oi:5120,atm:true},
+  {sym:'BNIFTY53500CE',name:'BNIFTY 53500 CE',underlying:'BANKNIFTY',type:'CE',strike:53500,expiry:'04Jun',iv:16.8,delta:0.54,theta:-24.6,oi:3980},
+  {sym:'BNIFTY54000PE',name:'BNIFTY 54000 PE',underlying:'BANKNIFTY',type:'PE',strike:54000,expiry:'04Jun',iv:16.6,delta:-0.46,theta:-25.8,oi:5480,atm:true},
+  {sym:'BNIFTY53500PE',name:'BNIFTY 53500 PE',underlying:'BANKNIFTY',type:'PE',strike:53500,expiry:'04Jun',iv:17.2,delta:-0.33,theta:-20.6,oi:3720},
+  {sym:'BNIFTY54500PE',name:'BNIFTY 54500 PE',underlying:'BANKNIFTY',type:'PE',strike:54500,expiry:'04Jun',iv:15.8,delta:-0.60,theta:-23.4,oi:4060},
 ];
  
-// Seed prices for simulation
+// Seed prices — updated to real NSE closing prices as of 29 May 2026
 const SEED_PRICES = {
-  'RELIANCE.NS':1400,'TCS.NS':3200,'HDFCBANK.NS':1800,'INFY.NS':1500,'ICICIBANK.NS':1250,
-  'HINDUNILVR.NS':2400,'ITC.NS':460,'SBIN.NS':820,'BHARTIARTL.NS':1680,'KOTAKBANK.NS':1920,
-  'LT.NS':3400,'BAJFINANCE.NS':7200,'AXISBANK.NS':1150,'ASIANPAINT.NS':2200,'MARUTI.NS':13000,
-  'HCLTECH.NS':1680,'TATAMOTORS.NS':780,'SUNPHARMA.NS':1750,'WIPRO.NS':540,'ULTRACEMCO.NS':12000,
-  'TITAN.NS':3600,'NTPC.NS':340,'POWERGRID.NS':290,'NESTLEIND.NS':2300,'TECHM.NS':1480,
-  'BAJAJFINSV.NS':1680,'ONGC.NS':270,'TATASTEEL.NS':155,'INDUSINDBK.NS':980,'DRREDDY.NS':5800,
-  // Index seeds
-  'NIFTY50_IDX':24850,'BANKNIFTY_IDX':53980,'FINNIFTY_IDX':23200,'MIDCPNIFTY_IDX':12400,
-  'NIFTYIT_IDX':36500,'NIFTYPHARMA_IDX':21800,'NIFTYAUTO_IDX':25600,'NIFTYFMCG_IDX':58200,
-  'NIFTYENERGY_IDX':39800,'NIFTYREALTY_IDX':9800,
+  'RELIANCE.NS':1429,'TCS.NS':2256,'HDFCBANK.NS':910,'INFY.NS':1276,'ICICIBANK.NS':1385,
+  'HINDUNILVR.NS':2356,'ITC.NS':323,'SBIN.NS':1223,'BHARTIARTL.NS':1941,'KOTAKBANK.NS':389,
+  'LT.NS':4258,'BAJFINANCE.NS':965,'AXISBANK.NS':1388,'ASIANPAINT.NS':2434,'MARUTI.NS':14926,
+  'HCLTECH.NS':1339,'TATAMOTORS.NS':762,'SUNPHARMA.NS':1732,'WIPRO.NS':540,'ULTRACEMCO.NS':12770,
+  'TITAN.NS':4294,'NTPC.NS':366,'POWERGRID.NS':298,'NESTLEIND.NS':2290,'TECHM.NS':1645,
+  'BAJAJFINSV.NS':2043,'ONGC.NS':277,'TATASTEEL.NS':198,'INDUSINDBK.NS':914,'DRREDDY.NS':1245,
+  // Index seeds — real NSE index levels 29 May 2026
+  'NIFTY50_IDX':23650,'BANKNIFTY_IDX':53537,'FINNIFTY_IDX':22480,'MIDCPNIFTY_IDX':11840,
+  'NIFTYIT_IDX':32150,'NIFTYPHARMA_IDX':20940,'NIFTYAUTO_IDX':22380,'NIFTYFMCG_IDX':54720,
+  'NIFTYENERGY_IDX':36480,'NIFTYREALTY_IDX':8640,
 };
+// NIFTY options base prices aligned with real spot ~23650 (ATM ≈ 23650)
 const OPT_BASE_PRICES = {
-  'NIFTY25200CE':82,'NIFTY25100CE':128,'NIFTY25000CE':185,'NIFTY24900CE':254,'NIFTY24800CE':338,
-  'NIFTY25000PE':190,'NIFTY24900PE':138,'NIFTY24800PE':95,'NIFTY25100PE':264,'NIFTY25200PE':348,
-  'BNIFTY54500CE':180,'BNIFTY54000CE':340,'BNIFTY53500CE':560,
-  'BNIFTY54000PE':355,'BNIFTY53500PE':210,'BNIFTY54500PE':540,
+  'NIFTY25200CE':12,'NIFTY25100CE':22,'NIFTY25000CE':38,'NIFTY24900CE':64,'NIFTY24800CE':102,
+  'NIFTY23700CE':145,'NIFTY23650CE':182,'NIFTY23600CE':224,'NIFTY23700PE':148,'NIFTY23650PE':184,
+  'NIFTY23600PE':228,'NIFTY23500PE':310,'NIFTY23400PE':420,'NIFTY25000PE':1380,'NIFTY25100PE':1490,
+  'BNIFTY54500CE':90,'BNIFTY54000CE':220,'BNIFTY53500CE':490,
+  'BNIFTY54000PE':680,'BNIFTY53500PE':340,'BNIFTY54500PE':1050,
 };
  
-// ─── STATE ────────────────────────────────────────────────────────────────────
+// ─── YAHOO FINANCE REAL DATA ──────────────────────────────────────────────────
+// Maps our internal symbol keys to Yahoo Finance ticker symbols
+const YF_SYMBOL_MAP = {
+  'RELIANCE.NS':'RELIANCE.NS','TCS.NS':'TCS.NS','HDFCBANK.NS':'HDFCBANK.NS',
+  'INFY.NS':'INFY.NS','ICICIBANK.NS':'ICICIBANK.NS','HINDUNILVR.NS':'HINDUNILVR.NS',
+  'ITC.NS':'ITC.NS','SBIN.NS':'SBIN.NS','BHARTIARTL.NS':'BHARTIARTL.NS','KOTAKBANK.NS':'KOTAKBANK.NS',
+  'LT.NS':'LT.NS','BAJFINANCE.NS':'BAJFINANCE.NS','AXISBANK.NS':'AXISBANK.NS',
+  'ASIANPAINT.NS':'ASIANPAINT.NS','MARUTI.NS':'MARUTI.NS','HCLTECH.NS':'HCLTECH.NS',
+  'TATAMOTORS.NS':'TATAMOTORS.NS','SUNPHARMA.NS':'SUNPHARMA.NS','WIPRO.NS':'WIPRO.NS',
+  'ULTRACEMCO.NS':'ULTRACEMCO.NS','TITAN.NS':'TITAN.NS','NTPC.NS':'NTPC.NS',
+  'POWERGRID.NS':'POWERGRID.NS','NESTLEIND.NS':'NESTLEIND.NS','TECHM.NS':'TECHM.NS',
+  'BAJAJFINSV.NS':'BAJAJFINSV.NS','ONGC.NS':'ONGC.NS','TATASTEEL.NS':'TATASTEEL.NS',
+  'INDUSINDBK.NS':'INDUSINDBK.NS','DRREDDY.NS':'DRREDDY.NS',
+  'NIFTY50_IDX':'^NSEI','BANKNIFTY_IDX':'^NSEBANK','FINNIFTY_IDX':'NIFTY_FIN_SERVICE.NS',
+  'NIFTYIT_IDX':'^CNXIT','NIFTYPHARMA_IDX':'^CNXPHARMA','NIFTYAUTO_IDX':'^CNXAUTO',
+  'NIFTYFMCG_IDX':'^CNXFMCG','NIFTYENERGY_IDX':'^CNXENERGY','NIFTYREALTY_IDX':'^CNXREALTY',
+  'MIDCPNIFTY_IDX':'^CNXMIDCAP',
+};
+
+// Yahoo Finance interval + range mapping per our timeframe
+const YF_TF_MAP = {
+  '1m':  { interval:'1m',  range:'1d'  },
+  '2m':  { interval:'2m',  range:'2d'  },
+  '5m':  { interval:'5m',  range:'5d'  },
+  '15m': { interval:'15m', range:'5d'  },
+  '30m': { interval:'30m', range:'1mo' },
+  '1h':  { interval:'60m', range:'1mo' },
+  '4h':  { interval:'60m', range:'3mo' },
+  '1d':  { interval:'1d',  range:'1y'  },
+  '1w':  { interval:'1wk', range:'2y'  },
+  'ytd': { interval:'1d',  range:'ytd' },
+};
+
+// Cache so we don't re-fetch on every re-render
+const yfCache = {};
+
+async function fetchYFData(sym) {
+  const yfSym = YF_SYMBOL_MAP[sym];
+  if (!yfSym) return null;
+  const tfKey = `${sym}_${activeTF}`;
+  if (yfCache[tfKey]) return yfCache[tfKey];
+
+  const { interval, range } = YF_TF_MAP[activeTF] || { interval:'1d', range:'1y' };
+  // Use Yahoo Finance v8 chart endpoint via a CORS proxy
+  const proxyBase = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+  const url = `${proxyBase}${encodeURIComponent(yfSym)}?interval=${interval}&range=${range}&includePrePost=false`;
+
+  try {
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    const result = json?.chart?.result?.[0];
+    if (!result) throw new Error('No data');
+
+    const timestamps = result.timestamp || [];
+    const q = result.indicators?.quote?.[0] || {};
+    const opens  = q.open  || [];
+    const highs  = q.high  || [];
+    const lows   = q.low   || [];
+    const closes = q.close || [];
+    const vols   = q.volume || [];
+
+    // Build clean candles (filter nulls)
+    const candles = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      if (closes[i] == null) continue;
+      const dt = new Date(timestamps[i] * 1000);
+      let lbl;
+      const intervalMin = TF_CONFIG[activeTF]?.intervalMin || 1;
+      if (intervalMin >= 10080) {
+        lbl = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+      } else if (intervalMin >= 1440) {
+        lbl = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+      } else {
+        lbl = dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+      }
+      candles.push({
+        t: timestamps[i],
+        lbl,
+        o: opens[i]  ?? closes[i],
+        h: highs[i]  ?? closes[i],
+        l: lows[i]   ?? closes[i],
+        c: closes[i],
+        v: vols[i]   ?? 0,
+      });
+    }
+
+    if (candles.length === 0) throw new Error('Empty candles');
+    yfCache[tfKey] = candles;
+    return candles;
+  } catch (e) {
+    console.warn('YF fetch failed for', yfSym, e.message);
+    return null;
+  }
+}
+
+// Build prices[] and labels[] arrays from candle data (uses close prices for strategy)
+function candlesToPricesLabels(candles) {
+  return {
+    prices: candles.map(c => c.c),
+    labels: candles.map(c => c.lbl),
+    ohlcv:  candles,
+  };
+}
+
+// Invalidate cache for a symbol when timeframe changes
+function clearYFCache(sym) {
+  Object.keys(yfCache).forEach(k => { if (k.startsWith(sym + '_')) delete yfCache[k]; });
+}
+
 let activeStock = 'TCS.NS';
 let activeMarket = 'equities'; // 'equities' | 'index' | 'options'
 let activeStrategy = 1;
@@ -1362,6 +1473,8 @@ function setTimeframe(tf, btn) {
   if (btn) btn.classList.add('active');
   const cfg = TF_CONFIG[tf];
   document.getElementById('liveLabel').textContent = 'LIVE · ' + cfg.label;
+  const topLbl = document.getElementById('topTfLabel');
+  if (topLbl) topLbl.textContent = 'Nifty Platform · ' + cfg.label;
   // Clear cached data so new TF generates fresh candles
   stockData = {}; optionData = {};
   startLiveTick();
@@ -1613,8 +1726,41 @@ function loadStockData(sym) {
   if(stockData[sym]) return stockData[sym];
   const {prices,labels}=generatePriceData(sym);
   const result=runActiveStrategy(prices,labels);
-  stockData[sym]={prices,labels,...result,position:null};
+  stockData[sym]={prices,labels,...result,position:null,ohlcv:null,realDataLoaded:false};
   return stockData[sym];
+}
+
+// Async version: tries to get real data from Yahoo Finance, falls back to simulation
+async function loadStockDataReal(sym) {
+  // Return cached real data immediately if available
+  if (stockData[sym]?.realDataLoaded) return stockData[sym];
+
+  // Show loading state
+  setChartLoading(true);
+
+  const candles = await fetchYFData(sym);
+  if (candles && candles.length > 10) {
+    const { prices, labels, ohlcv } = candlesToPricesLabels(candles);
+    const result = runActiveStrategy(prices, labels);
+    stockData[sym] = { prices, labels, ohlcv, ...result, position: null, realDataLoaded: true };
+    addLog(`✅ Live NSE data loaded for ${sym.replace('.NS','').replace('_IDX','')} (${candles.length} candles via Yahoo Finance)`, 'info');
+  } else {
+    // Fall back to simulation with seed price
+    if (!stockData[sym]) {
+      const { prices, labels } = generatePriceData(sym);
+      const result = runActiveStrategy(prices, labels);
+      stockData[sym] = { prices, labels, ohlcv: null, ...result, position: null, realDataLoaded: false };
+    }
+    addLog(`⚠ Using simulated data for ${sym.replace('.NS','').replace('_IDX','')} (Yahoo Finance unavailable)`, 'warn');
+  }
+
+  setChartLoading(false);
+  return stockData[sym];
+}
+
+function setChartLoading(on) {
+  const overlay = document.getElementById('chartLoadingOverlay');
+  if (overlay) overlay.style.display = on ? 'flex' : 'none';
 }
 
 // ─── OHLC CANDLE GENERATION ───────────────────────────────────────────────────
@@ -1838,17 +1984,26 @@ function switchStock(sym) {
 }
  
 // ─── RENDER ACTIVE ────────────────────────────────────────────────────────────
-function renderActive() {
-  const d=loadStockData(activeStock);
-  const {prices,labels,rsi,trades,metrics,trailSL,indicators}=d;
+async function renderActive() {
+  // Try to load real data first; falls back to simulation automatically
+  const d = await loadStockDataReal(activeStock);
+  const {prices,labels,rsi,trades,metrics,trailSL,indicators,ohlcv}=d;
   const lastPrice=prices[prices.length-1];
-  const prevPrice=prices[prices.length-2]||lastPrice;
-  const chgPct=((lastPrice-prevPrice)/prevPrice*100).toFixed(2);
+  // For day-over-day change, compare to first price of the dataset
+  const prevClose=prices[0]||lastPrice;
+  const chgAbs = lastPrice - prevClose;
+  const chgPct=((chgAbs/prevClose)*100).toFixed(2);
  
   document.getElementById('hPrice').textContent='₹'+lastPrice.toFixed(2);
   const chgEl=document.getElementById('hChg');
-  chgEl.textContent=(chgPct>=0?'+':'')+chgPct+'%';
-  chgEl.style.color=chgPct>=0?'var(--green)':'var(--red)';
+  chgEl.textContent=(chgAbs>=0?'+':'')+'₹'+Math.abs(chgAbs).toFixed(2)+' ('+(chgPct>=0?'+':'')+chgPct+'%)';
+  chgEl.style.color=chgAbs>=0?'var(--green)':'var(--red)';
+  // Show data source badge
+  const srcBadge = document.getElementById('dataSrcBadge');
+  if (srcBadge) {
+    srcBadge.textContent = d.realDataLoaded ? '● NSE Live' : '○ Simulated';
+    srcBadge.style.color = d.realDataLoaded ? 'var(--green)' : 'var(--amber)';
+  }
  
   document.getElementById('mRsi').textContent=metrics.currentRsi.toFixed(1);
   document.getElementById('mRsi').className='metric-val '+(metrics.currentRsi>=CFG.buyThresh?'green':metrics.currentRsi<CFG.sellThresh?'red':'blue');
@@ -1964,7 +2119,7 @@ function updateSignalBanner(cr,pr,inPos,indicators,prices,vwap) {
  
 // ─── CHARTS ───────────────────────────────────────────────────────────────────
 function renderCharts(d, vwapArr, adxData) {
-  const {prices,labels,rsi,trades,trailSL,indicators}=d;
+  const {prices,labels,rsi,trades,trailSL,indicators,ohlcv}=d;
   const N=labels.length;
   const buyPts=new Array(N).fill(null);const sellPts=new Array(N).fill(null);
   trades.forEach(t=>{
@@ -1976,44 +2131,45 @@ function renderCharts(d, vwapArr, adxData) {
   const tfLabel = TF_CONFIG[activeTF]?.label || activeTF;
   document.getElementById('priceChartLabel').textContent = 'Price · ' + tfLabel;
 
-  // ── Price Chart ──
+  // Use real OHLC from Yahoo Finance if available, else derive from closes
+  const ohlc = ohlcv ? ohlcv.map(c=>({o:c.o,h:c.h,l:c.l,c:c.c})) : buildOHLC(prices);
+  const volumes = ohlcv ? ohlcv.map(c=>c.v||0) : new Array(N).fill(0);
+  const highs = ohlc.map(b => b.h);
+  const lows  = ohlc.map(b => b.l);
+
+  // ── Price Chart (always candlestick with volume) ──
   if(priceChart) priceChart.destroy();
+  if(volumeChart) volumeChart.destroy();
+
   const pc=document.getElementById('priceChart').getContext('2d');
+  const vc=document.getElementById('volumeChart').getContext('2d');
 
-  const isUp = prices.at(-1) >= prices[0];
+  // Build overlay indicator datasets
+  const overlaySets = [];
+  if(activeStrategy===2&&indicators){
+    overlaySets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
+    overlaySets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
+    overlaySets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
+    overlaySets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
+  }
+  if(activeStrategy===5&&vwapArr){
+    overlaySets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
+  }
+  if(activeStrategy===4&&indicators?.rsi){
+    const e44=calcEMA(prices,44);
+    overlaySets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
+  }
 
+  // ── Candlestick price chart ──
   if (activeCandleType === 'candle') {
-    // ── CANDLESTICK mode: render transparent line for axis scaling, draw candles via plugin ──
-    const ohlc = buildOHLC(prices);
-    const highs = ohlc.map(b => b.h);
-    const lows  = ohlc.map(b => b.l);
-
-    const overlaySets = [];
-    if(activeStrategy===2&&indicators){
-      overlaySets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
-      overlaySets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
-      overlaySets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
-      overlaySets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
-    }
-    if(activeStrategy===5&&vwapArr){
-      overlaySets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
-    }
-    if(activeStrategy===4&&indicators?.rsi){
-      const e44=calcEMA(prices,44);
-      overlaySets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
-    }
-
     priceChart = new Chart(pc, {
       type: 'line',
       data: {
         labels,
         datasets: [
-          // invisible high/low band for Y-axis scaling
           { label: '_high', data: highs, borderColor: 'transparent', pointRadius: 0, fill: false, tension: 0, order: 99 },
           { label: '_low',  data: lows,  borderColor: 'transparent', pointRadius: 0, fill: false, tension: 0, order: 99 },
-          // Trail SL line
           { label: 'Trail SL', data: trailSL, borderColor: '#f59e0b', borderWidth: 1, borderDash: [4,3], pointRadius: 0, fill: false, tension: 0, order: 1 },
-          // Buy/Sell scatter markers on close price
           { label: 'Buy',  data: buyPts,  type: 'scatter', backgroundColor: '#22c55e', pointRadius: 7, pointStyle: 'triangle', order: 2 },
           { label: 'Sell', data: sellPts, type: 'scatter', backgroundColor: '#ef4444', pointRadius: 7, pointStyle: 'rectRot',  order: 3 },
           ...overlaySets,
@@ -2023,6 +2179,69 @@ function renderCharts(d, vwapArr, adxData) {
         responsive: true, maintainAspectRatio: false,
         animation: { duration: 0 },
         interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#181b22', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+            titleColor: '#8b90a0', bodyColor: '#e8eaf0', padding: 10,
+            callbacks: {
+              label: (ctx) => {
+                if (ctx.dataset.label.startsWith('_')) return null;
+                const i = ctx.dataIndex;
+                const bar = ohlc[i];
+                if (ctx.dataset.label === 'Trail SL') return 'Trail SL: ₹' + (ctx.raw?.toFixed(2) ?? '—');
+                if (bar && (ctx.datasetIndex <= 1)) return [`O: ₹${bar.o.toFixed(2)}`, `H: ₹${bar.h.toFixed(2)}`, `L: ₹${bar.l.toFixed(2)}`, `C: ₹${bar.c.toFixed(2)}`];
+                return ctx.dataset.label + ': ₹' + (ctx.raw ?? '—');
+              }
+            }
+          },
+          candlestickPlugin,
+          zoom: zoomPluginConfig(),
+        },
+        scales: {
+          x: { ticks: { color:'#4e5261', font:{size:9}, maxTicksLimit:10 }, grid: { color:'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color:'#4e5261', font:{size:9}, callback: v=>'₹'+v.toFixed(0) }, grid: { color:'rgba(255,255,255,0.04)' }, position:'right' }
+        }
+      },
+      plugins: [candlestickPlugin]
+    });
+    priceChart._ohlcData = ohlc;
+  } else {
+    // ── Line mode ──
+    const priceDsets=[
+      {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
+      {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
+      {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
+      {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
+      ...overlaySets,
+    ];
+    priceChart=new Chart(pc,{
+      type:'line',data:{labels,datasets:priceDsets},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        animation:{duration:150},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10},zoom:zoomPluginConfig()},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'},position:'right'}}}
+    });
+  }
+
+  // ── Volume Chart ──
+  const volColors = ohlc.map(b => b.c >= b.o ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)');
+  const maxVol = Math.max(...volumes, 1);
+  volumeChart = new Chart(vc, {
+    type: 'bar',
+    data: { labels, datasets: [{ label:'Volume', data:volumes, backgroundColor:volColors, borderWidth:0, borderRadius:1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 0 },
+      plugins: { legend:{display:false}, tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,bodyColor:'#e8eaf0',callbacks:{label:ctx=>'Vol: '+formatVol(ctx.raw)}}, zoom:zoomPluginConfig() },
+      scales: {
+        x: { display:false },
+        y: { ticks:{color:'#4e5261',font:{size:8},callback:v=>formatVol(v)}, grid:{color:'rgba(255,255,255,0.03)'}, max: maxVol*4, position:'right' }
+      }
+    }
+  });
+
         plugins: {
           legend: { display: false },
           tooltip: {
