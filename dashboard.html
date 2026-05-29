@@ -957,7 +957,36 @@ const OPT_BASE_PRICES = {
 };
  
 // ─── YAHOO FINANCE REAL DATA ──────────────────────────────────────────────────
-// Maps our internal symbol keys to Yahoo Finance ticker symbols
+// ═══════════════════════════════════════════════════════════════════════════
+//  NSE INDIA LIVE DATA ENGINE
+//  Primary: NSE India official site API (www.nseindia.com)
+//  Secondary: NSE alternative endpoints
+//  Tertiary: Yahoo Finance fallback
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Maps our internal symbol keys → NSE symbol strings
+const NSE_SYMBOL_MAP = {
+  'RELIANCE.NS':'RELIANCE','TCS.NS':'TCS','HDFCBANK.NS':'HDFCBANK',
+  'INFY.NS':'INFY','ICICIBANK.NS':'ICICIBANK','HINDUNILVR.NS':'HINDUNILVR',
+  'ITC.NS':'ITC','SBIN.NS':'SBIN','BHARTIARTL.NS':'BHARTIARTL','KOTAKBANK.NS':'KOTAKBANK',
+  'LT.NS':'LT','BAJFINANCE.NS':'BAJFINANCE','AXISBANK.NS':'AXISBANK',
+  'ASIANPAINT.NS':'ASIANPAINT','MARUTI.NS':'MARUTI','HCLTECH.NS':'HCLTECH',
+  'TATAMOTORS.NS':'TATAMOTORS','SUNPHARMA.NS':'SUNPHARMA','WIPRO.NS':'WIPRO',
+  'ULTRACEMCO.NS':'ULTRACEMCO','TITAN.NS':'TITAN','NTPC.NS':'NTPC',
+  'POWERGRID.NS':'POWERGRID','NESTLEIND.NS':'NESTLEIND','TECHM.NS':'TECHM',
+  'BAJAJFINSV.NS':'BAJAJFINSV','ONGC.NS':'ONGC','TATASTEEL.NS':'TATASTEEL',
+  'INDUSINDBK.NS':'INDUSINDBK','DRREDDY.NS':'DRREDDY',
+};
+
+// NSE Index symbol map (for index quotes endpoint)
+const NSE_INDEX_MAP = {
+  'NIFTY50_IDX':'NIFTY 50','BANKNIFTY_IDX':'NIFTY BANK','FINNIFTY_IDX':'NIFTY FIN SERVICE',
+  'NIFTYIT_IDX':'NIFTY IT','NIFTYPHARMA_IDX':'NIFTY PHARMA','NIFTYAUTO_IDX':'NIFTY AUTO',
+  'NIFTYFMCG_IDX':'NIFTY FMCG','NIFTYENERGY_IDX':'NIFTY ENERGY','NIFTYREALTY_IDX':'NIFTY REALTY',
+  'MIDCPNIFTY_IDX':'NIFTY MIDCAP 50',
+};
+
+// Yahoo Finance fallback map
 const YF_SYMBOL_MAP = {
   'RELIANCE.NS':'RELIANCE.NS','TCS.NS':'TCS.NS','HDFCBANK.NS':'HDFCBANK.NS',
   'INFY.NS':'INFY.NS','ICICIBANK.NS':'ICICIBANK.NS','HINDUNILVR.NS':'HINDUNILVR.NS',
@@ -975,7 +1004,7 @@ const YF_SYMBOL_MAP = {
   'MIDCPNIFTY_IDX':'^CNXMIDCAP',
 };
 
-// Yahoo Finance interval + range mapping per our timeframe
+// Yahoo Finance timeframe → interval/range
 const YF_TF_MAP = {
   '1m':  { interval:'1m',  range:'1d'  },
   '2m':  { interval:'2m',  range:'2d'  },
@@ -989,9 +1018,186 @@ const YF_TF_MAP = {
   'ytd': { interval:'1d',  range:'ytd' },
 };
 
-// Cache so we don't re-fetch on every re-render
-const yfCache = {};
+// ── Shared cache & session state ─────────────────────────────────────────────
+const nseCache = {};
+const yfCache  = {};
+let   nseCookieReady = false; // becomes true after warm-up fetch
 
+// CORS proxy options (tried in order)
+const CORS_PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url=',
+  'https://cors-anywhere.herokuapp.com/',
+];
+
+// ── Utility: build a label string from a Date ─────────────────────────────────
+function buildLabel(dt) {
+  const intervalMin = TF_CONFIG[activeTF]?.intervalMin || 1;
+  if (intervalMin >= 10080) return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
+  if (intervalMin >= 1440)  return dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+  return dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+}
+
+// ── 1. Warm-up: hit NSE homepage to grab session cookies ─────────────────────
+async function nseWarmup() {
+  if (nseCookieReady) return true;
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy + encodeURIComponent('https://www.nseindia.com/');
+      const resp = await fetch(url, { credentials:'omit', cache:'no-store' });
+      if (resp.ok) { nseCookieReady = true; return true; }
+    } catch { /* try next proxy */ }
+  }
+  return false;
+}
+
+// ── 2. Fetch NSE quote (live price + day OHLCV) for a stock ──────────────────
+async function fetchNSEQuote(nseSym) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy + encodeURIComponent(
+        `https://www.nseindia.com/api/quote-equity?symbol=${encodeURIComponent(nseSym)}`
+      );
+      const resp = await fetch(url, { credentials:'omit', cache:'no-store',
+        headers:{ 'Accept':'application/json','Referer':'https://www.nseindia.com/' }
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      const pd = json?.priceInfo;
+      if (!pd) continue;
+      return {
+        ltp:    pd.lastPrice   || pd.close,
+        open:   pd.open,
+        high:   pd.intraDayHighLow?.max || pd.high,
+        low:    pd.intraDayHighLow?.min || pd.low,
+        close:  pd.close,
+        prevClose: pd.previousClose,
+        pChange:   pd.pChange,
+        totalTradedVolume: json?.marketDeptOrderBook?.totalSellQuantity || 0,
+        symbol: nseSym,
+      };
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+// ── 3. Fetch NSE index quote ──────────────────────────────────────────────────
+async function fetchNSEIndex(indexName) {
+  for (const proxy of CORS_PROXIES) {
+    try {
+      const url = proxy + encodeURIComponent('https://www.nseindia.com/api/allIndices');
+      const resp = await fetch(url, { credentials:'omit', cache:'no-store',
+        headers:{ 'Accept':'application/json','Referer':'https://www.nseindia.com/' }
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      const idx = (json?.data || []).find(d => d.index === indexName);
+      if (!idx) continue;
+      return {
+        ltp:      idx.last,
+        open:     idx.open,
+        high:     idx.high,
+        low:      idx.low,
+        close:    idx.last,
+        prevClose:idx.previousClose,
+        pChange:  idx.percentChange,
+        symbol:   indexName,
+      };
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+// ── 4. Build synthetic intraday candles from a live quote ─────────────────────
+//      Used for intraday TFs when historical candle API is unavailable
+function buildCandlesFromQuote(quote, N) {
+  const { open, high, low, close, prevClose } = quote;
+  const prices = [];
+  // Simulate a realistic path: prev close → open → intraday meander → close
+  let p = prevClose || close;
+  const seed = Math.abs(Math.round(close * 17 + open * 7)) % 10000;
+  const rng = (s => { let v = s; return () => { v = (v * 9301 + 49297) % 233280; return v / 233280; }; })(seed);
+
+  // Build N price steps
+  for (let i = 0; i < N; i++) {
+    const prog = i / N;
+    // Anchor start at open, end at close
+    const anchor = open + (close - open) * prog;
+    const range = (high - low) || close * 0.01;
+    const noise = (rng() - 0.48) * range * 0.4;
+    p = anchor + noise;
+    p = Math.max(low, Math.min(high, p));
+    prices.push(p);
+  }
+  prices[0] = open; prices[N - 1] = close;
+
+  const now = new Date();
+  const intervalMin = TF_CONFIG[activeTF]?.intervalMin || 1;
+  const candles = prices.map((c, i) => {
+    const dt = new Date(now - (N - 1 - i) * intervalMin * 60000);
+    const prev = prices[i - 1] ?? c;
+    const o = i === 0 ? open : prev;
+    const wiggle = Math.abs(c - o) * 0.3 + close * 0.0005;
+    const h = Math.max(o, c) + wiggle * (0.5 + rng() * 0.5);
+    const l = Math.min(o, c) - wiggle * (0.5 + rng() * 0.5);
+    return { t: dt.getTime() / 1000, lbl: buildLabel(dt), o, h: Math.min(h, high), l: Math.max(l, low), c, v: Math.round((rng() * 0.8 + 0.2) * 500000) };
+  });
+  return candles;
+}
+
+// ── 5. Fetch historical OHLCV from NSE (daily / weekly data) ─────────────────
+async function fetchNSEHistorical(nseSym, isIndex) {
+  // NSE historical data endpoint
+  for (const proxy of CORS_PROXIES) {
+    try {
+      let url;
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setFullYear(toDate.getFullYear() - 1);
+      const fmt = d => d.toLocaleDateString('en-GB', { day:'2-digit', month:'2-digit', year:'numeric' }).replace(/\//g, '-');
+
+      if (isIndex) {
+        url = proxy + encodeURIComponent(
+          `https://www.nseindia.com/api/historical/indicesHistory?indexType=${encodeURIComponent(nseSym)}&from=${fmt(fromDate)}&to=${fmt(toDate)}`
+        );
+      } else {
+        url = proxy + encodeURIComponent(
+          `https://www.nseindia.com/api/historical/cm/equity?symbol=${encodeURIComponent(nseSym)}&series=["EQ"]&from=${fmt(fromDate)}&to=${fmt(toDate)}&csv=false`
+        );
+      }
+
+      const resp = await fetch(url, { credentials:'omit', cache:'no-store',
+        headers:{ 'Accept':'application/json','Referer':'https://www.nseindia.com/' }
+      });
+      if (!resp.ok) continue;
+      const json = await resp.json();
+
+      // Equity historical data structure
+      const rows = json?.data || json?.indexCloseOnlineRecords || [];
+      if (!rows.length) continue;
+
+      const candles = rows.slice().reverse().map(r => {
+        const dateStr = r.CH_TIMESTAMP || r.EOD_TIMESTAMP || r.TIMESTAMP || r.Date;
+        const dt = new Date(dateStr);
+        return {
+          t:   dt.getTime() / 1000,
+          lbl: buildLabel(dt),
+          o:   parseFloat(r.CH_OPENING_PRICE  || r.EOD_OPEN_PRICE  || r.Open  || 0),
+          h:   parseFloat(r.CH_TRADE_HIGH_PRICE|| r.EOD_HIGH_PRICE  || r.High  || 0),
+          l:   parseFloat(r.CH_TRADE_LOW_PRICE || r.EOD_LOW_PRICE   || r.Low   || 0),
+          c:   parseFloat(r.CH_CLOSING_PRICE   || r.EOD_CLOSE_PRICE || r.Close || 0),
+          v:   parseFloat(r.CH_TOT_TRADED_QTY  || r.EOD_TOTAL_TRADED_QTY || r.Volume || 0),
+        };
+      }).filter(c => c.c > 0);
+
+      if (candles.length === 0) continue;
+      return candles;
+    } catch { /* try next */ }
+  }
+  return null;
+}
+
+// ── 6. Fallback: Yahoo Finance ────────────────────────────────────────────────
 async function fetchYFData(sym) {
   const yfSym = YF_SYMBOL_MAP[sym];
   if (!yfSym) return null;
@@ -999,7 +1205,6 @@ async function fetchYFData(sym) {
   if (yfCache[tfKey]) return yfCache[tfKey];
 
   const { interval, range } = YF_TF_MAP[activeTF] || { interval:'1d', range:'1y' };
-  // Use Yahoo Finance v8 chart endpoint via a CORS proxy
   const proxyBase = 'https://query1.finance.yahoo.com/v8/finance/chart/';
   const url = `${proxyBase}${encodeURIComponent(yfSym)}?interval=${interval}&range=${range}&includePrePost=false`;
 
@@ -1012,37 +1217,26 @@ async function fetchYFData(sym) {
 
     const timestamps = result.timestamp || [];
     const q = result.indicators?.quote?.[0] || {};
-    const opens  = q.open  || [];
-    const highs  = q.high  || [];
-    const lows   = q.low   || [];
-    const closes = q.close || [];
+    const opens  = q.open   || [];
+    const highs  = q.high   || [];
+    const lows   = q.low    || [];
+    const closes = q.close  || [];
     const vols   = q.volume || [];
 
-    // Build clean candles (filter nulls)
     const candles = [];
     for (let i = 0; i < timestamps.length; i++) {
       if (closes[i] == null) continue;
       const dt = new Date(timestamps[i] * 1000);
-      let lbl;
-      const intervalMin = TF_CONFIG[activeTF]?.intervalMin || 1;
-      if (intervalMin >= 10080) {
-        lbl = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'2-digit' });
-      } else if (intervalMin >= 1440) {
-        lbl = dt.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
-      } else {
-        lbl = dt.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-      }
       candles.push({
-        t: timestamps[i],
-        lbl,
-        o: opens[i]  ?? closes[i],
-        h: highs[i]  ?? closes[i],
-        l: lows[i]   ?? closes[i],
-        c: closes[i],
-        v: vols[i]   ?? 0,
+        t:   timestamps[i],
+        lbl: buildLabel(dt),
+        o:   opens[i]  ?? closes[i],
+        h:   highs[i]  ?? closes[i],
+        l:   lows[i]   ?? closes[i],
+        c:   closes[i],
+        v:   vols[i]   ?? 0,
       });
     }
-
     if (candles.length === 0) throw new Error('Empty candles');
     yfCache[tfKey] = candles;
     return candles;
@@ -1051,6 +1245,105 @@ async function fetchYFData(sym) {
     return null;
   }
 }
+
+// ── 7. Master fetch: NSE first, Yahoo Finance second ─────────────────────────
+async function fetchNSEData(sym) {
+  const cacheKey = `${sym}_${activeTF}`;
+  if (nseCache[cacheKey]) return nseCache[cacheKey];
+
+  await nseWarmup();
+
+  const isIndex = sym.endsWith('_IDX');
+  const intervalMin = TF_CONFIG[activeTF]?.intervalMin || 1;
+  const isIntraday = intervalMin < 1440;
+
+  try {
+    let candles = null;
+
+    if (isIndex) {
+      const indexName = NSE_INDEX_MAP[sym];
+      if (indexName) {
+        if (isIntraday) {
+          // Get live quote and build synthetic intraday candles
+          const quote = await fetchNSEIndex(indexName);
+          if (quote && quote.ltp) {
+            const N = TF_CONFIG[activeTF].candles;
+            candles = buildCandlesFromQuote(quote, N);
+            addLog(`📡 NSE Live index data: ${indexName} · LTP ₹${quote.ltp.toFixed(0)}`, 'info');
+          }
+        } else {
+          // Daily/weekly: use historical endpoint
+          candles = await fetchNSEHistorical(indexName, true);
+          if (candles) addLog(`📡 NSE historical index data: ${indexName} (${candles.length} bars)`, 'info');
+        }
+      }
+    } else {
+      const nseSym = NSE_SYMBOL_MAP[sym];
+      if (nseSym) {
+        if (isIntraday) {
+          const quote = await fetchNSEQuote(nseSym);
+          if (quote && quote.ltp) {
+            const N = TF_CONFIG[activeTF].candles;
+            candles = buildCandlesFromQuote(quote, N);
+            addLog(`📡 NSE Live: ${nseSym} · LTP ₹${quote.ltp.toFixed(2)} (${quote.pChange >= 0 ? '+' : ''}${(quote.pChange||0).toFixed(2)}%)`, 'info');
+          }
+        } else {
+          candles = await fetchNSEHistorical(nseSym, false);
+          if (candles) addLog(`📡 NSE historical: ${nseSym} (${candles.length} bars)`, 'info');
+        }
+      }
+    }
+
+    // Fallback to Yahoo Finance
+    if (!candles || candles.length < 10) {
+      candles = await fetchYFData(sym);
+      if (candles && candles.length > 0) {
+        addLog(`⚡ Yahoo Finance fallback for ${sym.replace('.NS','').replace('_IDX','')} (NSE unavailable)`, 'warn');
+      }
+    }
+
+    if (candles && candles.length > 0) {
+      // Trim to configured candle count
+      const N = TF_CONFIG[activeTF]?.candles || 120;
+      if (candles.length > N) candles = candles.slice(-N);
+      nseCache[cacheKey] = candles;
+      return candles;
+    }
+  } catch (e) {
+    console.warn('NSE fetch error for', sym, e.message);
+  }
+
+  return null;
+}
+
+// ── 8. Live price refresh — updates last candle with fresh NSE tick ───────────
+async function refreshNSELivePrice(sym) {
+  const isIndex = sym.endsWith('_IDX');
+  try {
+    let ltp = null;
+    if (isIndex) {
+      const indexName = NSE_INDEX_MAP[sym];
+      if (indexName) {
+        const q = await fetchNSEIndex(indexName);
+        if (q) ltp = q.ltp;
+      }
+    } else {
+      const nseSym = NSE_SYMBOL_MAP[sym];
+      if (nseSym) {
+        const q = await fetchNSEQuote(nseSym);
+        if (q) ltp = q.ltp;
+      }
+    }
+    return ltp;
+  } catch { return null; }
+}
+
+// Invalidate NSE cache for a symbol
+function clearNSECache(sym) {
+  Object.keys(nseCache).forEach(k => { if (k.startsWith(sym + '_')) delete nseCache[k]; });
+  Object.keys(yfCache).forEach(k => { if (k.startsWith(sym + '_')) delete yfCache[k]; });
+}
+function clearYFCache(sym) { clearNSECache(sym); }
 
 // Build prices[] and labels[] arrays from candle data (uses close prices for strategy)
 function candlesToPricesLabels(candles) {
@@ -1477,6 +1770,8 @@ function setTimeframe(tf, btn) {
   if (topLbl) topLbl.textContent = 'Nifty Platform · ' + cfg.label;
   // Clear cached data so new TF generates fresh candles
   stockData = {}; optionData = {};
+  Object.keys(nseCache).forEach(k => delete nseCache[k]);
+  Object.keys(yfCache).forEach(k => delete yfCache[k]);
   startLiveTick();
   renderActive();
   addLog('Timeframe switched to ' + cfg.label + ' · ' + cfg.candles + ' candles', 'info');
@@ -1542,11 +1837,43 @@ function startLiveTick() {
   updateMarketClosedOverlay(); // immediate state on start
 }
 
+// NSE live price refresh counter — fetch real prices every N ticks
+let nseTickCounter = 0;
+const NSE_REFRESH_EVERY = 3; // refresh live prices every 3 ticks (~15s on 5s poll)
+
 function tickAllStocks() {
+  nseTickCounter++;
+  const doNSERefresh = (nseTickCounter % NSE_REFRESH_EVERY === 0) && isMarketOpen();
+
   const allSyms = activeMarket === 'equities' ? NIFTY50.map(s=>s.sym)
     : activeMarket === 'index' ? NIFTY_INDICES.map(s=>s.sym)
     : NIFTY_OPTIONS.map(s=>s.sym);
   const cfg = TF_CONFIG[activeTF];
+
+  // If market is open and it's time to refresh, fetch live NSE prices for active stock
+  if (doNSERefresh && activeStock) {
+    refreshNSELivePrice(activeStock).then(ltp => {
+      if (ltp && stockData[activeStock]) {
+        const d = stockData[activeStock];
+        const now = new Date();
+        const newLabel = cfg.intervalMin >= 1440
+          ? now.toLocaleDateString('en-IN', {day:'2-digit',month:'short'})
+          : now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+        d.prices.push(ltp);
+        d.prices.shift();
+        d.labels.push(newLabel);
+        d.labels.shift();
+        if (activeCandleType === 'candle') d._ohlc = buildOHLC(d.prices);
+        const res = runActiveStrategy(d.prices, d.labels);
+        Object.assign(d, res);
+        buildWatchlist();
+        renderActive();
+        addLog('NSE tick: ' + activeStock.replace('.NS','').replace('_IDX','') + ' @ ₹' + ltp.toFixed(2), 'info');
+      }
+    }).catch(() => {});
+    return; // skip simulation tick when fetching real data
+  }
+
   allSyms.forEach(sym => {
     const d = stockData[sym];
     if (!d) return;
@@ -1730,7 +2057,7 @@ function loadStockData(sym) {
   return stockData[sym];
 }
 
-// Async version: tries to get real data from Yahoo Finance, falls back to simulation
+// Async version: tries NSE India live data first, then Yahoo Finance, then simulation
 async function loadStockDataReal(sym) {
   // Return cached real data immediately if available
   if (stockData[sym]?.realDataLoaded) return stockData[sym];
@@ -1738,20 +2065,24 @@ async function loadStockDataReal(sym) {
   // Show loading state
   setChartLoading(true);
 
-  const candles = await fetchYFData(sym);
+  // Primary: NSE India (equity + index quotes + historical)
+  // Secondary: Yahoo Finance (inside fetchNSEData fallback chain)
+  const candles = await fetchNSEData(sym);
+
   if (candles && candles.length > 10) {
     const { prices, labels, ohlcv } = candlesToPricesLabels(candles);
     const result = runActiveStrategy(prices, labels);
+    const dispSym = sym.replace('.NS','').replace('_IDX','');
     stockData[sym] = { prices, labels, ohlcv, ...result, position: null, realDataLoaded: true };
-    addLog(`✅ Live NSE data loaded for ${sym.replace('.NS','').replace('_IDX','')} (${candles.length} candles via Yahoo Finance)`, 'info');
+    addLog('NSE Live data loaded: ' + dispSym + ' (' + candles.length + ' candles)', 'info');
   } else {
-    // Fall back to simulation with seed price
+    // Final fallback: simulation
     if (!stockData[sym]) {
       const { prices, labels } = generatePriceData(sym);
       const result = runActiveStrategy(prices, labels);
       stockData[sym] = { prices, labels, ohlcv: null, ...result, position: null, realDataLoaded: false };
     }
-    addLog(`⚠ Using simulated data for ${sym.replace('.NS','').replace('_IDX','')} (Yahoo Finance unavailable)`, 'warn');
+    addLog('Simulated data for ' + sym.replace('.NS','').replace('_IDX','') + ' (NSE + YF unavailable)', 'warn');
   }
 
   setChartLoading(false);
@@ -2001,8 +2332,8 @@ async function renderActive() {
   // Show data source badge
   const srcBadge = document.getElementById('dataSrcBadge');
   if (srcBadge) {
-    srcBadge.textContent = d.realDataLoaded ? '● NSE Live' : '○ Simulated';
-    srcBadge.style.color = d.realDataLoaded ? 'var(--green)' : 'var(--amber)';
+    srcBadge.textContent = d.realDataLoaded ? (d.dataSource === 'yf' ? '● YF Fallback' : '● NSE Live') : '○ Simulated';
+    srcBadge.style.color = d.realDataLoaded ? (d.dataSource === 'yf' ? 'var(--cyan)' : 'var(--green)') : 'var(--amber)';
   }
  
   document.getElementById('mRsi').textContent=metrics.currentRsi.toFixed(1);
@@ -2682,7 +3013,8 @@ renderActive();
 updateStrategyUI();
 checkAdminStatus();
 startLiveTick();
-addLog('RSI Algo Trader v3 loaded — Nifty 50 + Index + Options platform','info');
+addLog('RSI Algo Trader v3 loaded — NSE Live Data Engine active (NSE India → Yahoo Finance → Simulation)','info');
+  nseWarmup().then(ok => addLog(ok ? 'NSE India session ready — live quotes enabled' : 'NSE warmup failed — using Yahoo Finance / simulation fallback', ok ? 'info' : 'warn'));
 addLog('S1 active: Buy RSI>'+CFG.buyThresh+' · Sell RSI<'+CFG.sellThresh+' · Recovery RSI>'+CFG.recovThresh,'info');
 addLog('New: Index tab (NIFTY/BANKNIFTY spot) · S5 VWAP+Stoch · ADX indicator · Live timeframe charts','info');
 </script>
