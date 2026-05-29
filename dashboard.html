@@ -491,7 +491,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
   <div class="tf-bar" id="tfBar">
     <div class="tf-candle-type">
       <button class="tf-ctype-btn active" id="ctLine" onclick="setCandleType('line',this)" title="Line chart">Line</button>
-      <button class="tf-ctype-btn" id="ctCandle" onclick="setCandleType('candle',this)" title="Simulated candle area">Area</button>
+      <button class="tf-ctype-btn" id="ctCandle" onclick="setCandleType('candle',this)" title="Candlestick chart">Candle</button>
     </div>
     <div class="tf-sep"></div>
     <button class="tf-btn active" onclick="setTimeframe('1m',this)">1m</button>
@@ -1335,6 +1335,10 @@ function tickAllStocks() {
     d.prices.shift();
     d.labels.push(newLabel);
     d.labels.shift();
+    // Rebuild OHLC cache on tick for candle mode
+    if (activeCandleType === 'candle') {
+      d._ohlc = buildOHLC(d.prices);
+    }
     const res = runActiveStrategy(d.prices, d.labels);
     Object.assign(d, res);
   });
@@ -1390,6 +1394,65 @@ function loadStockData(sym) {
   stockData[sym]={prices,labels,...result,position:null};
   return stockData[sym];
 }
+
+// ─── OHLC CANDLE GENERATION ───────────────────────────────────────────────────
+// Derives realistic OHLC bars from the close price series
+function buildOHLC(prices) {
+  return prices.map((close, i) => {
+    const prev = prices[i - 1] ?? close;
+    const open = i === 0 ? close : prev;
+    const range = Math.abs(close - open);
+    // Wick extends beyond body by a random fraction
+    const wickFactor = 0.3 + Math.random() * 0.7;
+    const shadow = range * wickFactor + close * 0.0008;
+    const isUp = close >= open;
+    const high = Math.max(open, close) + shadow * (0.4 + Math.random() * 0.6);
+    const low  = Math.min(open, close) - shadow * (0.4 + Math.random() * 0.6);
+    return { o: open, h: high, l: low, c: close };
+  });
+}
+
+// Custom Chart.js plugin that renders candlestick bodies + wicks
+const candlestickPlugin = {
+  id: 'candlestickPlugin',
+  afterDatasetDraw(chart, args) {
+    if (!chart._ohlcData) return;
+    const { ctx, scales: { x, y }, chartArea } = chart;
+    const ohlc = chart._ohlcData;
+    const N = ohlc.length;
+    if (!N) return;
+    const barW = Math.max(1, (chartArea.right - chartArea.left) / N * 0.7);
+    const halfW = barW / 2;
+    ctx.save();
+    ohlc.forEach((bar, i) => {
+      const xPos = x.getPixelForValue(i);
+      const yO = y.getPixelForValue(bar.o);
+      const yC = y.getPixelForValue(bar.c);
+      const yH = y.getPixelForValue(bar.h);
+      const yL = y.getPixelForValue(bar.l);
+      const isUp = bar.c >= bar.o;
+      const color = isUp ? '#22c55e' : '#ef4444';
+      const bodyTop = Math.min(yO, yC);
+      const bodyH = Math.max(1, Math.abs(yC - yO));
+      // Wick
+      ctx.strokeStyle = isUp ? 'rgba(34,197,94,0.75)' : 'rgba(239,68,68,0.75)';
+      ctx.lineWidth = Math.max(1, barW * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(xPos, yH);
+      ctx.lineTo(xPos, bodyTop);
+      ctx.moveTo(xPos, bodyTop + bodyH);
+      ctx.lineTo(xPos, yL);
+      ctx.stroke();
+      // Body
+      ctx.fillStyle = isUp ? 'rgba(34,197,94,0.85)' : 'rgba(239,68,68,0.85)';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 0.5;
+      ctx.fillRect(xPos - halfW, bodyTop, barW, bodyH);
+      ctx.strokeRect(xPos - halfW, bodyTop, barW, bodyH);
+    });
+    ctx.restore();
+  }
+};
  
 // ─── STRATEGY SWITCHING ───────────────────────────────────────────────────────
 function switchStrategy(val) {
@@ -1692,44 +1755,106 @@ function renderCharts(d, vwapArr, adxData) {
   const pc=document.getElementById('priceChart').getContext('2d');
 
   const isUp = prices.at(-1) >= prices[0];
-  const upColor='#22c55e', downColor='#ef4444', lineColor='#3b82f6';
-  let fillMode = false, fillBg = 'transparent';
-  if (activeCandleType === 'candle') {
-    const grad = pc.createLinearGradient(0,0,0,230);
-    grad.addColorStop(0, isUp ? 'rgba(34,197,94,0.20)' : 'rgba(239,68,68,0.16)');
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    fillMode = 'origin'; fillBg = grad;
-  }
-  const priceColor = activeCandleType==='candle' ? (isUp ? upColor : downColor) : lineColor;
 
-  const priceDsets=[
-    {label:'Price',data:prices,borderColor:priceColor,borderWidth:activeCandleType==='candle'?2:1.5,
-     pointRadius:0,fill:fillMode,backgroundColor:fillBg,tension:0.2,order:0},
-    {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
-    {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
-    {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
-  ];
-  if(activeStrategy===2&&indicators){
-    priceDsets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
-    priceDsets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
-    priceDsets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
-    priceDsets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
+  if (activeCandleType === 'candle') {
+    // ── CANDLESTICK mode: render transparent line for axis scaling, draw candles via plugin ──
+    const ohlc = buildOHLC(prices);
+    const highs = ohlc.map(b => b.h);
+    const lows  = ohlc.map(b => b.l);
+
+    const overlaySets = [];
+    if(activeStrategy===2&&indicators){
+      overlaySets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
+      overlaySets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
+      overlaySets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
+      overlaySets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
+    }
+    if(activeStrategy===5&&vwapArr){
+      overlaySets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
+    }
+    if(activeStrategy===4&&indicators?.rsi){
+      const e44=calcEMA(prices,44);
+      overlaySets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
+    }
+
+    priceChart = new Chart(pc, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          // invisible high/low band for Y-axis scaling
+          { label: '_high', data: highs, borderColor: 'transparent', pointRadius: 0, fill: false, tension: 0, order: 99 },
+          { label: '_low',  data: lows,  borderColor: 'transparent', pointRadius: 0, fill: false, tension: 0, order: 99 },
+          // Trail SL line
+          { label: 'Trail SL', data: trailSL, borderColor: '#f59e0b', borderWidth: 1, borderDash: [4,3], pointRadius: 0, fill: false, tension: 0, order: 1 },
+          // Buy/Sell scatter markers on close price
+          { label: 'Buy',  data: buyPts,  type: 'scatter', backgroundColor: '#22c55e', pointRadius: 7, pointStyle: 'triangle', order: 2 },
+          { label: 'Sell', data: sellPts, type: 'scatter', backgroundColor: '#ef4444', pointRadius: 7, pointStyle: 'rectRot',  order: 3 },
+          ...overlaySets,
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        animation: { duration: 0 },
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#181b22', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
+            titleColor: '#8b90a0', bodyColor: '#e8eaf0', padding: 10,
+            callbacks: {
+              label: (ctx) => {
+                if (ctx.dataset.label.startsWith('_')) return null;
+                const i = ctx.dataIndex;
+                const bar = ohlc[i];
+                if (ctx.dataset.label === 'Price' || ctx.datasetIndex === 0) {
+                  return [`O: ₹${bar.o.toFixed(2)}`, `H: ₹${bar.h.toFixed(2)}`, `L: ₹${bar.l.toFixed(2)}`, `C: ₹${bar.c.toFixed(2)}`];
+                }
+                return ctx.dataset.label + ': ₹' + (ctx.raw ?? '—');
+              }
+            }
+          },
+          candlestickPlugin
+        },
+        scales: {
+          x: { ticks: { color:'#4e5261', font:{size:9}, maxTicksLimit:10 }, grid: { color:'rgba(255,255,255,0.04)' } },
+          y: { ticks: { color:'#4e5261', font:{size:9}, callback: v=>'₹'+v.toFixed(0) }, grid: { color:'rgba(255,255,255,0.04)' } }
+        }
+      },
+      plugins: [candlestickPlugin]
+    });
+    priceChart._ohlcData = ohlc;
+
+  } else {
+    // ── LINE mode ──
+    const priceDsets=[
+      {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
+      {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
+      {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
+      {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
+    ];
+    if(activeStrategy===2&&indicators){
+      priceDsets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
+      priceDsets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
+      priceDsets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
+      priceDsets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
+    }
+    if(activeStrategy===5&&vwapArr){
+      priceDsets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
+    }
+    if(activeStrategy===4&&indicators?.rsi){
+      const e44=calcEMA(prices,44);
+      priceDsets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
+    }
+    priceChart=new Chart(pc,{
+      type:'line',data:{labels,datasets:priceDsets},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+        animation:{duration:150},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
+        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
+          y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
+    });
   }
-  if(activeStrategy===5&&vwapArr){
-    priceDsets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
-  }
-  if(activeStrategy===4&&indicators?.rsi){
-    const e44=calcEMA(prices,44);
-    priceDsets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
-  }
-  priceChart=new Chart(pc,{
-    type:'line',data:{labels,datasets:priceDsets},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-      animation:{duration:150},
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
-      scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
-        y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
-  });
  
   // ── RSI Chart (S1, S4) ──
   if(activeStrategy===1||activeStrategy===4){
