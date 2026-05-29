@@ -233,6 +233,16 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
 .tf-ctype-btn.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
 .tf-ctype-btn:hover:not(.active){color:var(--text);}
 
+/* ── CHART COLLAPSE ── */
+.chart-block .chart-canvas-wrap { overflow: hidden; transition: height 0.25s ease, opacity 0.2s ease; }
+.chart-block.collapsed .chart-canvas-wrap { height: 0 !important; opacity: 0; }
+.chart-minimize-btn { background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 14px; line-height: 1; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
+.chart-minimize-btn:hover { color: var(--text); background: var(--bg3); }
+.chart-block.collapsed .chart-minimize-btn { color: var(--blue); }
+.market-closed-overlay { display: none; align-items: center; justify-content: center; gap: 10px; padding: 18px; background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.25); border-radius: 8px; margin-top: 10px; }
+.market-closed-overlay.visible { display: flex; }
+.market-closed-overlay span { font-size: 12px; color: var(--amber); font-family: var(--font); letter-spacing: 0.03em; }
+
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -513,18 +523,22 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
   <!-- Charts -->
   <div class="charts-area">
     <!-- Price Chart -->
-    <div class="chart-block" style="position:relative">
+    <div class="chart-block" style="position:relative" id="priceChartBlock">
       <div class="chart-title">
-        <span id="priceChartLabel">Price · 15min</span>
-        <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap" id="priceLegend">
+        <span id="priceChartLabel">Price · 1m</span>
+        <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap;align-items:center" id="priceLegend">
           <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Price</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
+          <button class="chart-minimize-btn" onclick="toggleChart('priceChartBlock',this)" title="Minimize/Maximize">⊟</button>
         </div>
       </div>
-      <div style="position:relative;width:100%;height:230px">
-        <canvas id="priceChart" role="img" aria-label="Price chart"></canvas>
+      <div class="chart-canvas-wrap" style="height:230px">
+        <canvas id="priceChart" role="img" aria-label="Price chart" style="width:100%;height:100%"></canvas>
+      </div>
+      <div class="market-closed-overlay" id="mktClosedOverlay">
+        <span>⏸ Market Closed — Live data resumes at 9:15 AM IST on the next trading day</span>
       </div>
     </div>
  
@@ -532,14 +546,15 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
     <div class="chart-block" id="rsiChartBlock">
       <div class="chart-title">
         <span id="rsiChartLabel">RSI · Strategy Levels</span>
-        <div style="display:flex;gap:10px;margin-left:auto" id="rsiLegend">
+        <div style="display:flex;gap:10px;margin-left:auto;align-items:center" id="rsiLegend">
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
           <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Recovery</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
+          <button class="chart-minimize-btn" onclick="toggleChart('rsiChartBlock',this)" title="Minimize/Maximize">⊟</button>
         </div>
       </div>
-      <div style="position:relative;width:100%;height:160px">
-        <canvas id="rsiChart" role="img" aria-label="RSI chart"></canvas>
+      <div class="chart-canvas-wrap" style="height:160px">
+        <canvas id="rsiChart" role="img" aria-label="RSI chart" style="width:100%;height:100%"></canvas>
       </div>
     </div>
  
@@ -547,15 +562,16 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
     <div class="chart-block" id="macdChartBlock" style="display:none">
       <div class="chart-title">
         MACD (12, 26, 9)
-        <div style="display:flex;gap:10px;margin-left:auto">
+        <div style="display:flex;gap:10px;margin-left:auto;align-items:center">
           <div class="legend-item"><div class="legend-line" style="background:#06b6d4"></div>MACD</div>
           <div class="legend-item"><div class="legend-line" style="background:#f59e0b"></div>Signal</div>
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Histogram +</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Histogram −</div>
+          <button class="chart-minimize-btn" onclick="toggleChart('macdChartBlock',this)" title="Minimize/Maximize">⊟</button>
         </div>
       </div>
-      <div style="position:relative;width:100%;height:140px">
-        <canvas id="macdChart" role="img" aria-label="MACD chart"></canvas>
+      <div class="chart-canvas-wrap" style="height:140px">
+        <canvas id="macdChart" role="img" aria-label="MACD chart" style="width:100%;height:100%"></canvas>
       </div>
     </div>
  
@@ -563,13 +579,14 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
     <div class="chart-block" id="stochChartBlock" style="display:none">
       <div class="chart-title">
         Stochastic Oscillator (%K / %D)
-        <div style="display:flex;gap:10px;margin-left:auto">
+        <div style="display:flex;gap:10px;margin-left:auto;align-items:center">
           <div class="legend-item"><div class="legend-line" style="background:#a855f7"></div>%K</div>
           <div class="legend-item"><div class="legend-line" style="background:#f59e0b"></div>%D</div>
+          <button class="chart-minimize-btn" onclick="toggleChart('stochChartBlock',this)" title="Minimize/Maximize">⊟</button>
         </div>
       </div>
-      <div style="position:relative;width:100%;height:140px">
-        <canvas id="stochChart" role="img" aria-label="Stochastic chart"></canvas>
+      <div class="chart-canvas-wrap" style="height:140px">
+        <canvas id="stochChart" role="img" aria-label="Stochastic chart" style="width:100%;height:100%"></canvas>
       </div>
     </div>
  
@@ -577,14 +594,15 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
     <div class="chart-block" id="adxChartBlock" style="display:none">
       <div class="chart-title">
         ADX — Trend Strength
-        <div style="display:flex;gap:10px;margin-left:auto">
+        <div style="display:flex;gap:10px;margin-left:auto;align-items:center">
           <div class="legend-item"><div class="legend-line" style="background:#06b6d4"></div>ADX</div>
           <div class="legend-item"><div class="legend-line" style="background:#22c55e"></div>+DI</div>
           <div class="legend-item"><div class="legend-line" style="background:#ef4444"></div>−DI</div>
+          <button class="chart-minimize-btn" onclick="toggleChart('adxChartBlock',this)" title="Minimize/Maximize">⊟</button>
         </div>
       </div>
-      <div style="position:relative;width:100%;height:130px">
-        <canvas id="adxChart" role="img" aria-label="ADX chart"></canvas>
+      <div class="chart-canvas-wrap" style="height:130px">
+        <canvas id="adxChart" role="img" aria-label="ADX chart" style="width:100%;height:100%"></canvas>
       </div>
     </div>
   </div>
@@ -1301,18 +1319,57 @@ function setCandleType(type, btn) {
   renderActive();
 }
 
+// ─── MARKET HOURS CHECK ───────────────────────────────────────────────────────
+function isMarketOpen() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return false;
+  // IST = UTC+5:30; convert local time to IST
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  const ist = new Date(utcMs + 5.5 * 3600000);
+  const h = ist.getHours(), m = ist.getMinutes();
+  return (h > 9 || (h === 9 && m >= 15)) && (h < 15 || (h === 15 && m <= 30));
+}
+
+function updateMarketClosedOverlay() {
+  const open = isMarketOpen();
+  const overlay = document.getElementById('mktClosedOverlay');
+  if (overlay) overlay.classList.toggle('visible', !open);
+  // Also update the live-pill colour
+  const pill = document.getElementById('livePill');
+  const dot  = pill?.querySelector('.tf-live-dot');
+  const lbl  = document.getElementById('liveLabel');
+  if (!open) {
+    if (dot)  dot.style.background = 'var(--amber)';
+    if (dot)  dot.style.animationName = 'none';
+    if (pill) pill.style.background = 'rgba(245,158,11,0.08)';
+    if (pill) pill.style.borderColor = 'rgba(245,158,11,0.25)';
+    if (pill) pill.style.color = 'var(--amber)';
+    if (lbl)  lbl.textContent = 'CLOSED · ' + TF_CONFIG[activeTF]?.label;
+  } else {
+    if (dot)  dot.style.background = 'var(--green)';
+    if (dot)  dot.style.animationName = 'pulse';
+    if (pill) pill.style.background = 'var(--green-dim)';
+    if (pill) pill.style.borderColor = 'rgba(34,197,94,0.25)';
+    if (pill) pill.style.color = 'var(--green)';
+    if (lbl)  lbl.textContent = 'LIVE · ' + TF_CONFIG[activeTF]?.label;
+  }
+}
+
 // ─── LIVE TICK ENGINE ─────────────────────────────────────────────────────────
 function startLiveTick() {
   if (liveTickInterval) clearInterval(liveTickInterval);
   const cfg = TF_CONFIG[activeTF];
-  const pollMs = zerodhaConnected ? cfg.pollMs : Math.min(cfg.pollMs, 3000);
+  // Check every 5 s whether market is open; actual price update only when open
   liveTickInterval = setInterval(() => {
+    updateMarketClosedOverlay();
+    if (!isMarketOpen()) return; // ← silent bail when closed
     tickAllStocks();
-  }, pollMs);
+  }, zerodhaConnected ? cfg.pollMs : Math.min(cfg.pollMs, 3000));
+  updateMarketClosedOverlay(); // immediate state on start
 }
 
 function tickAllStocks() {
-  // Simulate live price tick for active stock + nearby ones
   const allSyms = activeMarket === 'equities' ? NIFTY50.map(s=>s.sym)
     : activeMarket === 'index' ? NIFTY_INDICES.map(s=>s.sym)
     : NIFTY_OPTIONS.map(s=>s.sym);
@@ -1335,15 +1392,27 @@ function tickAllStocks() {
     d.prices.shift();
     d.labels.push(newLabel);
     d.labels.shift();
-    // Rebuild OHLC cache on tick for candle mode
-    if (activeCandleType === 'candle') {
-      d._ohlc = buildOHLC(d.prices);
-    }
+    if (activeCandleType === 'candle') d._ohlc = buildOHLC(d.prices);
     const res = runActiveStrategy(d.prices, d.labels);
     Object.assign(d, res);
   });
   buildWatchlist();
   renderActive();
+}
+
+// ─── CHART MINIMIZE / MAXIMIZE ────────────────────────────────────────────────
+function toggleChart(blockId, btn) {
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  const collapsed = block.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '⊞' : '⊟';
+  btn.title = collapsed ? 'Maximize' : 'Minimize';
+  // After expanding, charts need a resize tick to redraw correctly
+  if (!collapsed) {
+    setTimeout(() => {
+      [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => { try { c?.resize(); } catch {} });
+    }, 280);
+  }
 }
 
 // ─── DATA & SIMULATION ────────────────────────────────────────────────────────
