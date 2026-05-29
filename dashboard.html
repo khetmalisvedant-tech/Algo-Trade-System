@@ -6,6 +6,8 @@
 <title>RSI Algo Trader — Nifty Platform</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 <style>
 :root {
@@ -232,6 +234,26 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
 .tf-ctype-btn{background:none;border:none;color:var(--text3);font-size:11px;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:var(--sans);transition:all 0.15s;}
 .tf-ctype-btn.active{background:var(--bg2);color:var(--text);border:1px solid var(--border2);}
 .tf-ctype-btn:hover:not(.active){color:var(--text);}
+
+/* ── ZOOM TOOLBAR ── */
+.chart-zoom-bar {
+  display: flex; align-items: center; gap: 3px;
+  padding: 2px 3px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 5px; flex-shrink: 0;
+}
+.zoom-btn {
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  padding: 3px 6px; border-radius: 3px; font-size: 12px; line-height: 1;
+  transition: color 0.12s, background 0.12s; font-family: var(--font);
+  display: inline-flex; align-items: center; justify-content: center; min-width: 22px;
+}
+.zoom-btn:hover { color: var(--text); background: var(--border2); }
+.zoom-btn.active { color: var(--blue); background: var(--blue-dim); }
+.zoom-sep { width: 1px; height: 14px; background: var(--border); margin: 0 1px; }
+/* Cursor hint when drag-zoom is active */
+.chart-canvas-wrap.zoom-drag { cursor: crosshair; }
+.chart-canvas-wrap.zoom-pan  { cursor: grab; }
+.chart-canvas-wrap.zoom-pan:active { cursor: grabbing; }
 
 /* ── CHART COLLAPSE ── */
 .chart-block .chart-canvas-wrap { overflow: hidden; transition: height 0.25s ease, opacity 0.2s ease; }
@@ -551,6 +573,15 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Buy</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
+          <div class="chart-zoom-bar" title="Zoom controls">
+            <button class="zoom-btn" onclick="zoomChart(priceChart,'in')" title="Zoom In">+</button>
+            <button class="zoom-btn" onclick="zoomChart(priceChart,'out')" title="Zoom Out">−</button>
+            <div class="zoom-sep"></div>
+            <button class="zoom-btn" id="zDragBtn" onclick="setZoomMode('drag')" title="Box Zoom (drag to select)">⬚</button>
+            <button class="zoom-btn" id="zPanBtn" onclick="setZoomMode('pan')" title="Pan (drag to scroll)">✥</button>
+            <div class="zoom-sep"></div>
+            <button class="zoom-btn" onclick="resetAllZoom()" title="Reset zoom">↺</button>
+          </div>
           <button class="chart-minimize-btn" onclick="toggleChart('priceChartBlock',this)" title="Minimize/Maximize">⊟</button>
           <button class="chart-expand-btn" onclick="expandChart('priceChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
@@ -951,6 +982,7 @@ const TF_CONFIG = {
 };
 let activeTF = '1m';
 let activeCandleType = 'line'; // 'line' | 'candle'
+let zoomMode = 'none'; // 'drag' | 'pan' | 'none'
  
 let CFG = {
   // S1
@@ -1461,7 +1493,82 @@ function expandChart(blockId, btn) {
   }, 50);
 }
 
-// ─── DATA & SIMULATION ────────────────────────────────────────────────────────
+// ─── ZOOM CONTROLS ────────────────────────────────────────────────────────────
+// Shared zoom plugin config injected into every chart
+function zoomPluginConfig() {
+  return {
+    zoom: {
+      drag: {
+        enabled: zoomMode === 'drag',
+        backgroundColor: 'rgba(59,130,246,0.12)',
+        borderColor: 'rgba(59,130,246,0.5)',
+        borderWidth: 1,
+      },
+      wheel: { enabled: true, speed: 0.08 },
+      pinch: { enabled: true },
+      mode: 'x',
+      onZoomComplete: () => syncZoomState(),
+    },
+    pan: {
+      enabled: zoomMode === 'pan',
+      mode: 'x',
+      onPanComplete: () => syncZoomState(),
+    },
+  };
+}
+
+function setZoomMode(mode) {
+  zoomMode = zoomMode === mode ? 'none' : mode; // toggle off if already active
+  document.getElementById('zDragBtn')?.classList.toggle('active', zoomMode === 'drag');
+  document.getElementById('zPanBtn')?.classList.toggle('active',  zoomMode === 'pan');
+  // Update canvas cursor class
+  document.querySelectorAll('.chart-canvas-wrap').forEach(el => {
+    el.classList.remove('zoom-drag','zoom-pan');
+    if (zoomMode === 'drag') el.classList.add('zoom-drag');
+    if (zoomMode === 'pan')  el.classList.add('zoom-pan');
+  });
+  // Live-patch zoom/pan enabled state without full re-render
+  [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => {
+    if (!c) return;
+    c.options.plugins.zoom.zoom.drag.enabled = zoomMode === 'drag';
+    c.options.plugins.zoom.pan.enabled        = zoomMode === 'pan';
+    c.update('none');
+  });
+}
+
+function zoomChart(chart, dir) {
+  if (!chart) return;
+  if (dir === 'in')  chart.zoom(1.25);
+  if (dir === 'out') chart.zoom(0.8);
+  syncZoomState();
+}
+
+function syncZoomState() {
+  // Mirror the x-axis range from priceChart to indicator charts for linked panning
+  if (!priceChart) return;
+  const xScale = priceChart.scales.x;
+  if (!xScale) return;
+  const minI = Math.max(0, Math.round(xScale.min));
+  const maxI = Math.min(priceChart.data.labels.length - 1, Math.round(xScale.max));
+  [rsiChart, macdChart, stochChart, adxChart].forEach(c => {
+    if (!c) return;
+    c.zoomScale('x', { min: minI, max: maxI }, 'none');
+  });
+}
+
+function resetAllZoom() {
+  [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => {
+    if (!c) return;
+    c.resetZoom();
+  });
+}
+
+// Double-click on any chart canvas resets zoom
+document.addEventListener('dblclick', e => {
+  if (e.target.tagName === 'CANVAS') resetAllZoom();
+});
+
+
 function generatePriceData(sym) {
   const cfg = TF_CONFIG[activeTF];
   const N = cfg.candles;
@@ -1933,7 +2040,8 @@ function renderCharts(d, vwapArr, adxData) {
               }
             }
           },
-          candlestickPlugin
+          candlestickPlugin,
+          zoom: zoomPluginConfig(),
         },
         scales: {
           x: { ticks: { color:'#4e5261', font:{size:9}, maxTicksLimit:10 }, grid: { color:'rgba(255,255,255,0.04)' } },
@@ -1969,7 +2077,7 @@ function renderCharts(d, vwapArr, adxData) {
       type:'line',data:{labels,datasets:priceDsets},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
         animation:{duration:150},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10},zoom:zoomPluginConfig()},
         scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
     });
@@ -1993,7 +2101,7 @@ function renderCharts(d, vwapArr, adxData) {
         {label:'Buy sig',data:buyRsiPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:5,pointStyle:'triangle'},
         {label:'Sell sig',data:sellRsiPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:5,pointStyle:'rectRot'},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1},zoom:zoomPluginConfig()},
         scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}}},
       plugins:[{id:'rsiLines',afterDraw(chart){
@@ -2025,7 +2133,7 @@ function renderCharts(d, vwapArr, adxData) {
         {type:'line',label:'Signal',data:sigLine,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:2},
       ]},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1},zoom:zoomPluginConfig()},
         scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>v.toFixed(2)},grid:{color:'rgba(255,255,255,0.04)'}}}}
     });
@@ -2040,7 +2148,7 @@ function renderCharts(d, vwapArr, adxData) {
         {label:'%K',data:indicators.stochK,borderColor:'#a855f7',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
         {label:'%D',data:indicators.stochD,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0.3},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1},zoom:zoomPluginConfig()},
         scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{min:0,max:100,ticks:{color:'#4e5261',font:{size:9},stepSize:20},grid:{color:'rgba(255,255,255,0.04)'}}}},
       plugins:[{id:'stochLines',afterDraw(chart){
@@ -2065,7 +2173,7 @@ function renderCharts(d, vwapArr, adxData) {
         {label:'+DI',data:adxData.plusDI,borderColor:'#22c55e',borderWidth:1,pointRadius:0,fill:false,tension:0.3,borderDash:[3,2]},
         {label:'−DI',data:adxData.minusDI,borderColor:'#ef4444',borderWidth:1,pointRadius:0,fill:false,tension:0.3,borderDash:[3,2]},
       ]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',bodyColor:'#e8eaf0',borderColor:'rgba(255,255,255,0.1)',borderWidth:1},zoom:zoomPluginConfig()},
         scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
           y:{min:0,ticks:{color:'#4e5261',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}}}},
       plugins:[{id:'adxLine',afterDraw(chart){
