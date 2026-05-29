@@ -236,9 +236,29 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
 /* ── CHART COLLAPSE ── */
 .chart-block .chart-canvas-wrap { overflow: hidden; transition: height 0.25s ease, opacity 0.2s ease; }
 .chart-block.collapsed .chart-canvas-wrap { height: 0 !important; opacity: 0; }
-.chart-minimize-btn { background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px 5px; border-radius: 4px; font-size: 14px; line-height: 1; transition: color 0.15s, background 0.15s; flex-shrink: 0; }
-.chart-minimize-btn:hover { color: var(--text); background: var(--bg3); }
-.chart-block.collapsed .chart-minimize-btn { color: var(--blue); }
+.chart-minimize-btn {
+  background: none; border: 1px solid transparent; color: var(--text3); cursor: pointer;
+  padding: 3px 7px; border-radius: 4px; font-size: 13px; line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 3px; font-family: var(--sans);
+}
+.chart-minimize-btn:hover { color: var(--text); background: var(--bg3); border-color: var(--border); }
+.chart-block.collapsed .chart-minimize-btn { color: var(--blue); border-color: rgba(59,130,246,0.3); background: var(--blue-dim); }
+/* Fullscreen overlay for expanded chart */
+.chart-block.fullscreen {
+  position: fixed !important; inset: 52px 0 0 0 !important;
+  z-index: 200; border-radius: 0 !important; margin: 0 !important;
+  display: flex; flex-direction: column;
+}
+.chart-block.fullscreen .chart-canvas-wrap { flex: 1; height: auto !important; }
+.chart-expand-btn {
+  background: none; border: 1px solid transparent; color: var(--text3); cursor: pointer;
+  padding: 3px 7px; border-radius: 4px; font-size: 13px; line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s; flex-shrink: 0;
+  display: inline-flex; align-items: center;
+}
+.chart-expand-btn:hover { color: var(--text); background: var(--bg3); border-color: var(--border); }
+.chart-block.fullscreen .chart-expand-btn { color: var(--amber); border-color: rgba(245,158,11,0.3); background: var(--amber-dim); }
 .market-closed-overlay { display: none; align-items: center; justify-content: center; gap: 10px; padding: 18px; background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.25); border-radius: 8px; margin-top: 10px; }
 .market-closed-overlay.visible { display: flex; }
 .market-closed-overlay span { font-size: 12px; color: var(--amber); font-family: var(--font); letter-spacing: 0.03em; }
@@ -532,13 +552,14 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
           <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Trail SL</div>
           <button class="chart-minimize-btn" onclick="toggleChart('priceChartBlock',this)" title="Minimize/Maximize">⊟</button>
+          <button class="chart-expand-btn" onclick="expandChart('priceChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="chart-canvas-wrap" style="height:230px">
         <canvas id="priceChart" role="img" aria-label="Price chart" style="width:100%;height:100%"></canvas>
       </div>
       <div class="market-closed-overlay" id="mktClosedOverlay">
-        <span>⏸ Market Closed — Live data resumes at 9:15 AM IST on the next trading day</span>
+        <span>⏸ Market Closed — Charts show historical/simulated data. Live data resumes at 9:15 AM IST on the next trading day</span>
       </div>
     </div>
  
@@ -551,6 +572,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Recovery</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Sell</div>
           <button class="chart-minimize-btn" onclick="toggleChart('rsiChartBlock',this)" title="Minimize/Maximize">⊟</button>
+          <button class="chart-expand-btn" onclick="expandChart('rsiChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="chart-canvas-wrap" style="height:160px">
@@ -568,6 +590,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Histogram +</div>
           <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Histogram −</div>
           <button class="chart-minimize-btn" onclick="toggleChart('macdChartBlock',this)" title="Minimize/Maximize">⊟</button>
+          <button class="chart-expand-btn" onclick="expandChart('macdChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="chart-canvas-wrap" style="height:140px">
@@ -583,6 +606,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-line" style="background:#a855f7"></div>%K</div>
           <div class="legend-item"><div class="legend-line" style="background:#f59e0b"></div>%D</div>
           <button class="chart-minimize-btn" onclick="toggleChart('stochChartBlock',this)" title="Minimize/Maximize">⊟</button>
+          <button class="chart-expand-btn" onclick="expandChart('stochChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="chart-canvas-wrap" style="height:140px">
@@ -599,6 +623,7 @@ input:checked + .slider-toggle:before{transform:translateX(16px);}
           <div class="legend-item"><div class="legend-line" style="background:#22c55e"></div>+DI</div>
           <div class="legend-item"><div class="legend-line" style="background:#ef4444"></div>−DI</div>
           <button class="chart-minimize-btn" onclick="toggleChart('adxChartBlock',this)" title="Minimize/Maximize">⊟</button>
+          <button class="chart-expand-btn" onclick="expandChart('adxChartBlock',this)" title="Fullscreen">⛶</button>
         </div>
       </div>
       <div class="chart-canvas-wrap" style="height:130px">
@@ -1360,12 +1385,15 @@ function updateMarketClosedOverlay() {
 function startLiveTick() {
   if (liveTickInterval) clearInterval(liveTickInterval);
   const cfg = TF_CONFIG[activeTF];
-  // Check every 5 s whether market is open; actual price update only when open
+  // Always update market status every 5s.
+  // Actual price simulation only runs when market is open (isMarketOpen()).
+  // When not connected to Zerodha, simulation ticks at the configured poll rate (min 5s).
+  const tickMs = zerodhaConnected ? cfg.pollMs : Math.max(cfg.pollMs, 5000);
   liveTickInterval = setInterval(() => {
     updateMarketClosedOverlay();
-    if (!isMarketOpen()) return; // ← silent bail when closed
+    if (!isMarketOpen()) return; // ← hard stop: no data changes when market is closed
     tickAllStocks();
-  }, zerodhaConnected ? cfg.pollMs : Math.min(cfg.pollMs, 3000));
+  }, tickMs);
   updateMarketClosedOverlay(); // immediate state on start
 }
 
@@ -1404,15 +1432,33 @@ function tickAllStocks() {
 function toggleChart(blockId, btn) {
   const block = document.getElementById(blockId);
   if (!block) return;
+  // Cannot minimize while fullscreen — exit fullscreen first
+  if (block.classList.contains('fullscreen')) { expandChart(blockId, block.querySelector('.chart-expand-btn')); return; }
   const collapsed = block.classList.toggle('collapsed');
   btn.textContent = collapsed ? '⊞' : '⊟';
   btn.title = collapsed ? 'Maximize' : 'Minimize';
-  // After expanding, charts need a resize tick to redraw correctly
   if (!collapsed) {
     setTimeout(() => {
       [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => { try { c?.resize(); } catch {} });
     }, 280);
   }
+}
+
+function expandChart(blockId, btn) {
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  const isFullscreen = block.classList.toggle('fullscreen');
+  if (btn) {
+    btn.textContent = isFullscreen ? '⊡' : '⛶';
+    btn.title = isFullscreen ? 'Exit Fullscreen' : 'Fullscreen';
+    btn.style.color = isFullscreen ? 'var(--amber)' : '';
+  }
+  // Ensure not collapsed when going fullscreen
+  if (isFullscreen) block.classList.remove('collapsed');
+  // Redraw charts after transition
+  setTimeout(() => {
+    [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => { try { c?.resize(); } catch {} });
+  }, 50);
 }
 
 // ─── DATA & SIMULATION ────────────────────────────────────────────────────────
@@ -1465,18 +1511,22 @@ function loadStockData(sym) {
 }
 
 // ─── OHLC CANDLE GENERATION ───────────────────────────────────────────────────
-// Derives realistic OHLC bars from the close price series
+// Derives realistic OHLC bars from the close price series.
+// Uses a deterministic pseudo-random based on price value so wicks are stable
+// across re-renders and do NOT change when the market is closed.
 function buildOHLC(prices) {
   return prices.map((close, i) => {
     const prev = prices[i - 1] ?? close;
     const open = i === 0 ? close : prev;
     const range = Math.abs(close - open);
-    // Wick extends beyond body by a random fraction
-    const wickFactor = 0.3 + Math.random() * 0.7;
+    // Deterministic "random" seeded by price value — stable across re-renders
+    const seed = Math.abs(Math.round(close * 137.0 + i * 31.7)) % 10000;
+    const r1 = (seed % 100) / 100;           // 0..1
+    const r2 = ((seed * 7 + 13) % 100) / 100;
+    const wickFactor = 0.3 + r1 * 0.7;
     const shadow = range * wickFactor + close * 0.0008;
-    const isUp = close >= open;
-    const high = Math.max(open, close) + shadow * (0.4 + Math.random() * 0.6);
-    const low  = Math.min(open, close) - shadow * (0.4 + Math.random() * 0.6);
+    const high = Math.max(open, close) + shadow * (0.4 + r2 * 0.6);
+    const low  = Math.min(open, close) - shadow * (0.4 + (1 - r2) * 0.6);
     return { o: open, h: high, l: low, c: close };
   });
 }
@@ -2287,6 +2337,19 @@ function refreshAll(){stockData={};optionData={};buildWatchlist();renderActive()
 function clearTrades(){document.getElementById('tradeBody').innerHTML='';document.getElementById('noTrades').style.display='block';}
  
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// Escape key exits fullscreen chart
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.chart-block.fullscreen').forEach(block => {
+      block.classList.remove('fullscreen');
+      const btn = block.querySelector('.chart-expand-btn');
+      if (btn) { btn.textContent = '⛶'; btn.title = 'Fullscreen'; btn.style.color = ''; }
+      setTimeout(() => {
+        [priceChart, rsiChart, macdChart, stochChart, adxChart].forEach(c => { try { c?.resize(); } catch {} });
+      }, 50);
+    });
+  }
+});
 buildWatchlist();
 renderActive();
 updateStrategyUI();
