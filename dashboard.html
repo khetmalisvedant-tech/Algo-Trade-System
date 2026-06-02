@@ -525,7 +525,7 @@ input:checked + .slider-toggle:before { transform: translateX(14px); background:
 <div class="sidebar">
  
   <!-- API — ADMIN ONLY (hidden for regular users) -->
-  <div class="sidebar-section" id="adminApiSection" style="display:none">
+  <div class="sidebar-section" id="adminApiSection">
     <div class="sidebar-label">
       <i class="ti ti-key"></i> Zerodha Kite API
       <span style="margin-left:auto;font-size:9px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.3);color:var(--purple);padding:1px 6px;border-radius:3px;letter-spacing:0.06em">ADMIN</span>
@@ -538,12 +538,12 @@ input:checked + .slider-toggle:before { transform: translateX(14px); background:
         <button class="btn primary" onclick="connectZerodha()" style="flex:1"><i class="ti ti-plug"></i> Connect</button>
         <button class="btn" onclick="openKiteLogin()"><i class="ti ti-external-link"></i> Login</button>
       </div>
-      <div class="conn-status idle" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
+      <div class="conn-status" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
     </div>
   </div>
  
   <!-- API — REGULAR USERS (platform proxy — uses admin's key server-side) -->
-  <div class="sidebar-section" id="platformConnSection" style="display:none">
+  <div class="sidebar-section" id="platformConnSection">
     <div class="sidebar-label"><i class="ti ti-cloud-check"></i> Platform API</div>
     <div class="platform-conn-box">
       <div class="platform-conn-title" id="platformStatusTitle"><i class="ti ti-loader-2 spin"></i> Connecting…</div>
@@ -1629,12 +1629,16 @@ async function checkAdminStatus() {
     const res = await fetch('/.netlify/functions/is-admin');
     const data = await res.json();
     isAdminUser = data.isAdmin;
-  } catch { isAdminUser = false; }
+  } catch { 
+    // Not on Netlify or function unavailable — show admin panel by default
+    // so Zerodha API can be configured
+    isAdminUser = true;
+  }
  
   if (isAdminUser) {
     document.getElementById('adminApiSection').style.display = 'block';
     document.getElementById('platformConnSection').style.display = 'none';
-    addLog('👑 Admin access detected — enter Kite API credentials to connect', 'info');
+    addLog('Zerodha Kite API panel ready — enter API Key & Access Token to connect live data', 'info');
   } else {
     document.getElementById('adminApiSection').style.display = 'none';
     document.getElementById('platformConnSection').style.display = 'block';
@@ -2662,6 +2666,8 @@ function updateSignalBanner(cr,pr,inPos,indicators,prices,vwap) {
   else{banner.classList.add('none');title.textContent='No signal — RSI neutral';desc.textContent='RSI: '+cr.toFixed(1)+' · Monitoring';}
 }
  
+function formatVol(v) { if(!v||v===0) return "—"; if(v>=1e7) return (v/1e7).toFixed(1)+"Cr"; if(v>=1e5) return (v/1e5).toFixed(1)+"L"; if(v>=1000) return (v/1000).toFixed(0)+"K"; return v.toString(); }
+
 // ─── CHARTS ───────────────────────────────────────────────────────────────────
 function renderCharts(d, vwapArr, adxData) {
   const {prices,labels,rsi,trades,trailSL,indicators,ohlcv}=d;
@@ -2786,66 +2792,6 @@ function renderCharts(d, vwapArr, adxData) {
       }
     }
   });
-
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#181b22', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
-            titleColor: '#8b90a0', bodyColor: '#e8eaf0', padding: 10,
-            callbacks: {
-              label: (ctx) => {
-                if (ctx.dataset.label.startsWith('_')) return null;
-                const i = ctx.dataIndex;
-                const bar = ohlc[i];
-                if (ctx.dataset.label === 'Price' || ctx.datasetIndex === 0) {
-                  return [`O: ₹${bar.o.toFixed(2)}`, `H: ₹${bar.h.toFixed(2)}`, `L: ₹${bar.l.toFixed(2)}`, `C: ₹${bar.c.toFixed(2)}`];
-                }
-                return ctx.dataset.label + ': ₹' + (ctx.raw ?? '—');
-              }
-            }
-          },
-          candlestickPlugin,
-          zoom: zoomPluginConfig(),
-        },
-        scales: {
-          x: { ticks: { color:'#4e5261', font:{size:9}, maxTicksLimit:10 }, grid: { color:'rgba(255,255,255,0.04)' } },
-          y: { ticks: { color:'#4e5261', font:{size:9}, callback: v=>'₹'+v.toFixed(0) }, grid: { color:'rgba(255,255,255,0.04)' } }
-        }
-      },
-      plugins: [candlestickPlugin]
-    });
-    priceChart._ohlcData = ohlc;
-
-  } else {
-    // ── LINE mode ──
-    const priceDsets=[
-      {label:'Price',data:prices,borderColor:'#3b82f6',borderWidth:1.5,pointRadius:0,fill:false,tension:0.2,order:0},
-      {label:'Trail SL',data:trailSL,borderColor:'#f59e0b',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,tension:0,order:1},
-      {label:'Buy',data:buyPts,type:'scatter',backgroundColor:'#22c55e',pointRadius:6,pointStyle:'triangle',order:2},
-      {label:'Sell',data:sellPts,type:'scatter',backgroundColor:'#ef4444',pointRadius:6,pointStyle:'rectRot',order:3},
-    ];
-    if(activeStrategy===2&&indicators){
-      priceDsets.push({label:'EMA',data:indicators.ema,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4,borderDash:[3,2]});
-      priceDsets.push({label:'BB Upper',data:indicators.bbUpper,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:5,borderDash:[2,3]});
-      priceDsets.push({label:'BB Mid',data:indicators.bbMid,borderColor:'rgba(6,182,212,0.3)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:6,borderDash:[1,4]});
-      priceDsets.push({label:'BB Lower',data:indicators.bbLower,borderColor:'rgba(6,182,212,0.6)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:7,borderDash:[2,3]});
-    }
-    if(activeStrategy===5&&vwapArr){
-      priceDsets.push({label:'VWAP',data:vwapArr,borderColor:'#ec4899',borderWidth:1.5,pointRadius:0,fill:false,tension:0,order:4});
-    }
-    if(activeStrategy===4&&indicators?.rsi){
-      const e44=calcEMA(prices,44);
-      priceDsets.push({label:'EMA44',data:e44,borderColor:'rgba(245,158,11,0.5)',borderWidth:1,pointRadius:0,fill:false,tension:0,order:8,borderDash:[4,3]});
-    }
-    priceChart=new Chart(pc,{
-      type:'line',data:{labels,datasets:priceDsets},
-      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-        animation:{duration:150},
-        plugins:{legend:{display:false},tooltip:{backgroundColor:'#181b22',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#8b90a0',bodyColor:'#e8eaf0',padding:10},zoom:zoomPluginConfig()},
-        scales:{x:{ticks:{color:'#4e5261',font:{size:9},maxTicksLimit:10},grid:{color:'rgba(255,255,255,0.04)'}},
-          y:{ticks:{color:'#4e5261',font:{size:9},callback:v=>'₹'+v.toFixed(0)},grid:{color:'rgba(255,255,255,0.04)'}}}}
-    });
-  }
  
   // ── RSI Chart (S1, S4) ──
   if(activeStrategy===1||activeStrategy===4){
