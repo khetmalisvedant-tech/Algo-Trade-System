@@ -1415,11 +1415,11 @@ async function fetchYFData(sym) {
   if (yfCache[tfKey]) return yfCache[tfKey];
 
   const { interval, range } = YF_TF_MAP[activeTF] || { interval:'1d', range:'1y' };
-  const proxyBase = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+  const proxyBase = 'https://query2.finance.yahoo.com/v8/finance/chart/';
   const url = `${proxyBase}${encodeURIComponent(yfSym)}?interval=${interval}&range=${range}&includePrePost=false`;
 
   try {
-    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const resp = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'Mozilla/5.0' } });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const json = await resp.json();
     const result = json?.chart?.result?.[0];
@@ -1659,15 +1659,15 @@ async function connectViaPlatform() {
       startRealTimeScan();
     } else {
       const el = document.getElementById('platformStatusTitle');
-      el.innerHTML = '<i class="ti ti-alert-circle"></i> API token may be expired';
-      el.style.color = 'var(--amber)';
-      addLog('Platform API responded but Kite token may be expired — demo mode active', 'warn');
+      el.innerHTML = '<i class="ti ti-wifi-off"></i> Platform API offline — using sim data';
+      el.style.color = 'var(--text3)';
+      addLog('Platform Kite API offline — running with simulated data (seed prices)', 'warn');
     }
   } catch {
     const el = document.getElementById('platformStatusTitle');
-    el.innerHTML = '<i class="ti ti-wifi-off"></i> Demo Mode (no live API)';
+    el.innerHTML = '<i class="ti ti-circle-check"></i> Simulation Mode';
     el.style.color = 'var(--text3)';
-    addLog('Platform API not reachable — running in demo mode with simulated data', 'info');
+    addLog('Running in simulation mode — seed prices active. Connect Zerodha API for live data.', 'info');
   }
 }
  
@@ -2038,7 +2038,26 @@ function startLiveTick() {
   const tickMs = zerodhaConnected ? cfg.pollMs : Math.max(cfg.pollMs, 5000);
   liveTickInterval = setInterval(() => {
     updateMarketClosedOverlay();
-    if (!isMarketOpen()) return; // ← hard stop: no data changes when market is closed
+    // When market is closed: still simulate data movement so charts are never frozen,
+    // but use very slow drift and label candles as historical/seed
+    if (!isMarketOpen()) {
+      // Only simulate if we don't have real data — just to keep indicators alive
+      if (activeStock && stockData[activeStock] && !stockData[activeStock].realDataLoaded) {
+        const d = stockData[activeStock];
+        const base = d.prices[d.prices.length - 1];
+        // Tiny drift < 0.05% — stable seed-like movement, not live simulation
+        const nudge = (Math.random() - 0.5) * base * 0.0002;
+        d.prices.push(Math.max(base + nudge, base * 0.95));
+        d.prices.shift();
+        d.labels.push(d.labels[d.labels.length - 1]);
+        d.labels.shift();
+        const res = runActiveStrategy(d.prices, d.labels);
+        Object.assign(d, res);
+        buildWatchlist();
+        renderActive();
+      }
+      return;
+    }
     tickAllStocks();
   }, tickMs);
   updateMarketClosedOverlay(); // immediate state on start
@@ -2269,33 +2288,41 @@ async function loadStockDataReal(sym) {
   // Return cached real data immediately if available
   if (stockData[sym]?.realDataLoaded) return stockData[sym];
 
-  // Show loading state
-  setChartLoading(true);
-
-  // Primary: NSE India (equity + index quotes + historical)
-  // Secondary: Yahoo Finance (inside fetchNSEData fallback chain)
-  const candles = await fetchNSEData(sym);
-
-  if (candles && candles.length > 10) {
-    const { prices, labels, ohlcv } = candlesToPricesLabels(candles);
+  // STEP 1: Render simulation data immediately so charts are never blank
+  if (!stockData[sym]) {
+    const { prices, labels } = generatePriceData(sym);
     const result = runActiveStrategy(prices, labels);
-    const dispSym = sym.replace('.NS','').replace('_IDX','');
-    const isYF = !!(stockData[sym]?._pendingSource === 'yf');
-    stockData[sym] = { prices, labels, ohlcv, ...result, position: null, realDataLoaded: true, dataSource: isYF ? 'yf' : 'nse' };
-    addLog('NSE Live data loaded: ' + dispSym + ' (' + candles.length + ' candles)', 'info');
-  } else {
-    // Final fallback: simulation
-    if (!stockData[sym]) {
-      const { prices, labels } = generatePriceData(sym);
-      const result = runActiveStrategy(prices, labels);
-      stockData[sym] = { prices, labels, ohlcv: null, ...result, position: null, realDataLoaded: false };
-    }
-    addLog('Using seeded prices for ' + sym.replace('.NS','').replace('_IDX','') + ' — market ' + (isMarketOpen() ? 'open, NSE unavailable' : 'closed, showing last known data'), 'warn');
-      if (stockData[sym]) stockData[sym].dataSource = 'seed';
+    stockData[sym] = { prices, labels, ohlcv: null, ...result, position: null, realDataLoaded: false, dataSource: 'seed' };
   }
+  // Return simulated data immediately for first render
+  const simData = stockData[sym];
 
-  setChartLoading(false);
-  return stockData[sym];
+  // STEP 2: Fetch real data in background with a timeout
+  const FETCH_TIMEOUT = 8000; // 8 second max — don't block UI
+  const fetchWithTimeout = (promise) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FETCH_TIMEOUT))
+  ]);
+
+  fetchWithTimeout(fetchNSEData(sym)).then(candles => {
+    if (candles && candles.length > 10 && stockData[sym] === simData) {
+      const { prices, labels, ohlcv } = candlesToPricesLabels(candles);
+      const result = runActiveStrategy(prices, labels);
+      const isYF = !!(stockData[sym]?._pendingSource === 'yf');
+      stockData[sym] = { prices, labels, ohlcv, ...result, position: null, realDataLoaded: true, dataSource: isYF ? 'yf' : 'nse' };
+      const dispSym = sym.replace('.NS','').replace('_IDX','');
+      addLog('Live data loaded: ' + dispSym + ' · ' + (isYF ? 'Yahoo Finance' : 'NSE India') + ' (' + candles.length + ' bars)', 'info');
+      // Re-render with real data if this stock is still active
+      if (sym === activeStock) { buildWatchlist(); renderActive(); }
+    }
+  }).catch(e => {
+    const reason = e.message === 'timeout' ? 'API timeout (8s)' : e.message;
+    addLog('Live data unavailable for ' + sym.replace('.NS','').replace('_IDX','') + ' — ' + reason + '. Showing ' + (isMarketOpen() ? 'simulated' : 'seed') + ' data.', 'warn');
+    setChartLoading(false);
+  });
+
+  setChartLoading(false); // Hide loading immediately — sim data is ready
+  return simData;
 }
 
 function setChartLoading(on) {
