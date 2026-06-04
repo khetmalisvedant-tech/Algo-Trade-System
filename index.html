@@ -3,669 +3,892 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RSI Algo Trader — Indian Markets</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>AlgoEdge Pro — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #050608;
-  --bg1: #0a0c10;
-  --bg2: #10141a;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.14);
-  --text: #e2e8f0;
-  --text2: #6b7280;
-  --text3: #374151;
-  --green: #10b981;
-  --green2: #059669;
-  --red: #ef4444;
-  --amber: #f59e0b;
-  --blue: #3b82f6;
-  --mono: 'Space Mono', monospace;
-  --sans: 'Syne', sans-serif;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:var(--sans);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:100vh;
-  position:relative;
-  -webkit-font-smoothing:antialiased;
-}
+  :root {
+    --bg: #070b12;
+    --surface: #0d1320;
+    --surface2: #131c2e;
+    --border: rgba(56,189,248,0.12);
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --green: #22d3a0;
+    --red: #f43f5e;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --gold: #fbbf24;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; overflow:hidden; }
 
-/* Grid background */
-body::before {
-  content:'';
-  position:fixed;inset:0;
-  background-image:
-    linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px);
-  background-size:44px 44px;
-  pointer-events:none;
-}
+  /* Auth guard overlay — shown before session check completes */
+  #authGuard {
+    position:fixed; inset:0; z-index:999;
+    background:var(--bg); display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px;
+  }
+  .guard-spinner {
+    width:32px; height:32px; border:3px solid var(--border);
+    border-top-color:var(--accent); border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .guard-text { font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--muted); }
 
-/* Radial glow */
-body::after {
-  content:'';
-  position:fixed;
-  top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  width:800px;height:500px;
-  background:radial-gradient(ellipse at center, rgba(16,185,129,0.06) 0%, transparent 70%);
-  pointer-events:none;
-}
+  /* Sidebar */
+  .sidebar {
+    position:fixed; left:0; top:0; bottom:0; width:220px;
+    background:var(--surface); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; z-index:50;
+  }
+  .sidebar-brand {
+    padding:20px 20px 16px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+  }
+  .sidebar-brand .brand-name { font-family:'Syne',sans-serif; font-size:16px; font-weight:800; }
+  .sidebar-brand .brand-name span { color:var(--accent); }
 
-/* Floating ticker tape */
-.ticker-tape {
-  position:fixed;
-  bottom:0;left:0;right:0;
-  height:28px;
-  background:var(--bg1);
-  border-top:1px solid var(--border);
-  overflow:hidden;
-  display:flex;align-items:center;
-}
-.ticker-inner {
-  display:flex;gap:0;
-  animation:scroll 30s linear infinite;
-  white-space:nowrap;
-}
-@keyframes scroll { to { transform:translateX(-50%); } }
-.ticker-item {
-  padding:0 20px;
-  font-family:var(--mono);
-  font-size:10px;
-  color:var(--text2);
-  border-right:1px solid var(--border);
-  height:28px;
-  display:flex;align-items:center;gap:6px;
-  white-space:nowrap;
-}
-.ticker-item .up{color:var(--green)}
-.ticker-item .dn{color:var(--red)}
+  .sidebar-user {
+    padding:14px 16px; margin:8px; border-radius:10px;
+    background:var(--surface2); border:1px solid var(--border);
+  }
+  .user-name { font-size:13px; font-weight:600; }
+  .user-role {
+    display:inline-flex; align-items:center; gap:4px; margin-top:4px;
+    font-size:10px; padding:2px 8px; border-radius:20px; font-weight:500;
+  }
+  .role-admin { background:rgba(251,191,36,0.1); color:var(--gold); border:1px solid rgba(251,191,36,0.2); }
+  .role-user { background:rgba(56,189,248,0.08); color:var(--accent); border:1px solid rgba(56,189,248,0.15); }
 
-/* Main card */
-.card {
-  position:relative;
-  z-index:10;
-  width:100%;max-width:420px;
-  background:var(--bg1);
-  border:1px solid var(--border2);
-  border-radius:4px;
-  overflow:hidden;
-  box-shadow:0 40px 80px rgba(0,0,0,0.6);
-  animation:cardIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
-}
-@keyframes cardIn{
-  from{opacity:0;transform:translateY(20px) scale(0.98)}
-  to{opacity:1;transform:translateY(0) scale(1)}
-}
+  .nav-section { padding:8px 12px 4px; font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--muted); }
+  .nav-item {
+    display:flex; align-items:center; gap:10px; padding:9px 16px;
+    border-radius:8px; margin:2px 8px; cursor:pointer;
+    font-size:13px; color:var(--muted); transition:all .2s; text-decoration:none;
+  }
+  .nav-item:hover { background:var(--surface2); color:var(--text); }
+  .nav-item.active { background:rgba(56,189,248,0.1); color:var(--accent); }
+  .nav-item .nav-icon { font-size:15px; width:20px; text-align:center; }
 
-.card-header {
-  padding:28px 32px 24px;
-  border-bottom:1px solid var(--border);
-  background:linear-gradient(180deg, rgba(16,185,129,0.04) 0%, transparent 100%);
-}
+  /* Admin-only items */
+  .admin-only { display:none; }
 
-.logo-row {
-  display:flex;align-items:center;gap:12px;
-  margin-bottom:16px;
-}
-.logo-icon {
-  width:36px;height:36px;
-  background:rgba(16,185,129,0.1);
-  border:1px solid rgba(16,185,129,0.3);
-  border-radius:3px;
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--mono);font-size:12px;
-  color:var(--green);font-weight:700;
-  letter-spacing:-0.04em;
-}
-.logo-text {
-  font-family:var(--mono);
-  font-size:13px;
-  font-weight:700;
-  letter-spacing:0.12em;
-  color:var(--text);
-}
-.logo-text span{color:var(--green)}
-.logo-sub{font-size:10px;color:var(--text2);margin-top:1px;letter-spacing:0.06em}
+  .sidebar-bottom {
+    margin-top:auto; padding:12px; border-top:1px solid var(--border);
+  }
+  .logout-btn {
+    width:100%; padding:9px; background:rgba(244,63,94,0.08);
+    border:1px solid rgba(244,63,94,0.15); border-radius:8px;
+    color:var(--red); font-size:13px; cursor:pointer; transition:all .2s;
+    font-family:'DM Sans',sans-serif; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .logout-btn:hover { background:rgba(244,63,94,0.15); }
 
-.card-title{
-  font-family:var(--sans);
-  font-size:22px;font-weight:800;
-  letter-spacing:-0.03em;
-  line-height:1.2;
-  margin-bottom:4px;
-}
-.card-sub{font-size:12px;color:var(--text2);line-height:1.5}
+  /* Main content */
+  .main { margin-left:220px; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
-.card-body{padding:24px 32px 28px}
+  /* Top bar */
+  .topbar {
+    padding:12px 24px; background:var(--surface); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  .page-title { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; }
+  .market-pills { display:flex; gap:8px; }
+  .market-pill {
+    padding:5px 12px; background:var(--surface2); border:1px solid var(--border);
+    border-radius:20px; font-family:'IBM Plex Mono',monospace; font-size:11px;
+    display:flex; gap:6px; align-items:center;
+  }
+  .pill-val { color:var(--text); }
+  .pill-chg.up { color:var(--green); }
+  .pill-chg.dn { color:var(--red); }
 
-/* Tabs */
-.auth-tabs{
-  display:flex;gap:0;
-  background:var(--bg2);
-  border:1px solid var(--border);
-  border-radius:3px;
-  overflow:hidden;
-  margin-bottom:22px;
-}
-.atab{
-  flex:1;padding:8px;
-  font-family:var(--sans);font-size:12px;font-weight:600;
-  letter-spacing:0.04em;
-  border:none;background:none;color:var(--text2);
-  cursor:pointer;transition:all 0.15s;
-  border-right:1px solid var(--border);
-}
-.atab:last-child{border-right:none}
-.atab.active{background:rgba(16,185,129,0.08);color:var(--green)}
-.atab:hover:not(.active){color:var(--text);background:rgba(255,255,255,0.03)}
+  /* Pages */
+  .page { display:none; flex:1; overflow-y:auto; padding:24px; }
+  .page.active { display:block; }
 
-/* Form */
-.form-group{margin-bottom:14px}
-.form-label{
-  font-size:10px;color:var(--text2);
-  letter-spacing:0.1em;text-transform:uppercase;
-  margin-bottom:5px;display:block;
-  font-family:var(--mono);
-}
-.form-input{
-  width:100%;
-  background:var(--bg2);
-  border:1px solid var(--border);
-  color:var(--text);
-  font-family:var(--mono);font-size:12px;
-  padding:9px 12px;
-  border-radius:3px;
-  outline:none;
-  transition:border-color 0.15s;
-}
-.form-input:focus{border-color:var(--green)}
-.form-input::placeholder{color:var(--text3)}
+  /* Cards */
+  .card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:14px; padding:20px; position:relative; overflow:hidden;
+  }
+  .card-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; margin-bottom:16px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+  .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg, transparent, var(--accent), transparent); opacity:0.3; }
 
-.btn-primary{
-  width:100%;
-  background:rgba(16,185,129,0.1);
-  border:1px solid rgba(16,185,129,0.4);
-  color:var(--green);
-  font-family:var(--sans);
-  font-size:13px;font-weight:700;
-  letter-spacing:0.06em;
-  padding:11px;border-radius:3px;
-  cursor:pointer;
-  transition:all 0.15s;
-  margin-top:6px;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.btn-primary:hover{
-  background:rgba(16,185,129,0.18);
-  border-color:rgba(16,185,129,0.7);
-  box-shadow:0 0 20px rgba(16,185,129,0.15);
-}
-.btn-primary:active{transform:scale(0.99)}
+  /* Stats grid */
+  .stats-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:16px; margin-bottom:24px; }
+  .stat-card { padding:18px; }
+  .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:8px; }
+  .stat-value { font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; }
+  .stat-sub { font-size:11px; margin-top:4px; }
+  .stat-sub.pos { color:var(--green); }
+  .stat-sub.neg { color:var(--red); }
 
-.license-panel{display:none}
-.license-panel.visible{display:block}
-.login-panel{display:block}
-.login-panel.hidden{display:none}
+  /* Strategy cards */
+  .strategies-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; margin-bottom:24px; }
+  .strategy-card { padding:20px; }
+  .strat-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .strat-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+  .strat-badge {
+    padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;
+  }
+  .badge-active { background:rgba(34,211,160,0.1); color:var(--green); border:1px solid rgba(34,211,160,0.2); }
+  .badge-paused { background:rgba(251,191,36,0.1); color:var(--gold); border:1px solid rgba(251,191,36,0.2); }
+  .badge-off { background:rgba(100,116,139,0.1); color:var(--muted); border:1px solid var(--border); }
+  .strat-desc { font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.5; }
+  .strat-params { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .param-chip {
+    padding:3px 10px; background:var(--surface2); border:1px solid var(--border);
+    border-radius:20px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted);
+  }
+  .strat-stats { display:flex; gap:16px; }
+  .strat-stat { text-align:center; }
+  .strat-stat-val { font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600; }
+  .strat-stat-lbl { font-size:10px; color:var(--muted); margin-top:2px; }
+  .strat-toggle {
+    display:flex; align-items:center; gap:8px; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--border);
+  }
+  .toggle-switch { position:relative; width:36px; height:20px; cursor:pointer; }
+  .toggle-switch input { opacity:0; width:0; height:0; }
+  .toggle-slider {
+    position:absolute; inset:0; background:var(--surface2); border-radius:20px;
+    transition:.3s; border:1px solid var(--border);
+  }
+  .toggle-slider:before {
+    content:''; position:absolute; width:14px; height:14px; left:3px; top:2px;
+    background:var(--muted); border-radius:50%; transition:.3s;
+  }
+  .toggle-switch input:checked + .toggle-slider { background:rgba(34,211,160,0.2); border-color:var(--green); }
+  .toggle-switch input:checked + .toggle-slider:before { transform:translateX(16px); background:var(--green); }
+  .toggle-label { font-size:12px; color:var(--muted); }
 
-/* License key input */
-.key-input-wrap{position:relative}
-.key-input-wrap .form-input{
-  letter-spacing:0.12em;
-  padding-right:44px;
-}
-.key-eye{
-  position:absolute;right:10px;top:50%;transform:translateY(-50%);
-  background:none;border:none;color:var(--text3);cursor:pointer;
-  font-size:14px;transition:color 0.1s;
-}
-.key-eye:hover{color:var(--text2)}
+  /* Trade log */
+  .trade-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .trade-table th { padding:8px 12px; text-align:left; font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:500; }
+  .trade-table td { padding:10px 12px; border-bottom:1px solid rgba(56,189,248,0.05); }
+  .trade-table tr:hover td { background:rgba(56,189,248,0.03); }
+  .trade-buy { color:var(--green); font-weight:600; }
+  .trade-sell { color:var(--red); font-weight:600; }
+  .trade-pnl.pos { color:var(--green); }
+  .trade-pnl.neg { color:var(--red); }
+  .trade-symbol { font-family:'IBM Plex Mono',monospace; font-weight:500; }
 
-/* Status msg */
-.status-msg{
-  font-size:11px;font-family:var(--mono);
-  padding:8px 10px;border-radius:3px;
-  border:1px solid var(--border);
-  margin-top:10px;display:none;
-  align-items:center;gap:6px;
-}
-.status-msg.err{
-  display:flex;
-  background:rgba(239,68,68,0.06);
-  border-color:rgba(239,68,68,0.3);
-  color:var(--red);
-}
-.status-msg.ok{
-  display:flex;
-  background:rgba(16,185,129,0.06);
-  border-color:rgba(16,185,129,0.3);
-  color:var(--green);
-}
+  /* Signal feed */
+  .signal-feed { display:flex; flex-direction:column; gap:8px; }
+  .signal-item {
+    display:flex; align-items:center; gap:12px; padding:10px 14px;
+    background:var(--surface2); border-radius:8px; border:1px solid var(--border);
+  }
+  .signal-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .signal-dot.buy { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .signal-dot.sell { background:var(--red); box-shadow:0 0 6px var(--red); }
+  .signal-info { flex:1; }
+  .signal-sym { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; }
+  .signal-strat { font-size:11px; color:var(--muted); }
+  .signal-price { font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .signal-time { font-size:11px; color:var(--muted); }
 
-/* Role selector */
-.role-grid{
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:8px;margin-bottom:16px;
-}
-.role-card{
-  border:1px solid var(--border);
-  border-radius:3px;
-  padding:10px 12px;
-  cursor:pointer;
-  background:var(--bg2);
-  transition:all 0.15s;
-}
-.role-card.selected{
-  border-color:rgba(16,185,129,0.5);
-  background:rgba(16,185,129,0.06);
-}
-.role-card:hover:not(.selected){
-  border-color:var(--border2);
-  background:rgba(255,255,255,0.03);
-}
-.role-icon{font-size:16px;margin-bottom:4px}
-.role-name{font-size:11px;font-weight:700;color:var(--text);margin-bottom:1px}
-.role-desc{font-size:10px;color:var(--text2)}
+  /* Admin API Panel */
+  .api-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-bottom:24px; }
+  .api-card { padding:20px; }
+  .api-broker { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; margin-bottom:4px; }
+  .api-status { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); margin-bottom:16px; }
+  .status-dot { width:6px; height:6px; border-radius:50%; }
+  .status-dot.connected { background:var(--green); box-shadow:0 0 4px var(--green); }
+  .status-dot.disconnected { background:var(--muted); }
+  .api-input {
+    width:100%; padding:9px 12px; background:var(--bg);
+    border:1px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:11px;
+    margin-bottom:8px; outline:none; transition:border-color .2s;
+  }
+  .api-input:focus { border-color:var(--accent); }
+  .api-input::placeholder { color:var(--muted); }
+  .api-save-btn {
+    width:100%; padding:9px; background:rgba(56,189,248,0.1);
+    border:1px solid rgba(56,189,248,0.2); border-radius:8px;
+    color:var(--accent); font-size:13px; cursor:pointer; transition:all .2s;
+    font-family:'DM Sans',sans-serif; font-weight:500;
+  }
+  .api-save-btn:hover { background:rgba(56,189,248,0.18); }
 
-/* Features strip */
-.features{
-  display:flex;gap:0;
-  border-top:1px solid var(--border);
-  margin-top:0;
-}
-.feature{
-  flex:1;padding:10px 14px;
-  border-right:1px solid var(--border);
-  font-size:10px;color:var(--text2);
-  font-family:var(--mono);
-}
-.feature:last-child{border-right:none}
-.feature b{display:block;color:var(--text);font-size:11px;margin-bottom:1px}
+  /* User management table (admin) */
+  .user-row { display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid var(--border); }
+  .user-avatar {
+    width:32px; height:32px; border-radius:50%; background:var(--surface2);
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--accent);
+    flex-shrink:0;
+  }
+  .user-info { flex:1; }
+  .user-email { font-size:12px; color:var(--muted); }
+  .user-joined { font-size:11px; color:var(--muted); }
+  .user-actions { display:flex; gap:6px; }
+  .user-action-btn {
+    padding:4px 10px; border-radius:6px; font-size:11px; cursor:pointer; border:1px solid var(--border);
+    background:var(--surface2); color:var(--muted); transition:all .2s;
+  }
+  .user-action-btn:hover { color:var(--text); }
+  .user-action-btn.danger { border-color:rgba(244,63,94,0.2); }
+  .user-action-btn.danger:hover { color:var(--red); background:rgba(244,63,94,0.08); }
 
-/* Divider */
-.or-divider{
-  display:flex;align-items:center;gap:10px;
-  margin:14px 0;
-}
-.or-divider span{font-size:10px;color:var(--text3);font-family:var(--mono)}
-.or-divider::before,.or-divider::after{
-  content:'';flex:1;height:1px;
-  background:var(--border);
-}
+  /* Watchlist */
+  .watch-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; border-bottom:1px solid rgba(56,189,248,0.05); }
+  .watch-sym { font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; }
+  .watch-price { font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .watch-chg { font-size:11px; font-weight:500; }
+  .watch-chg.pos { color:var(--green); }
+  .watch-chg.neg { color:var(--red); }
 
-/* Markets status strip */
-.mkt-strip{
-  display:flex;gap:0;
-  background:var(--bg);
-  border-top:1px solid var(--border);
-}
-.mkt-item{
-  flex:1;padding:7px 12px;
-  border-right:1px solid var(--border);
-  font-family:var(--mono);font-size:10px;
-}
-.mkt-item:last-child{border-right:none}
-.mkt-name{color:var(--text3);margin-bottom:1px}
-.mkt-val{color:var(--text);font-weight:700}
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
 
-.spinner{
-  width:16px;height:16px;
-  border:2px solid rgba(16,185,129,0.2);
-  border-top-color:var(--green);
-  border-radius:50%;
-  animation:spin 0.7s linear infinite;
-  display:none;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
+  /* Toast */
+  .toast {
+    position:fixed; bottom:24px; right:24px; z-index:100;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:14px 20px; font-size:14px;
+    transform:translateY(100px); opacity:0; transition:all .3s; min-width:240px;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
 </style>
 </head>
 <body>
 
-<!-- Ticker tape -->
-<div class="ticker-tape">
-  <div class="ticker-inner" id="ticker">
-    <!-- filled by JS -->
+<!-- Auth Guard Overlay -->
+<div id="authGuard">
+  <div class="guard-spinner"></div>
+  <div class="guard-text">Verifying session...</div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar" style="display:none;">
+  <div class="sidebar-brand">
+    <svg width="28" height="28" viewBox="0 0 36 36" fill="none">
+      <rect width="36" height="36" rx="8" fill="rgba(56,189,248,0.1)"/>
+      <path d="M8 24L14 16L20 20L28 10" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="28" cy="10" r="3" fill="#38bdf8"/>
+    </svg>
+    <span class="brand-name">Algo<span>Edge</span></span>
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-name" id="sbUserName">Loading...</div>
+    <div class="user-role" id="sbUserRole"></div>
+  </div>
+
+  <div class="nav-section">Trading</div>
+  <a class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard')">
+    <span class="nav-icon">📊</span> Dashboard
+  </a>
+  <a class="nav-item" id="nav-strategies" onclick="showPage('strategies')">
+    <span class="nav-icon">⚡</span> Strategies
+  </a>
+  <a class="nav-item" id="nav-signals" onclick="showPage('signals')">
+    <span class="nav-icon">📡</span> Live Signals
+  </a>
+  <a class="nav-item" id="nav-trades" onclick="showPage('trades')">
+    <span class="nav-icon">📋</span> Trade Log
+  </a>
+  <a class="nav-item" id="nav-watchlist" onclick="showPage('watchlist')">
+    <span class="nav-icon">👁</span> Watchlist
+  </a>
+
+  <!-- ADMIN ONLY NAV -->
+  <div class="nav-section admin-only">Admin</div>
+  <a class="nav-item admin-only" id="nav-api" onclick="showPage('api')">
+    <span class="nav-icon">🔌</span> API Integration
+  </a>
+  <a class="nav-item admin-only" id="nav-users" onclick="showPage('users')">
+    <span class="nav-icon">👥</span> User Management
+  </a>
+
+  <div class="sidebar-bottom">
+    <button class="logout-btn" onclick="handleLogout()">🔓 Sign Out</button>
   </div>
 </div>
 
-<!-- Main login card -->
-<div class="card">
-  <div class="card-header">
-    <div class="logo-row">
-      <div class="logo-icon">RSI</div>
-      <div>
-        <div class="logo-text"><span>RSI</span> ALGO TRADER</div>
-        <div class="logo-sub">INDIAN MARKETS · NSE / BSE / NFO</div>
+<!-- Main Content -->
+<div class="main" id="mainContent" style="display:none;">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Dashboard</div>
+    <div class="market-pills">
+      <div class="market-pill">
+        <span style="color:var(--muted);font-size:10px;">NIFTY</span>
+        <span class="pill-val" id="topNifty">24,613</span>
+        <span class="pill-chg up" id="topNiftyChg">+0.64%</span>
       </div>
-    </div>
-    <div class="card-title">Access Platform</div>
-    <div class="card-sub">Professional algo-trading for Nifty 50, BANKNIFTY, indexes & options.</div>
-  </div>
-
-  <div class="card-body">
-    <!-- Role selection -->
-    <div class="form-group">
-      <div class="form-label">Select Role</div>
-      <div class="role-grid">
-        <div class="role-card selected" id="roleUser" onclick="selectRole('user')">
-          <div class="role-icon">👤</div>
-          <div class="role-name">Trader</div>
-          <div class="role-desc">Trade with platform API</div>
-        </div>
-        <div class="role-card" id="roleAdmin" onclick="selectRole('admin')">
-          <div class="role-icon">⚙️</div>
-          <div class="role-name">Admin</div>
-          <div class="role-desc">Manage API keys & config</div>
-        </div>
+      <div class="market-pill">
+        <span style="color:var(--muted);font-size:10px;">BANK NIFTY</span>
+        <span class="pill-val" id="topBankNifty">53,142</span>
+        <span class="pill-chg dn" id="topBankNiftyChg">-0.28%</span>
       </div>
-    </div>
-
-    <!-- Auth tabs -->
-    <div class="auth-tabs">
-      <button class="atab active" id="tabLicense" onclick="switchTab('license')">License Key</button>
-      <button class="atab" id="tabLogin" onclick="switchTab('login')">Email Login</button>
-    </div>
-
-    <!-- License Key panel -->
-    <div class="license-panel visible" id="panelLicense">
-      <div class="form-group">
-        <label class="form-label">License Key</label>
-        <div class="key-input-wrap">
-          <input class="form-input" id="licenseKey" type="password"
-            placeholder="XXXX-XXXX-XXXX-XXXX"
-            autocomplete="off"
-            oninput="clearMsg()"
-            onkeydown="if(event.key==='Enter')doLicenseLogin()">
-          <button class="key-eye" onclick="toggleKeyVis()" id="keyEye">👁</button>
-        </div>
+      <div class="market-pill">
+        <span style="color:var(--muted);font-size:10px;">VIX</span>
+        <span class="pill-val">13.45</span>
+        <span class="pill-chg dn">-0.8%</span>
       </div>
-      <button class="btn-primary" onclick="doLicenseLogin()" id="btnLicense">
-        <div class="spinner" id="spinLicense"></div>
-        <span id="btnLicenseTxt">ENTER PLATFORM →</span>
-      </button>
-      <div class="status-msg" id="msgLicense"></div>
-    </div>
-
-    <!-- Email/Password panel -->
-    <div class="login-panel hidden" id="panelLogin">
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" id="loginEmail" type="email" placeholder="trader@example.com" autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <div class="key-input-wrap">
-          <input class="form-input" id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password"
-            onkeydown="if(event.key==='Enter')doEmailLogin()">
-          <button class="key-eye" onclick="togglePassVis()" id="passEye">👁</button>
-        </div>
-      </div>
-      <button class="btn-primary" onclick="doEmailLogin()" id="btnLogin">
-        <div class="spinner" id="spinLogin"></div>
-        <span id="btnLoginTxt">SIGN IN →</span>
-      </button>
-      <div class="status-msg" id="msgLogin"></div>
-      <div class="or-divider"><span>OR</span></div>
-      <button class="btn-primary" onclick="openNetlifyLogin()" style="background:rgba(59,130,246,0.08);border-color:rgba(59,130,246,0.3);color:var(--blue)">
-        🌐 Login with Netlify Identity
-      </button>
     </div>
   </div>
 
-  <!-- Market status strip -->
-  <div class="mkt-strip" id="mktStrip">
-    <div class="mkt-item">
-      <div class="mkt-name">NIFTY 50</div>
-      <div class="mkt-val" id="mNifty" style="color:var(--green)">24,836.15</div>
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="page-dashboard">
+    <div class="stats-grid">
+      <div class="card stat-card">
+        <div class="stat-label">Total P&L (Today)</div>
+        <div class="stat-value" style="color:var(--green)" id="pnlToday">+₹0</div>
+        <div class="stat-sub pos" id="pnlPct">+0.00%</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Active Strategies</div>
+        <div class="stat-value" style="color:var(--accent)" id="activeStrats">0</div>
+        <div class="stat-sub pos">of 4 available</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Signals Today</div>
+        <div class="stat-value" style="color:var(--accent2)" id="signalsToday">0</div>
+        <div class="stat-sub" style="color:var(--muted)">generated</div>
+      </div>
+      <div class="card stat-card">
+        <div class="stat-label">Win Rate</div>
+        <div class="stat-value" style="color:var(--gold)" id="winRate">—</div>
+        <div class="stat-sub pos" id="winRateSub">No trades yet</div>
+      </div>
     </div>
-    <div class="mkt-item">
-      <div class="mkt-name">BANKNIFTY</div>
-      <div class="mkt-val" id="mBnf" style="color:var(--red)">52,114.80</div>
-    </div>
-    <div class="mkt-item">
-      <div class="mkt-name">NSE STATUS</div>
-      <div class="mkt-val" id="mStatus" style="color:var(--amber)">CLOSED</div>
+
+    <div style="display:grid; grid-template-columns:1fr 320px; gap:16px;">
+      <div class="card">
+        <div class="card-title">Recent Signals</div>
+        <div class="signal-feed" id="dashSignalFeed">
+          <div style="padding:20px; text-align:center; color:var(--muted); font-size:13px;">
+            No signals yet. Activate a strategy to begin.
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Watchlist</div>
+        <div id="dashWatchlist"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Features -->
-  <div class="features">
-    <div class="feature"><b>4 Strategies</b>RSI, EMA+BB, MACD, Combined</div>
-    <div class="feature"><b>Live Trading</b>Zerodha Kite API</div>
-    <div class="feature"><b>NSE / NFO</b>Stocks · Index · Options</div>
+  <!-- STRATEGIES PAGE -->
+  <div class="page" id="page-strategies">
+    <div class="strategies-grid">
+
+      <!-- RSI Strategy -->
+      <div class="card strategy-card">
+        <div class="strat-header">
+          <div class="strat-name">RSI Reversal</div>
+          <div class="strat-badge badge-active" id="badge-rsi">Active</div>
+        </div>
+        <div class="strat-desc">Buy when RSI crosses above 30 (oversold), sell when RSI crosses below 70 (overbought). Works best on trending stocks.</div>
+        <div class="strat-params">
+          <div class="param-chip">Period: 14</div>
+          <div class="param-chip">Oversold: 30</div>
+          <div class="param-chip">Overbought: 70</div>
+          <div class="param-chip">TF: 15m</div>
+        </div>
+        <div class="strat-stats">
+          <div class="strat-stat"><div class="strat-stat-val" style="color:var(--green)">+18.4%</div><div class="strat-stat-lbl">Backtest</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">64%</div><div class="strat-stat-lbl">Win Rate</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">2.3</div><div class="strat-stat-lbl">Sharpe</div></div>
+        </div>
+        <div class="strat-toggle">
+          <label class="toggle-switch"><input type="checkbox" checked onchange="toggleStrategy('rsi', this)"><div class="toggle-slider"></div></label>
+          <span class="toggle-label">Strategy active</span>
+        </div>
+      </div>
+
+      <!-- MACD Strategy -->
+      <div class="card strategy-card">
+        <div class="strat-header">
+          <div class="strat-name">MACD Crossover</div>
+          <div class="strat-badge badge-active" id="badge-macd">Active</div>
+        </div>
+        <div class="strat-desc">Long when MACD line crosses above signal line; short on bearish crossover. Effective in trending markets.</div>
+        <div class="strat-params">
+          <div class="param-chip">Fast: 12</div>
+          <div class="param-chip">Slow: 26</div>
+          <div class="param-chip">Signal: 9</div>
+          <div class="param-chip">TF: 1h</div>
+        </div>
+        <div class="strat-stats">
+          <div class="strat-stat"><div class="strat-stat-val" style="color:var(--green)">+22.1%</div><div class="strat-stat-lbl">Backtest</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">58%</div><div class="strat-stat-lbl">Win Rate</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">1.9</div><div class="strat-stat-lbl">Sharpe</div></div>
+        </div>
+        <div class="strat-toggle">
+          <label class="toggle-switch"><input type="checkbox" checked onchange="toggleStrategy('macd', this)"><div class="toggle-slider"></div></label>
+          <span class="toggle-label">Strategy active</span>
+        </div>
+      </div>
+
+      <!-- Supertrend Strategy -->
+      <div class="card strategy-card">
+        <div class="strat-header">
+          <div class="strat-name">Supertrend</div>
+          <div class="strat-badge badge-paused" id="badge-supertrend">Paused</div>
+        </div>
+        <div class="strat-desc">Dynamic support/resistance trail. Buy on green flip, sell on red flip. Excellent for trending markets and F&O.</div>
+        <div class="strat-params">
+          <div class="param-chip">ATR: 10</div>
+          <div class="param-chip">Multiplier: 3</div>
+          <div class="param-chip">TF: 30m</div>
+        </div>
+        <div class="strat-stats">
+          <div class="strat-stat"><div class="strat-stat-val" style="color:var(--green)">+31.7%</div><div class="strat-stat-lbl">Backtest</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">71%</div><div class="strat-stat-lbl">Win Rate</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">2.8</div><div class="strat-stat-lbl">Sharpe</div></div>
+        </div>
+        <div class="strat-toggle">
+          <label class="toggle-switch"><input type="checkbox" onchange="toggleStrategy('supertrend', this)"><div class="toggle-slider"></div></label>
+          <span class="toggle-label">Strategy paused</span>
+        </div>
+      </div>
+
+      <!-- Breakout Strategy -->
+      <div class="card strategy-card">
+        <div class="strat-header">
+          <div class="strat-name">Breakout Hunter</div>
+          <div class="strat-badge badge-off" id="badge-breakout">Off</div>
+        </div>
+        <div class="strat-desc">Identifies price breakouts above resistance or below support with volume confirmation. High risk, high reward.</div>
+        <div class="strat-params">
+          <div class="param-chip">Lookback: 20</div>
+          <div class="param-chip">Vol Filter: 1.5x</div>
+          <div class="param-chip">TF: Daily</div>
+        </div>
+        <div class="strat-stats">
+          <div class="strat-stat"><div class="strat-stat-val" style="color:var(--green)">+41.3%</div><div class="strat-stat-lbl">Backtest</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">53%</div><div class="strat-stat-lbl">Win Rate</div></div>
+          <div class="strat-stat"><div class="strat-stat-val">3.1</div><div class="strat-stat-lbl">Sharpe</div></div>
+        </div>
+        <div class="strat-toggle">
+          <label class="toggle-switch"><input type="checkbox" onchange="toggleStrategy('breakout', this)"><div class="toggle-slider"></div></label>
+          <span class="toggle-label">Strategy off</span>
+        </div>
+      </div>
+
+    </div>
   </div>
+
+  <!-- SIGNALS PAGE -->
+  <div class="page" id="page-signals">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title">Live Signal Feed</div>
+      <div class="signal-feed" id="signalFeedFull">
+        <div style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">Waiting for signals... Activate a strategy to generate signals.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADES PAGE -->
+  <div class="page" id="page-trades">
+    <div class="card">
+      <div class="card-title">Trade Log</div>
+      <table class="trade-table" id="tradeTable">
+        <thead>
+          <tr>
+            <th>Time</th><th>Symbol</th><th>Type</th><th>Strategy</th>
+            <th>Entry</th><th>Exit</th><th>Qty</th><th>P&L</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tradeBody">
+          <tr><td colspan="9" style="text-align:center; padding:24px; color:var(--muted);">No trades recorded yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- WATCHLIST PAGE -->
+  <div class="page" id="page-watchlist">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+      <div class="card">
+        <div class="card-title">NSE Watchlist</div>
+        <div id="watchlistNSE"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Indices</div>
+        <div id="watchlistIndices"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API PAGE (Admin Only) -->
+  <div class="page" id="page-api">
+    <div style="background:rgba(251,191,36,0.06); border:1px solid rgba(251,191,36,0.15); border-radius:10px; padding:14px 18px; margin-bottom:20px; font-size:13px; color:var(--gold);">
+      🔑 Admin Only — API keys are encrypted and stored locally. Only you can see and modify them.
+    </div>
+    <div class="api-grid">
+      <div class="card api-card">
+        <div class="api-broker">Zerodha Kite</div>
+        <div class="api-status"><div class="status-dot disconnected" id="kite-dot"></div><span id="kite-status">Not connected</span></div>
+        <input class="api-input" type="password" id="kite-api-key" placeholder="API Key" />
+        <input class="api-input" type="password" id="kite-api-secret" placeholder="API Secret" />
+        <input class="api-input" type="text" id="kite-access-token" placeholder="Access Token (optional)" />
+        <button class="api-save-btn" onclick="saveApiKey('kite')">Save & Connect</button>
+      </div>
+      <div class="card api-card">
+        <div class="api-broker">Angel One</div>
+        <div class="api-status"><div class="status-dot disconnected" id="angel-dot"></div><span id="angel-status">Not connected</span></div>
+        <input class="api-input" type="password" id="angel-api-key" placeholder="Client ID" />
+        <input class="api-input" type="password" id="angel-api-secret" placeholder="Password" />
+        <input class="api-input" type="password" id="angel-totp" placeholder="TOTP Secret" />
+        <button class="api-save-btn" onclick="saveApiKey('angel')">Save & Connect</button>
+      </div>
+      <div class="card api-card">
+        <div class="api-broker">Upstox</div>
+        <div class="api-status"><div class="status-dot disconnected" id="upstox-dot"></div><span id="upstox-status">Not connected</span></div>
+        <input class="api-input" type="password" id="upstox-api-key" placeholder="API Key" />
+        <input class="api-input" type="password" id="upstox-api-secret" placeholder="API Secret" />
+        <input class="api-input" type="text" id="upstox-redirect" placeholder="Redirect URI" />
+        <button class="api-save-btn" onclick="saveApiKey('upstox')">Save & Connect</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:0;">
+      <div class="card-title">Trading Configuration</div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:4px;">
+        <div>
+          <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Max Capital per Trade (₹)</label>
+          <input class="api-input" type="number" value="10000" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Stop Loss (%)</label>
+          <input class="api-input" type="number" value="2" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:12px; color:var(--muted); display:block; margin-bottom:6px;">Target (%)</label>
+          <input class="api-input" type="number" value="4" style="margin-bottom:0;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS PAGE (Admin Only) -->
+  <div class="page" id="page-users">
+    <div class="card">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0; padding-bottom:16px; border-bottom:1px solid var(--border);">
+        <span>Registered Users</span>
+        <span id="userCount" style="font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--muted);">0 users</span>
+      </div>
+      <div id="userList" style="margin-top:0;"></div>
+    </div>
+  </div>
+
 </div>
 
-<!-- Netlify Identity (if deployed on Netlify) -->
-<script src="https://identity.netlify.com/v1/netlify-identity-widget.js" onerror="console.log('Netlify not available')"></script>
+<div class="toast" id="toast"></div>
 
 <script>
-// ── DEMO LICENSE KEYS ──
-const VALID_KEYS = {
-  'RSIT-DEMO-2024-FREE': { role:'user', name:'Demo Trader' },
-  'RSIT-ADMN-2024-FULL': { role:'admin', name:'Admin User' },
-  'RSIT-LIVE-2024-PRO':  { role:'user', name:'Pro Trader' },
-};
+// ============================================================
+// AUTH GUARD — runs first, blocks all content
+// ============================================================
+const SESSION_KEY = 'algoedge_session';
+const DB_KEY = 'algoedge_users';
 
-let selectedRole = 'user';
+let currentUser = null;
 
-function selectRole(r) {
-  selectedRole = r;
-  document.getElementById('roleUser').classList.toggle('selected', r==='user');
-  document.getElementById('roleAdmin').classList.toggle('selected', r==='admin');
-}
-
-function switchTab(t) {
-  document.getElementById('tabLicense').classList.toggle('active', t==='license');
-  document.getElementById('tabLogin').classList.toggle('active', t==='login');
-  document.getElementById('panelLicense').classList.toggle('visible', t==='license');
-  document.getElementById('panelLicense').classList.toggle('hidden', t!=='license');
-  document.getElementById('panelLogin').classList.toggle('hidden', t!=='login');
-  document.getElementById('panelLogin').classList.toggle('visible', t==='login');
-  clearMsg();
-}
-
-function clearMsg() {
-  ['msgLicense','msgLogin'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) { el.className='status-msg'; el.textContent=''; }
-  });
-}
-
-function showMsg(id, text, type) {
-  const el = document.getElementById(id);
-  el.className = 'status-msg ' + type;
-  el.innerHTML = (type==='err'?'⚠ ':'✓ ') + text;
-}
-
-function toggleKeyVis() {
-  const inp = document.getElementById('licenseKey');
-  inp.type = inp.type==='password' ? 'text' : 'password';
-}
-function togglePassVis() {
-  const inp = document.getElementById('loginPass');
-  inp.type = inp.type==='password' ? 'text' : 'password';
-}
-
-function setLoading(id, spinId, loading) {
-  document.getElementById(id).style.opacity = loading ? '0.7' : '1';
-  document.getElementById(spinId).style.display = loading ? 'inline-block' : 'none';
-}
-
-function doLicenseLogin() {
-  clearMsg();
-  const key = document.getElementById('licenseKey').value.trim().toUpperCase();
-  if(!key) { showMsg('msgLicense','Enter a license key','err'); return; }
-
-  setLoading('btnLicense','spinLicense',true);
-  document.getElementById('btnLicenseTxt').textContent = 'VERIFYING…';
-
-  setTimeout(() => {
-    setLoading('btnLicense','spinLicense',false);
-    document.getElementById('btnLicenseTxt').textContent = 'ENTER PLATFORM →';
-
-    // Check known keys
-    const data = VALID_KEYS[key];
-    if(data) {
-      // Store session
-      const session = {
-        key, role: selectedRole==='admin' && data.role==='admin' ? 'admin' : data.role,
-        name: data.name,
-        ts: Date.now()
-      };
-      try { localStorage.setItem('rsi_trader_license_v1', JSON.stringify(session)); } catch(e){}
-      showMsg('msgLicense', 'Access granted · redirecting…', 'ok');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
-    } else {
-      // Allow any non-empty key in demo mode (soft gate)
-      if(key.length >= 8) {
-        const session = {
-          key, role: selectedRole,
-          name: selectedRole==='admin' ? 'Admin User' : 'Trader',
-          ts: Date.now()
-        };
-        try { localStorage.setItem('rsi_trader_license_v1', JSON.stringify(session)); } catch(e){}
-        showMsg('msgLicense', 'Demo access granted · redirecting…', 'ok');
-        setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
-      } else {
-        showMsg('msgLicense','Invalid license key. Try: RSIT-DEMO-2024-FREE','err');
-      }
+function checkAuth() {
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY));
+    if (!session || !session.email || !session.id) {
+      // No valid session — redirect to login immediately
+      window.location.replace('index.html');
+      return false;
     }
-  }, 900);
-}
-
-function doEmailLogin() {
-  clearMsg();
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  if(!email || !pass) { showMsg('msgLogin','Enter email and password','err'); return; }
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('msgLogin','Invalid email address','err'); return; }
-
-  setLoading('btnLogin','spinLogin',true);
-  document.getElementById('btnLoginTxt').textContent = 'SIGNING IN…';
-
-  setTimeout(() => {
-    setLoading('btnLogin','spinLogin',false);
-    document.getElementById('btnLoginTxt').textContent = 'SIGN IN →';
-
-    // Demo: any email + pass >= 6 chars
-    if(pass.length >= 6) {
-      const session = {
-        key: 'EMAIL-'+Date.now(), role: selectedRole,
-        name: email.split('@')[0],
-        email, ts: Date.now()
-      };
-      try { localStorage.setItem('rsi_trader_license_v1', JSON.stringify(session)); } catch(e){}
-      showMsg('msgLogin','Login successful · redirecting…','ok');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
-    } else {
-      showMsg('msgLogin','Password too short (min 6 chars)','err');
-    }
-  }, 800);
-}
-
-function openNetlifyLogin() {
-  if(window.netlifyIdentity) {
-    window.netlifyIdentity.open();
-  } else {
-    alert('Netlify Identity is only available when deployed on Netlify.');
+    currentUser = session;
+    return true;
+  } catch {
+    window.location.replace('index.html');
+    return false;
   }
 }
 
-// Netlify Identity hook
-if(window.netlifyIdentity) {
-  window.netlifyIdentity.on('login', user => {
-    const session = {
-      key:'NETLIFY-'+user.id, role: selectedRole,
-      name: user.user_metadata?.full_name || user.email,
-      email: user.email, ts: Date.now()
-    };
-    try { localStorage.setItem('rsi_trader_license_v1', JSON.stringify(session)); } catch(e){}
-    window.location.href = 'dashboard.html';
-  });
+// Run auth check on load
+window.addEventListener('DOMContentLoaded', () => {
+  const authed = checkAuth();
+  if (!authed) return;
+
+  // Auth passed — hide guard, show app
+  document.getElementById('authGuard').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('mainContent').style.display = 'flex';
+  document.getElementById('mainContent').style.flexDirection = 'column';
+
+  initApp();
+});
+
+function handleLogout() {
+  localStorage.removeItem(SESSION_KEY);
+  showToast('Signed out successfully');
+  setTimeout(() => window.location.replace('index.html'), 800);
 }
 
-// ── MARKET STATUS ──
-function updateMarketStatus() {
-  const now = new Date();
-  const ist = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
-  const h=ist.getHours(), m=ist.getMinutes(), day=ist.getDay();
-  const mins = h*60+m;
-  const isWeekday = day>=1 && day<=5;
-  const isOpen = isWeekday && mins>=555 && mins<930; // 9:15–15:30
-  document.getElementById('mStatus').textContent = isOpen ? 'OPEN' : 'CLOSED';
-  document.getElementById('mStatus').style.color = isOpen ? 'var(--green)' : 'var(--amber)';
-}
-updateMarketStatus();
-setInterval(updateMarketStatus, 30000);
+// ============================================================
+// APP INIT
+// ============================================================
+function initApp() {
+  // Set user info in sidebar
+  document.getElementById('sbUserName').textContent = currentUser.name;
+  const roleEl = document.getElementById('sbUserRole');
+  if (currentUser.role === 'admin') {
+    roleEl.textContent = '🔑 Admin';
+    roleEl.className = 'user-role role-admin';
+    // Show admin-only items
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
+  } else {
+    roleEl.textContent = '👤 User';
+    roleEl.className = 'user-role role-user';
+  }
 
-// ── TICKER TAPE ──
-const tickers = [
-  {sym:'RELIANCE',val:'2,847.60',chg:'+1.2%',up:true},
-  {sym:'TCS',val:'4,121.15',chg:'-0.4%',up:false},
-  {sym:'HDFCBANK',val:'1,703.50',chg:'+0.8%',up:true},
-  {sym:'INFY',val:'1,847.30',chg:'+2.1%',up:true},
-  {sym:'ICICIBANK',val:'1,289.70',chg:'-0.2%',up:false},
-  {sym:'SBIN',val:'841.45',chg:'+1.5%',up:true},
-  {sym:'NIFTY50',val:'24,836',chg:'+0.6%',up:true},
-  {sym:'BANKNIFTY',val:'52,115',chg:'-0.3%',up:false},
-  {sym:'WIPRO',val:'567.80',chg:'+0.9%',up:true},
-  {sym:'LTIM',val:'5,234.25',chg:'+1.1%',up:true},
-  {sym:'AXISBANK',val:'1,178.30',chg:'-0.7%',up:false},
-  {sym:'KOTAKBANK',val:'1,994.60',chg:'+0.4%',up:true},
-  {sym:'BAJFINANCE',val:'7,123.50',chg:'+1.8%',up:true},
-  {sym:'HINDUNILVR',val:'2,678.40',chg:'-0.1%',up:false},
-  {sym:'MARUTI',val:'12,456.30',chg:'+2.3%',up:true},
-  {sym:'TITAN',val:'3,789.80',chg:'+1.4%',up:true},
+  // Init data
+  renderWatchlist();
+  updateStats();
+  startMarketTick();
+  generateDemoSignals();
+
+  if (currentUser.role === 'admin') {
+    renderUserList();
+    loadApiStatus();
+  }
+}
+
+// ============================================================
+// PAGE NAVIGATION
+// ============================================================
+let currentPage = 'dashboard';
+function showPage(page) {
+  // Block non-admin from admin pages
+  if ((page === 'api' || page === 'users') && currentUser.role !== 'admin') {
+    showToast('Admin access required', 'error');
+    return;
+  }
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`).classList.add('active');
+  currentPage = page;
+
+  const titles = {
+    dashboard: 'Dashboard', strategies: 'Strategies', signals: 'Live Signals',
+    trades: 'Trade Log', watchlist: 'Watchlist', api: 'API Integration', users: 'User Management'
+  };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+}
+
+// ============================================================
+// WATCHLIST DATA
+// ============================================================
+const watchlistData = [
+  { sym:'RELIANCE', price:2987.45, chg:1.23 },
+  { sym:'TCS', price:4123.80, chg:0.87 },
+  { sym:'HDFC BANK', price:1654.30, chg:-0.42 },
+  { sym:'INFOSYS', price:1892.15, chg:2.10 },
+  { sym:'WIPRO', price:524.70, chg:1.45 },
+  { sym:'ITC', price:487.25, chg:0.92 },
+  { sym:'SBIN', price:832.90, chg:-0.61 },
+  { sym:'BAJFINANCE', price:7234.80, chg:-1.10 },
+];
+const indicesData = [
+  { sym:'NIFTY 50', price:24613.35, chg:0.64 },
+  { sym:'BANK NIFTY', price:53142.60, chg:-0.28 },
+  { sym:'NIFTY IT', price:38241.90, chg:1.85 },
+  { sym:'NIFTY MIDCAP', price:54328.45, chg:0.37 },
+  { sym:'INDIA VIX', price:13.45, chg:-0.80 },
 ];
 
-function buildTicker() {
-  const el = document.getElementById('ticker');
-  const items = [...tickers,...tickers]; // duplicate for seamless loop
-  el.innerHTML = items.map(t=>`
-    <div class="ticker-item">
-      <span>${t.sym}</span>
-      <span>₹${t.val}</span>
-      <span class="${t.up?'up':'dn'}">${t.chg}</span>
+function renderWatchlistItems(data, containerId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = data.map(s => `
+    <div class="watch-item">
+      <div class="watch-sym">${s.sym}</div>
+      <div style="text-align:right;">
+        <div class="watch-price" style="font-family:'IBM Plex Mono',monospace; font-size:13px;">₹${s.price.toFixed(2)}</div>
+        <div class="watch-chg ${s.chg >= 0 ? 'pos' : 'neg'}">${s.chg >= 0 ? '+' : ''}${s.chg}%</div>
+      </div>
     </div>
   `).join('');
 }
-buildTicker();
+function renderWatchlist() {
+  renderWatchlistItems(watchlistData, 'watchlistNSE');
+  renderWatchlistItems(indicesData, 'watchlistIndices');
+  renderWatchlistItems(watchlistData.slice(0,5), 'dashWatchlist');
+}
 
-// Simulate slight price movement
-setInterval(()=>{
-  tickers.forEach(t=>{
-    const d = (Math.random()-0.48)*2;
-    const price = parseFloat(t.val.replace(',',''));
-    const np = (price+d).toFixed(2);
-    t.val = np.replace(/\B(?=(\d{3})+(?!\d))/g,',');
-    const pct = (d/price*100).toFixed(1);
-    t.up = d>=0; t.chg=(d>=0?'+':'')+pct+'%';
+// ============================================================
+// STATS & MARKET TICK
+// ============================================================
+function updateStats() {
+  document.getElementById('activeStrats').textContent = '2';
+  document.getElementById('signalsToday').textContent = '7';
+}
+
+function startMarketTick() {
+  setInterval(() => {
+    // Nifty flicker
+    let nifty = parseFloat(document.getElementById('topNifty').textContent.replace(',',''));
+    nifty += (Math.random() - 0.5) * 8;
+    document.getElementById('topNifty').textContent = Math.round(nifty).toLocaleString('en-IN');
+    let bankNifty = parseFloat(document.getElementById('topBankNifty').textContent.replace(',',''));
+    bankNifty += (Math.random() - 0.5) * 20;
+    document.getElementById('topBankNifty').textContent = Math.round(bankNifty).toLocaleString('en-IN');
+  }, 2000);
+}
+
+// ============================================================
+// SIGNAL GENERATION (DEMO)
+// ============================================================
+const signalSymbols = ['RELIANCE','TCS','HDFC BANK','INFOSYS','NIFTY 50','BANK NIFTY','TATAMOTORS','SBIN','WIPRO','BAJFINANCE'];
+const signalStrategies = ['RSI Reversal', 'MACD Crossover', 'Supertrend', 'Breakout Hunter'];
+let signals = [];
+
+function generateDemoSignals() {
+  // Start with 3 demo signals
+  for (let i = 0; i < 3; i++) addSignal();
+  renderSignals();
+  // New signal every 12 seconds
+  setInterval(() => { addSignal(); renderSignals(); }, 12000);
+}
+
+function addSignal() {
+  const now = new Date();
+  const sym = signalSymbols[Math.floor(Math.random() * signalSymbols.length)];
+  const strat = signalStrategies[Math.floor(Math.random() * signalStrategies.length)];
+  const type = Math.random() > 0.5 ? 'BUY' : 'SELL';
+  const base = 500 + Math.random() * 3000;
+  signals.unshift({
+    sym, strat, type,
+    price: base.toFixed(2),
+    time: now.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', second:'2-digit' })
   });
-  buildTicker();
-  // Also update NIFTY/BNIFTY display
-  const nifty = tickers.find(t=>t.sym==='NIFTY50');
-  const bnf = tickers.find(t=>t.sym==='BANKNIFTY');
-  if(nifty) { document.getElementById('mNifty').textContent='₹'+nifty.val; document.getElementById('mNifty').style.color=nifty.up?'var(--green)':'var(--red)'; }
-  if(bnf)   { document.getElementById('mBnf').textContent='₹'+bnf.val; document.getElementById('mBnf').style.color=bnf.up?'var(--green)':'var(--red)'; }
-}, 3000);
+  if (signals.length > 20) signals.pop();
+  // Update counter
+  document.getElementById('signalsToday').textContent = signals.length;
+}
 
-// If already logged in, skip to dashboard
-try {
-  const s = JSON.parse(localStorage.getItem('rsi_trader_license_v1'));
-  if(s && s.key) {
-    // Silently auto-forward (uncomment if desired):
-    // window.location.href = 'dashboard.html';
+function renderSignals() {
+  const html = signals.slice(0,6).map(s => `
+    <div class="signal-item">
+      <div class="signal-dot ${s.type.toLowerCase()}"></div>
+      <div class="signal-info">
+        <div class="signal-sym">${s.sym}</div>
+        <div class="signal-strat">${s.strat}</div>
+      </div>
+      <div>
+        <div class="signal-price">₹${s.price}</div>
+        <div class="signal-time">${s.time}</div>
+      </div>
+      <div style="font-size:12px; font-weight:700; color:${s.type === 'BUY' ? 'var(--green)' : 'var(--red)'}; margin-left:8px;">${s.type}</div>
+    </div>
+  `).join('');
+  document.getElementById('dashSignalFeed').innerHTML = html;
+  document.getElementById('signalFeedFull').innerHTML = signals.map(s => `
+    <div class="signal-item">
+      <div class="signal-dot ${s.type.toLowerCase()}"></div>
+      <div class="signal-info">
+        <div class="signal-sym">${s.sym}</div>
+        <div class="signal-strat">${s.strat}</div>
+      </div>
+      <div>
+        <div class="signal-price">₹${s.price}</div>
+        <div class="signal-time">${s.time}</div>
+      </div>
+      <div style="font-size:12px; font-weight:700; color:${s.type === 'BUY' ? 'var(--green)' : 'var(--red)'}; margin-left:8px;">${s.type}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// STRATEGY TOGGLE
+// ============================================================
+function toggleStrategy(id, el) {
+  const badge = document.getElementById(`badge-${id}`);
+  const label = el.closest('.strat-toggle').querySelector('.toggle-label');
+  if (el.checked) {
+    badge.textContent = 'Active'; badge.className = 'strat-badge badge-active';
+    label.textContent = 'Strategy active';
+    showToast(`${id.toUpperCase()} strategy activated`);
+  } else {
+    badge.textContent = 'Off'; badge.className = 'strat-badge badge-off';
+    label.textContent = 'Strategy off';
+    showToast(`${id.toUpperCase()} strategy stopped`, 'warn');
   }
-} catch(e){}
+  // Update active count
+  const active = document.querySelectorAll('.strat-toggle input:checked').length;
+  document.getElementById('activeStrats').textContent = active;
+}
+
+// ============================================================
+// ADMIN: API KEYS
+// ============================================================
+function saveApiKey(broker) {
+  const key = document.getElementById(`${broker}-api-key`).value.trim();
+  if (!key) { showToast('Please enter an API key', 'error'); return; }
+  localStorage.setItem(`algoedge_api_${broker}`, JSON.stringify({ connected: true, key: btoa(key) }));
+  document.getElementById(`${broker}-dot`).className = 'status-dot connected';
+  document.getElementById(`${broker}-status`).textContent = 'Connected';
+  showToast(`${broker.charAt(0).toUpperCase()+broker.slice(1)} API saved!`);
+}
+function loadApiStatus() {
+  ['kite','angel','upstox'].forEach(b => {
+    const data = JSON.parse(localStorage.getItem(`algoedge_api_${b}`) || '{}');
+    if (data.connected) {
+      document.getElementById(`${b}-dot`).className = 'status-dot connected';
+      document.getElementById(`${b}-status`).textContent = 'Connected';
+    }
+  });
+}
+
+// ============================================================
+// ADMIN: USER LIST
+// ============================================================
+function renderUserList() {
+  const users = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+  document.getElementById('userCount').textContent = `${users.length} user${users.length !== 1 ? 's' : ''}`;
+  if (!users.length) {
+    document.getElementById('userList').innerHTML = `<div style="padding:24px; text-align:center; color:var(--muted); font-size:13px;">No registered users yet</div>`;
+    return;
+  }
+  document.getElementById('userList').innerHTML = users.map(u => `
+    <div class="user-row">
+      <div class="user-avatar">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="user-info">
+        <div class="user-name">${u.name} ${u.email === currentUser.email ? '<span style="font-size:10px;color:var(--accent);">(you)</span>' : ''}</div>
+        <div class="user-email">${u.email}</div>
+        <div class="user-joined">Joined ${new Date(u.createdAt).toLocaleDateString('en-IN')} · ${u.role}</div>
+      </div>
+      <div class="user-actions">
+        <button class="user-action-btn">${u.role === 'admin' ? '🔑 Admin' : '👤 User'}</button>
+        ${u.email !== currentUser.email ? `<button class="user-action-btn danger" onclick="deleteUser('${u.id}')">Delete</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteUser(id) {
+  let users = JSON.parse(localStorage.getItem(DB_KEY) || '[]');
+  users = users.filter(u => u.id !== id);
+  localStorage.setItem(DB_KEY, JSON.stringify(users));
+  renderUserList();
+  showToast('User removed');
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
 </script>
 </body>
 </html>
