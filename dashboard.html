@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.14.0/dist/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 
 <style>
 :root {
@@ -601,14 +602,19 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
       <i class="ti ti-key"></i> Zerodha Kite API
       <span class="tb-role-chip chip-admin" style="margin-left:auto">ADMIN</span>
     </div>
+    <div style="font-size:10px;color:var(--purple);font-family:var(--mono);margin-bottom:6px;padding:4px 6px;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:2px" id="adminEmailDisplay"></div>
     <div class="api-wrap">
       <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
-      <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off">
+      <div class="api-row" style="position:relative">
+        <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off" style="flex:1">
+        <button class="btn sm" onclick="toggleSecretVis()" id="secretToggleBtn" title="Show/hide" style="flex-shrink:0">👁</button>
+      </div>
       <input class="api-input" id="accessToken" type="password" placeholder="Access Token (login-generated)" autocomplete="off">
       <div class="api-row">
         <button class="btn green" onclick="connectZerodha()"><i class="ti ti-plug"></i> Connect</button>
         <button class="btn blue" onclick="openKiteLogin()"><i class="ti ti-external-link"></i> Kite Login</button>
       </div>
+      <button class="btn amber full" onclick="saveApiKeys()" style="margin-top:4px"><i class="ti ti-device-floppy"></i> Save Keys to Session</button>
       <div class="conn-status" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
     </div>
   </div>
@@ -1015,20 +1021,30 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
 // ══════════════════════════════════════════════════════
 
 // ── SESSION ──
-const SESSION = window.__session || {key:'demo',role:'user',name:'Trader'};
-const IS_ADMIN = SESSION.role === 'admin';
+const ADMIN_EMAILS = ['khetmalisvedant@gmail.com'];
+let SESSION = window.__session || {key:'demo',role:'user',name:'Trader'};
+let IS_ADMIN = false;
+let _netlifyUser = null;
 
 // ── INIT UI FOR ROLE ──
-function initRole() {
+function initRole(email) {
+  IS_ADMIN = email ? ADMIN_EMAILS.includes(email.toLowerCase()) : false;
+  if(IS_ADMIN) {
+    SESSION.role = 'admin';
+    SESSION.name = email.split('@')[0];
+  }
   document.getElementById('adminSection').style.display = IS_ADMIN ? '' : 'none';
   document.getElementById('userSection').style.display  = IS_ADMIN ? 'none' : '';
+  if(IS_ADMIN) {
+    const disp = document.getElementById('adminEmailDisplay');
+    if(disp) disp.textContent = '⬡ ' + email;
+  }
   const initials = (SESSION.name||'T').substring(0,2).toUpperCase();
   document.getElementById('tbAvatar').textContent = initials;
   document.getElementById('tbUserName').textContent = SESSION.name || 'Trader';
   const chip = document.getElementById('tbRoleChip');
   chip.textContent = IS_ADMIN ? 'ADMIN' : 'USER';
   chip.className = 'tb-role-chip ' + (IS_ADMIN ? 'chip-admin' : 'chip-user');
-  // Simulate platform connected for regular users
   if(!IS_ADMIN) {
     setTimeout(()=>{
       const el = document.getElementById('platformTitle');
@@ -1036,11 +1052,21 @@ function initRole() {
       el.style.color='var(--green)';
     },1500);
   }
+  // Restore saved API keys if admin
+  if(IS_ADMIN) {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('kite_creds')||'{}');
+      if(saved.key) document.getElementById('apiKey').value = saved.key;
+      if(saved.secret) document.getElementById('apiSecret').value = saved.secret;
+      if(saved.token) { document.getElementById('accessToken').value = saved.token; connectZerodha(); }
+    } catch(e){}
+  }
 }
 
 function logout() {
   if(confirm('Logout from RSI Algo Trader?')) {
     try{localStorage.removeItem('rsi_trader_license_v1');}catch(e){}
+    try{if(window.netlifyIdentity && _netlifyUser) netlifyIdentity.logout();}catch(e){}
     window.location.href='index.html';
   }
 }
@@ -1080,6 +1106,19 @@ function connectZerodha() {
 function openKiteLogin() {
   const key = document.getElementById('apiKey').value.trim() || 'your_api_key';
   window.open(`https://kite.zerodha.com/connect/login?api_key=${key}&v=3`,'_blank');
+}
+
+function toggleSecretVis() {
+  const el = document.getElementById('apiSecret');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function saveApiKeys() {
+  const key    = document.getElementById('apiKey').value.trim();
+  const secret = document.getElementById('apiSecret').value.trim();
+  const token  = document.getElementById('accessToken').value.trim();
+  try { sessionStorage.setItem('kite_creds', JSON.stringify({key,secret,token})); } catch(e){}
+  addLog('API keys saved to session','info');
 }
 
 // ── STRATEGY ENGINE ──
@@ -1895,14 +1934,32 @@ function showGTab(n, btn) {
 
 // ── BOOT ──
 function boot() {
-  initRole();
+  // Wire up Netlify Identity for admin detection
+  if(window.netlifyIdentity) {
+    netlifyIdentity.on('init', user => {
+      _netlifyUser = user;
+      initRole(user ? user.email : null);
+    });
+    netlifyIdentity.on('login', user => {
+      _netlifyUser = user;
+      initRole(user ? user.email : null);
+    });
+    netlifyIdentity.on('logout', () => {
+      _netlifyUser = null;
+      initRole(null);
+    });
+    netlifyIdentity.init({ logo: false });
+  } else {
+    initRole(null);
+  }
+
   switchStrategy(1);
   initPriceData('TCS');
   buildWatchlist();
   rebuildCharts();
   updateRankTable();
   startSimulation();
-  addLog('RSI Algo Trader initialised — Session: '+SESSION.name,'info');
+  addLog('RSI Algo Trader initialised — Session: '+(SESSION.name||'Trader'),'info');
   addLog('Strategy: '+STRATEGIES[currentStrategy].name,'info');
   addLog('Market: NSE · Nifty 50 equities, indexes, options','info');
 }
