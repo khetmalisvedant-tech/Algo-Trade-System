@@ -5,146 +5,799 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RSI Algo Trader — Access Required</title>
 <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0a0b0d; --bg2: #111318; --border: rgba(255,255,255,0.08);
-    --text: #e8eaf0; --text2: #8b90a0; --text3: #4e5261;
-    --green: #22c55e; --green-dim: rgba(34,197,94,0.1);
-    --red: #ef4444; --blue: #3b82f6; --amber: #f59e0b;
-    --font: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
-  }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, 'Inter', system-ui, sans-serif;
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 24px;
-  }
-  body::before {
-    content: ''; position: fixed; inset: 0;
-    background-image: linear-gradient(rgba(34,197,94,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(34,197,94,0.03) 1px, transparent 1px);
-    background-size: 40px 40px; pointer-events: none;
-  }
-  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 48px 40px; width: 100%; max-width: 440px; position: relative; z-index: 1; }
-  .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
-  .logo-icon { width: 40px; height: 40px; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: var(--font); font-size: 13px; color: var(--green); font-weight: 700; letter-spacing: -0.05em; }
-  .logo-text { font-family: var(--font); font-size: 15px; color: var(--text); }
-  .logo-text span { color: var(--green); }
-  h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
-  .subtitle { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
-  .info-box { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-radius: 8px; padding: 14px 16px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 24px; }
-  .info-box strong { color: var(--blue); }
-  .warn-box { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; padding: 14px 16px; font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
-  .warn-box strong { color: var(--amber); }
-  .input-field { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; padding: 11px 14px; font-size: 13px; color: var(--text); outline: none; transition: border-color 0.15s; font-family: var(--font); letter-spacing: 0.05em; margin-bottom: 10px; }
-  .input-field:focus { border-color: var(--blue); }
-  .input-field::placeholder { color: var(--text3); font-family: inherit; letter-spacing: 0; }
-  .btn-primary { width: 100%; background: var(--green); color: #000; border: none; border-radius: 8px; padding: 13px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.01em; margin-bottom: 10px; }
-  .btn-primary:hover { opacity: 0.9; }
-  .btn-primary:active { transform: scale(0.99); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
-  .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--text3); font-size: 11px; }
-  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-  .status-msg { font-size: 12px; margin-top: 10px; padding: 10px 14px; border-radius: 6px; text-align: center; display: none; }
-  .status-msg.ok  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); display: block; }
-  .status-msg.err { background: rgba(239,68,68,0.08); color: var(--red); border: 1px solid rgba(239,68,68,0.2); display: block; }
-  .step-indicator { display: flex; gap: 6px; margin-bottom: 28px; }
-  .step-dot { flex: 1; height: 2px; border-radius: 1px; background: var(--border); transition: background 0.3s; }
-  .step-dot.done { background: var(--green); }
-  .step-dot.active { background: var(--blue); }
-  .request-row { display: flex; gap: 8px; }
-  .request-row .input-field { flex: 1; margin-bottom: 0; }
-  .btn-request { background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
-  .btn-request:hover { background: rgba(255,255,255,0.1); color: var(--text); }
-  .ticker { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
-  .tick { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; font-family: var(--font); color: var(--text3); }
-  #loggedIn { display: none; text-align: center; }
-  .user-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.3); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 600; color: var(--green); margin: 0 auto 16px; }
-  .btn-dashboard { display: inline-block; background: var(--green); color: #000; border: none; border-radius: 8px; padding: 13px 32px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; margin-top: 20px; transition: opacity 0.15s; }
-  .btn-dashboard:hover { opacity: 0.9; }
-  .btn-logout { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: 6px; padding: 8px 16px; font-size: 12px; cursor: pointer; margin-top: 10px; font-family: inherit; transition: color 0.15s; display: block; width: 100%; }
-  .btn-logout:hover { color: var(--red); border-color: rgba(239,68,68,0.3); }
-  .footer { margin-top: 24px; font-size: 11px; color: var(--text3); text-align: center; line-height: 1.7; }
-  .license-badge { display: inline-flex; align-items: center; gap: 5px; background: var(--green-dim); border: 1px solid rgba(34,197,94,0.25); border-radius: 4px; padding: 3px 8px; font-size: 10px; font-family: var(--font); color: var(--green); margin-top: 8px; }
-  .panel { display: none; }
-  .panel.visible { display: block; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #05070a;
+  --bg1:     #080c12;
+  --bg2:     #0d1219;
+  --bg3:     #121820;
+  --bg4:     #171e28;
+  --border:  rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --text:    #dde4ef;
+  --text2:   #68748a;
+  --text3:   #303848;
+  --green:   #10b981;
+  --green-hi:#34d399;
+  --green-dim: rgba(16,185,129,0.08);
+  --green-glow: rgba(16,185,129,0.18);
+  --red:     #f43f5e;
+  --blue:    #3b82f6;
+  --amber:   #f59e0b;
+  --mono:    'Space Mono', monospace;
+  --sans:    'Syne', sans-serif;
+}
+
+html { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* ── LEFT PANEL ── */
+.left-panel {
+  width: 52%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 56px;
+  overflow: hidden;
+  background: var(--bg1);
+  border-right: 1px solid var(--border);
+}
+
+/* animated grid background */
+.left-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(16,185,129,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16,185,129,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridShift 20s linear infinite;
+}
+@keyframes gridShift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 48px 48px; }
+}
+
+/* radial spotlight */
+.left-panel::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 70%;
+  height: 70%;
+  background: radial-gradient(ellipse, rgba(16,185,129,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ── CHART ANIMATION ── */
+.chart-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 55%;
+  pointer-events: none;
+}
+.chart-bg svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── BRAND / LOGO ── */
+.brand {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: auto;
+}
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: -0.05em;
+  box-shadow: 0 0 20px rgba(16,185,129,0.12);
+}
+.brand-name {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.brand-name em {
+  color: var(--green);
+  font-style: normal;
+}
+
+/* ── LEFT HERO TEXT ── */
+.hero {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 0;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--green);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+  width: fit-content;
+}
+.hero-tag::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--green); }
+  50%       { opacity: 0.5; box-shadow: 0 0 4px var(--green); }
+}
+.hero-title {
+  font-family: var(--sans);
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.hero-title span {
+  color: var(--green);
+  display: block;
+}
+.hero-sub {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 360px;
+  margin-bottom: 36px;
+}
+
+/* stat cards */
+.stats-row {
+  display: flex;
+  gap: 12px;
+}
+.stat-card {
+  flex: 1;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(16,185,129,0.04), transparent);
+  pointer-events: none;
+}
+.stat-val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--green);
+  display: block;
+  margin-bottom: 2px;
+}
+.stat-lbl {
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--mono);
+}
+
+/* tickers strip */
+.ticker-strip {
+  position: relative;
+  z-index: 2;
+  margin-top: 28px;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+}
+.ticker-inner {
+  display: flex;
+  gap: 8px;
+  animation: tickerScroll 18s linear infinite;
+  width: max-content;
+}
+@keyframes tickerScroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text3);
+  white-space: nowrap;
+}
+.ticker-item.up { color: var(--green); border-color: rgba(16,185,129,0.2); }
+.ticker-item.dn { color: var(--red); border-color: rgba(244,63,94,0.2); }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  width: 48%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 48px;
+  position: relative;
+  background: var(--bg);
+}
+
+/* ── CARD ── */
+.card {
+  width: 100%;
+  max-width: 400px;
+}
+
+/* panels */
+.panel { display: none; }
+.panel.visible { display: block; }
+
+/* step indicator */
+.step-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 32px;
+}
+.step-seg {
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bg4);
+  transition: background 0.4s;
+  position: relative;
+  overflow: hidden;
+}
+.step-seg.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--blue);
+  animation: fillBar 0.6s ease forwards;
+}
+@keyframes fillBar {
+  from { transform: scaleX(0); transform-origin: left; }
+  to   { transform: scaleX(1); transform-origin: left; }
+}
+.step-seg.done { background: var(--green); }
+
+/* heading */
+.card-title {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 6px;
+  font-family: var(--sans);
+}
+.card-sub {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+/* input */
+.field-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  margin-bottom: 6px;
+  display: block;
+}
+.input-wrap {
+  position: relative;
+  margin-bottom: 12px;
+}
+.input-field {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-field:focus {
+  border-color: rgba(16,185,129,0.4);
+  box-shadow: 0 0 0 3px rgba(16,185,129,0.07), 0 0 20px rgba(16,185,129,0.05);
+}
+.input-field::placeholder {
+  color: var(--text3);
+  letter-spacing: 0.04em;
+  font-family: var(--mono);
+}
+.input-field.email-font {
+  font-family: var(--sans);
+  letter-spacing: 0;
+}
+
+/* buttons */
+.btn-primary {
+  width: 100%;
+  background: var(--green);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.2);
+  margin-top: 4px;
+  margin-bottom: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.15);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.4s, height 0.4s, opacity 0.4s;
+  opacity: 0;
+}
+.btn-primary:active::after { width: 300px; height: 300px; opacity: 1; }
+.btn-primary:hover { box-shadow: 0 6px 28px rgba(16,185,129,0.32); opacity: 0.93; }
+.btn-primary:active { transform: scale(0.99); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text3);
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* request row */
+.request-row {
+  display: flex;
+  gap: 8px;
+}
+.request-row .input-field {
+  flex: 1;
+  margin-bottom: 0;
+  font-family: var(--sans);
+  letter-spacing: 0;
+}
+.btn-ghost {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+.btn-ghost:hover { background: var(--bg4); color: var(--text); border-color: rgba(255,255,255,0.18); }
+
+/* status */
+.status-msg {
+  font-size: 12px;
+  font-family: var(--mono);
+  margin-top: 10px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  text-align: left;
+  display: none;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+.status-msg.ok  { background: rgba(16,185,129,0.07); color: var(--green); border: 1px solid rgba(16,185,129,0.2); display: block; }
+.status-msg.err { background: rgba(244,63,94,0.07); color: var(--red); border: 1px solid rgba(244,63,94,0.2); display: block; }
+
+/* info / warn boxes */
+.info-box {
+  background: rgba(59,130,246,0.05);
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+}
+.info-box strong { color: #60a5fa; }
+.warn-box {
+  background: rgba(245,158,11,0.05);
+  border: 1px solid rgba(245,158,11,0.15);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  font-family: var(--mono);
+}
+.warn-box strong { color: var(--amber); }
+
+/* badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(16,185,129,0.07);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--green);
+  letter-spacing: 0.06em;
+}
+
+/* footer */
+.card-footer {
+  margin-top: 24px;
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+/* ── LOGGED IN STATE ── */
+#loggedIn { display: none; }
+.avatar-ring {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05));
+  border: 1px solid rgba(16,185,129,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--green);
+  margin: 0 auto 20px;
+  font-family: var(--sans);
+  box-shadow: 0 0 30px rgba(16,185,129,0.15);
+  position: relative;
+}
+.avatar-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px solid rgba(16,185,129,0.1);
+}
+.welcome-name {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-bottom: 4px;
+  font-family: var(--sans);
+}
+.welcome-email {
+  font-size: 11px;
+  color: var(--text2);
+  text-align: center;
+  font-family: var(--mono);
+  margin-bottom: 20px;
+}
+.btn-dashboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--green);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  padding: 15px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 24px rgba(16,185,129,0.25);
+  transition: all 0.15s;
+  margin-top: 8px;
+}
+.btn-dashboard:hover { box-shadow: 0 6px 30px rgba(16,185,129,0.35); opacity: 0.93; }
+.btn-dashboard svg { flex-shrink: 0; }
+.btn-logout {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text3);
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-logout:hover { color: var(--red); border-color: rgba(244,63,94,0.3); }
+
+/* fade-in animation for panels */
+.panel.visible {
+  animation: fadeUp 0.35s ease both;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#loggedIn {
+  animation: fadeUp 0.35s ease both;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  body { flex-direction: column; overflow: auto; }
+  .left-panel { width: 100%; padding: 32px 28px 24px; min-height: auto; }
+  .hero { padding: 20px 0; }
+  .hero-title { font-size: 28px; }
+  .right-panel { width: 100%; padding: 36px 24px 48px; }
+  .stats-row { display: none; }
+}
 </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="logo-row">
-    <div class="logo-icon">RSI</div>
-    <div class="logo-text">ALGO<span>TRADER</span></div>
+<!-- ════════════ LEFT PANEL ════════════ -->
+<div class="left-panel">
+  <div class="brand">
+    <div class="brand-icon">RSI</div>
+    <div class="brand-name">ALGO<em>TRADER</em></div>
   </div>
 
-  <div class="step-indicator" id="stepIndicator">
-    <div class="step-dot" id="dot0"></div>
-    <div class="step-dot" id="dot1"></div>
-    <div class="step-dot" id="dot2"></div>
+  <div class="hero">
+    <div class="hero-tag">Live — Nifty 50 Strategy</div>
+    <h1 class="hero-title">
+      Systematic<br>
+      <span>Alpha Engine</span>
+    </h1>
+    <p class="hero-sub">
+      Institutional-grade RSI momentum strategy. Automated execution via Zerodha Kite API across 50+ large-cap instruments.
+    </p>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <span class="stat-val">50+</span>
+        <span class="stat-lbl">Instruments</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val">24/7</span>
+        <span class="stat-lbl">Monitoring</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-val">RSI</span>
+        <span class="stat-lbl">Strategy</span>
+      </div>
+    </div>
   </div>
 
-  <!-- PANEL 1: LICENSE GATE -->
-  <div class="panel" id="panelLicense">
-    <h1>Activate License</h1>
-    <p class="subtitle">This is a private trading platform. Enter the license key provided by the administrator to activate your copy.</p>
-    <div class="warn-box">
-      <strong>&#9889; One-time activation.</strong> You only need to do this once per device. After activation your license is saved locally and you won't be asked again — until you log out.
-    </div>
-    <input class="input-field" type="text" id="licenseKey" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24" spellcheck="false" autocomplete="off">
-    <button class="btn-primary" id="btnActivate" onclick="activateLicense()">Activate License</button>
-    <div class="status-msg" id="licenseStatus"></div>
-    <div class="footer">Don't have a key? Contact the administrator to request access.</div>
+  <div class="ticker-strip">
+    <div class="ticker-inner" id="tickerInner"></div>
   </div>
 
-  <!-- PANEL 2: LOGIN -->
-  <div class="panel" id="panelLogin">
-    <h1>Access Required</h1>
-    <p class="subtitle">License verified. Log in with your invitation to access the RSI trading dashboard.</p>
-    <div class="ticker">
-      <span class="tick">TCS</span><span class="tick">INFY</span><span class="tick">RELIANCE</span>
-      <span class="tick">HDFCBANK</span><span class="tick">ICICIBANK</span><span class="tick">+25 more</span>
-    </div>
-    <div class="info-box">
-      <strong>Invite-only access.</strong> If you have received an invitation email, click below to log in. New users must request access and wait for admin approval.
-    </div>
-    <div class="license-badge">&#10003; License activated</div>
-    <button class="btn-primary" style="margin-top:16px" onclick="netlifyIdentity.open('login')">Log in with invitation</button>
-    <div class="divider">or request access</div>
-    <div class="request-row">
-      <input class="input-field" type="email" id="reqEmail" placeholder="your@email.com" style="margin-bottom:0">
-      <button class="btn-request" onclick="requestAccess()">Request</button>
-    </div>
-    <div class="status-msg" id="reqStatus"></div>
-    <div class="footer">Nifty 50 &middot; RSI Strategy &middot; Zerodha Kite API<br>Access controlled by administrator</div>
-  </div>
-
-  <!-- PANEL 3: LOGGED IN -->
-  <div id="loggedIn">
-    <div class="user-avatar" id="userInitials">&#8212;</div>
-    <div style="font-size:15px; font-weight:600; margin-bottom:4px" id="userName">Welcome</div>
-    <div style="font-size:12px; color:var(--text2)" id="userEmail">&#8212;</div>
-    <div class="license-badge">&#10003; License active on this device</div>
-    <br>
-    <a class="btn-dashboard" href="/dashboard.html">Open Trading Dashboard &rarr;</a>
-    <button class="btn-logout" onclick="doLogout()">Sign out &amp; clear license from this device</button>
+  <!-- SVG chart decoration -->
+  <div class="chart-bg">
+    <svg viewBox="0 0 600 260" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#10b981" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path id="chartPath" fill="url(#chartGrad)" stroke="none"/>
+      <path id="chartLine" fill="none" stroke="#10b981" stroke-width="1.5" stroke-linejoin="round" opacity="0.4"/>
+    </svg>
   </div>
 </div>
 
+<!-- ════════════ RIGHT PANEL ════════════ -->
+<div class="right-panel">
+  <div class="card">
+
+    <!-- Step bar -->
+    <div class="step-bar" id="stepBar">
+      <div class="step-seg" id="seg0"></div>
+      <div class="step-seg" id="seg1"></div>
+      <div class="step-seg" id="seg2"></div>
+    </div>
+
+    <!-- ── PANEL 1: LICENSE ── -->
+    <div class="panel" id="panelLicense">
+      <h2 class="card-title">Activate License</h2>
+      <p class="card-sub">Enter the license key provided by the administrator to activate your copy of the trading platform.</p>
+
+      <div class="warn-box">
+        <strong>⚡ One-time activation</strong><br>
+        Your license is stored locally after activation. You won't be prompted again on this device until you sign out.
+      </div>
+
+      <label class="field-label" for="licenseKey">License Key</label>
+      <div class="input-wrap">
+        <input class="input-field" type="text" id="licenseKey"
+               placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="24"
+               spellcheck="false" autocomplete="off">
+      </div>
+
+      <button class="btn-primary" id="btnActivate" onclick="activateLicense()">
+        Validate &amp; Activate
+      </button>
+      <div class="status-msg" id="licenseStatus"></div>
+
+      <div class="card-footer">
+        Don't have a key? Contact the administrator to request access.
+      </div>
+    </div>
+
+    <!-- ── PANEL 2: LOGIN ── -->
+    <div class="panel" id="panelLogin">
+      <h2 class="card-title">Access Dashboard</h2>
+      <p class="card-sub">License verified. Log in with your invitation to access the RSI trading system.</p>
+
+      <div class="badge" style="margin-bottom:20px">
+        <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#10b981"/></svg>
+        License activated on this device
+      </div>
+
+      <div class="info-box">
+        <strong>// Invite-only access</strong><br>
+        Log in with your invitation email. New users must request access and await admin approval before gaining entry.
+      </div>
+
+      <button class="btn-primary" onclick="netlifyIdentity.open('login')" style="margin-bottom:8px">
+        Log in with Invitation →
+      </button>
+
+      <div class="divider">or request access</div>
+
+      <label class="field-label">Email Address</label>
+      <div class="request-row">
+        <input class="input-field email-font" type="email" id="reqEmail" placeholder="your@email.com">
+        <button class="btn-ghost" onclick="requestAccess()">Request</button>
+      </div>
+      <div class="status-msg" id="reqStatus"></div>
+
+      <div class="card-footer">
+        Nifty 50 &middot; RSI Strategy &middot; Zerodha Kite API<br>
+        Access controlled by administrator
+      </div>
+    </div>
+
+    <!-- ── PANEL 3: LOGGED IN ── -->
+    <div id="loggedIn">
+      <div class="avatar-ring" id="userInitials">—</div>
+      <div class="welcome-name" id="userName">Welcome back</div>
+      <div class="welcome-email" id="userEmail">—</div>
+
+      <div style="display:flex;justify-content:center;margin-bottom:24px">
+        <div class="badge">
+          <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="#10b981"/></svg>
+          License active &bull; Session authenticated
+        </div>
+      </div>
+
+      <a class="btn-dashboard" href="/dashboard.html">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Open Trading Dashboard
+      </a>
+
+      <button class="btn-logout" onclick="doLogout()">
+        Sign out &amp; clear license from this device
+      </button>
+    </div>
+
+  </div><!-- .card -->
+</div><!-- .right-panel -->
+
 <script>
+/* ── CONFIG ── */
 const LICENSE_STORAGE_KEY = 'rsi_trader_license_v1';
 
+/* ── STEP MANAGEMENT ── */
 function setStep(n) {
-  ['dot0','dot1','dot2'].forEach((id,i) => {
-    const el = document.getElementById(id);
-    el.className = 'step-dot ' + (i < n ? 'done' : i === n ? 'active' : '');
-  });
+  document.getElementById('seg0').className = 'step-seg ' + (n > 0 ? 'done' : n === 0 ? 'active' : '');
+  document.getElementById('seg1').className = 'step-seg ' + (n > 1 ? 'done' : n === 1 ? 'active' : '');
+  document.getElementById('seg2').className = 'step-seg ' + (n > 2 ? 'done' : n === 2 ? 'active' : '');
   document.getElementById('panelLicense').classList.toggle('visible', n === 0);
   document.getElementById('panelLogin').classList.toggle('visible', n === 1);
   document.getElementById('loggedIn').style.display = n === 2 ? 'block' : 'none';
-  document.getElementById('stepIndicator').style.display = n === 2 ? 'none' : 'flex';
+  document.getElementById('stepBar').style.display = n === 2 ? 'none' : 'flex';
 }
 
+/* ── LICENSE ── */
 function getLicense() {
   try { const r = localStorage.getItem(LICENSE_STORAGE_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
 }
@@ -153,35 +806,40 @@ function clearLicense() { localStorage.removeItem(LICENSE_STORAGE_KEY); }
 
 async function activateLicense() {
   const keyInput = document.getElementById('licenseKey');
-  const btn = document.getElementById('btnActivate');
-  const status = document.getElementById('licenseStatus');
-  const raw = keyInput.value.trim();
+  const btn      = document.getElementById('btnActivate');
+  const status   = document.getElementById('licenseStatus');
+  const raw      = keyInput.value.trim();
+
   if (!raw || raw.replace(/-/g,'').length < 6) {
-    status.textContent = 'Please enter a valid license key.';
+    status.textContent = '// Error: enter a valid license key.';
     status.className = 'status-msg err'; return;
   }
-  btn.disabled = true; btn.textContent = 'Validating\u2026';
-  status.textContent = 'Checking with server\u2026'; status.className = 'status-msg ok';
+
+  btn.disabled = true;
+  btn.textContent = 'Validating…';
+  status.textContent = '// Connecting to license server…';
+  status.className = 'status-msg ok';
+
   try {
-    const res = await fetch('/.netlify/functions/validate-license', {
+    const res  = await fetch('/.netlify/functions/validate-license', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ licenseKey: raw })
     });
     const data = await res.json();
     if (res.ok && data.valid) {
       saveLicense({ key: data.key, activatedAt: data.activatedAt });
-      status.textContent = '\u2713 License activated! Proceeding to login\u2026';
-      status.className = 'status-msg ok';
-      setTimeout(() => setStep(1), 1200);
+      status.textContent = '✓ License activated. Proceeding to authentication…';
+      status.className   = 'status-msg ok';
+      setTimeout(() => setStep(1), 1400);
     } else {
-      status.textContent = data.error || 'Invalid license key.';
-      status.className = 'status-msg err';
-      btn.disabled = false; btn.textContent = 'Activate License';
+      status.textContent = data.error || '// Invalid license key. Contact administrator.';
+      status.className   = 'status-msg err';
+      btn.disabled = false; btn.textContent = 'Validate & Activate';
     }
   } catch(e) {
-    status.textContent = 'Network error. Please try again.';
-    status.className = 'status-msg err';
-    btn.disabled = false; btn.textContent = 'Activate License';
+    status.textContent = '// Network error. Check connection and retry.';
+    status.className   = 'status-msg err';
+    btn.disabled = false; btn.textContent = 'Validate & Activate';
   }
 }
 
@@ -194,40 +852,82 @@ document.getElementById('licenseKey').addEventListener('keydown', e => {
   }, 0);
 });
 
+/* ── AUTH ── */
 function doLogout() { clearLicense(); netlifyIdentity.logout(); }
 
 netlifyIdentity.on('init', user => {
   if (user && getLicense()) { showLoggedIn(user); }
   else if (user && !getLicense()) { netlifyIdentity.logout(); }
-  else {
-    if (getLicense()) setStep(1); else setStep(0);
-  }
+  else { setStep(getLicense() ? 1 : 0); }
 });
-netlifyIdentity.on('login', user => { showLoggedIn(user); netlifyIdentity.close(); });
-netlifyIdentity.on('logout', () => { clearLicense(); setStep(0); });
+netlifyIdentity.on('login',  user => { showLoggedIn(user); netlifyIdentity.close(); });
+netlifyIdentity.on('logout', ()   => { clearLicense(); setStep(0); });
 
 function showLoggedIn(user) {
   setStep(2);
-  const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trader';
-  const initials = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const name     = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trader';
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
   document.getElementById('userInitials').textContent = initials;
-  document.getElementById('userName').textContent = 'Welcome, ' + name;
-  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('userName').textContent     = 'Welcome, ' + name;
+  document.getElementById('userEmail').textContent    = user.email;
 }
 
 async function requestAccess() {
-  const email = document.getElementById('reqEmail').value.trim();
+  const email  = document.getElementById('reqEmail').value.trim();
   const status = document.getElementById('reqStatus');
-  if (!email || !email.includes('@')) { status.textContent = 'Please enter a valid email.'; status.className = 'status-msg err'; return; }
-  status.textContent = 'Sending\u2026'; status.className = 'status-msg ok';
+  if (!email || !email.includes('@')) {
+    status.textContent = '// Error: enter a valid email address.';
+    status.className   = 'status-msg err'; return;
+  }
+  status.textContent = '// Submitting request…';
+  status.className   = 'status-msg ok';
   try {
     const res = await fetch('/.netlify/functions/request-access', {
       method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email})
     });
-    if (res.ok) { status.textContent = '\u2713 Request sent! Admin will review and invite you.'; document.getElementById('reqEmail').value=''; }
-    else throw new Error();
-  } catch { status.textContent = 'Could not send. Email admin directly.'; status.className = 'status-msg err'; }
+    if (res.ok) {
+      status.textContent = '✓ Request submitted. Admin will review and send an invitation.';
+      document.getElementById('reqEmail').value = '';
+    } else throw new Error();
+  } catch {
+    status.textContent = '// Could not submit. Email the administrator directly.';
+    status.className   = 'status-msg err';
+  }
 }
+
+/* ── CHART ANIMATION ── */
+(function() {
+  const W = 600, H = 260;
+  const points = [];
+  let y = H * 0.55;
+  for (let i = 0; i <= 20; i++) {
+    y = Math.max(H * 0.15, Math.min(H * 0.85, y + (Math.random() - 0.42) * 36));
+    points.push({ x: (i / 20) * W, y });
+  }
+  const pts = points.map(p => `${p.x},${p.y}`).join(' ');
+  const line = `M ${pts.split(' ').join(' L ')}`;
+  const fill = `${line} L ${W},${H} L 0,${H} Z`;
+  document.getElementById('chartPath').setAttribute('d', fill);
+  document.getElementById('chartLine').setAttribute('d', line);
+})();
+
+/* ── TICKER ── */
+(function() {
+  const tickers = [
+    ['TCS','up'],['INFY','dn'],['RELIANCE','up'],['HDFCBANK','up'],
+    ['ICICIBANK','dn'],['SBIN','up'],['WIPRO','dn'],['LTIM','up'],
+    ['BAJFINANCE','up'],['HCLTECH','dn'],['AXISBANK','up'],['TATAMOTORS','dn'],
+    ['MARUTI','up'],['NESTLEIND','up'],['HINDUNILVR','dn'],['SUNPHARMA','up'],
+  ];
+  const inner = document.getElementById('tickerInner');
+  // duplicate for seamless loop
+  [...tickers, ...tickers].forEach(([t, dir]) => {
+    const el = document.createElement('span');
+    el.className = `ticker-item ${dir}`;
+    el.textContent = t;
+    inner.appendChild(el);
+  });
+})();
 </script>
 </body>
 </html>
