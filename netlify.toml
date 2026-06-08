@@ -1,0 +1,20 @@
+[build]
+  publish = "."
+  functions = "functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Redirect /dashboard.html to login if no Netlify Identity session role is present
+[[redirects]]
+  from = "/dashboard.html"
+  to = "/index.html"
+  status = 302
+  force = false
+  conditions = {Role = []}
+
+# SPA fallback
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
