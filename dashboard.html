@@ -603,6 +603,10 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
       <span class="tb-role-chip chip-admin" style="margin-left:auto">ADMIN</span>
     </div>
     <div style="font-size:10px;color:var(--purple);font-family:var(--mono);margin-bottom:6px;padding:4px 6px;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:2px" id="adminEmailDisplay"></div>
+    <!-- Persistent key status indicator -->
+    <div id="savedKeysBadge" style="display:none;font-size:9px;font-family:var(--mono);padding:3px 7px;margin-bottom:6px;border-radius:2px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);color:var(--green);display:flex;align-items:center;gap:5px">
+      <i class="ti ti-lock" style="font-size:11px"></i> API keys saved in browser · Auto-connects on reload
+    </div>
     <div class="api-wrap">
       <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
       <div class="api-row" style="position:relative">
@@ -614,7 +618,10 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
         <button class="btn green" onclick="connectZerodha()"><i class="ti ti-plug"></i> Connect</button>
         <button class="btn blue" onclick="openKiteLogin()"><i class="ti ti-external-link"></i> Kite Login</button>
       </div>
-      <button class="btn amber full" onclick="saveApiKeys()" style="margin-top:4px"><i class="ti ti-device-floppy"></i> Save Keys to Session</button>
+      <div class="api-row" style="margin-top:4px">
+        <button class="btn amber" style="flex:1" onclick="saveApiKeys()"><i class="ti ti-device-floppy"></i> Save Keys</button>
+        <button class="btn red" style="flex:0 0 auto" onclick="clearApiKeys()" title="Remove saved API keys — disconnects on reload"><i class="ti ti-trash"></i> Remove</button>
+      </div>
       <div class="conn-status" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
     </div>
   </div>
@@ -1047,19 +1054,41 @@ function initRole(email) {
   chip.textContent = IS_ADMIN ? 'ADMIN' : 'USER';
   chip.className = 'tb-role-chip ' + (IS_ADMIN ? 'chip-admin' : 'chip-user');
   if(!IS_ADMIN) {
+    // Show platform-connected status for regular users
+    // Note: price feed is managed centrally by boot() — do NOT call startPriceFeed() here
     setTimeout(()=>{
       const el = document.getElementById('platformTitle');
-      el.innerHTML = '<i class="ti ti-cloud-check" style="color:var(--green)"></i> Platform Connected';
-      el.style.color='var(--green)';
+      if(el) {
+        el.innerHTML = '<i class="ti ti-cloud-check" style="color:var(--green)"></i> Platform Connected';
+        el.style.color='var(--green)';
+      }
     },1500);
   }
-  // Restore saved API keys if admin
+  // Restore saved API keys if admin — use localStorage for persistence
   if(IS_ADMIN) {
     try {
-      const saved = JSON.parse(sessionStorage.getItem('kite_creds')||'{}');
-      if(saved.key) document.getElementById('apiKey').value = saved.key;
-      if(saved.secret) document.getElementById('apiSecret').value = saved.secret;
-      if(saved.token) { document.getElementById('accessToken').value = saved.token; connectZerodha(); }
+      const saved = JSON.parse(localStorage.getItem('kite_creds')||'{}');
+      if(saved.key) {
+        document.getElementById('apiKey').value = saved.key;
+        if(saved.secret) document.getElementById('apiSecret').value = saved.secret;
+        if(saved.token) {
+          document.getElementById('accessToken').value = saved.token;
+          // Auto-reconnect on reload — connectZerodha will call refreshPrices()
+          // which will fail gracefully if token is stale (Kite returns error, fetch returns {})
+          // In that case kiteConnected stays true but badge falls back to Yahoo via updateBadgeStatus
+          const el = document.getElementById('connStatus');
+          el.className='conn-status';
+          el.innerHTML='<i class="ti ti-loader-2 spin"></i> Reconnecting saved API…';
+          setTimeout(()=>{
+            connectZerodha();
+          }, 800);
+        } else {
+          // Keys saved but no token yet
+          const el = document.getElementById('connStatus');
+          el.className='conn-status ok';
+          el.innerHTML='<i class="ti ti-device-floppy"></i> Keys saved · Enter Access Token to connect';
+        }
+      }
     } catch(e){}
   }
 }
@@ -1069,6 +1098,39 @@ function logout() {
     try{localStorage.removeItem('rsi_trader_license_v1');}catch(e){}
     try{if(window.netlifyIdentity && _netlifyUser) netlifyIdentity.logout();}catch(e){}
     window.location.href='index.html';
+  }
+}
+
+// ── BADGE STATUS HELPER ──
+// Single source of truth for the topbar data badge
+// Call this whenever connection state or fetch result changes
+function updateBadgeStatus(fetchedCount) {
+  const badge = document.getElementById('tbDataBadge');
+  if(!badge) return;
+  const ist = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  const h = ist.getHours(), m = ist.getMinutes(), day = ist.getDay();
+  const isOpen = day>=1&&day<=5&&(h*60+m)>=555&&(h*60+m)<930;
+
+  if(kiteConnected && (fetchedCount === undefined || fetchedCount > 0)) {
+    badge.textContent = 'LIVE';
+    badge.style.color = 'var(--green)';
+  } else if(fetchedCount > 0) {
+    // Yahoo data available
+    badge.textContent = isOpen ? 'LIVE' : 'REAL';
+    badge.style.color = isOpen ? 'var(--green)' : 'var(--cyan)';
+  } else if(fetchedCount === 0) {
+    // Fetch attempted but nothing returned
+    badge.textContent = 'OFFLINE';
+    badge.style.color = 'var(--red)';
+  }
+  // If fetchedCount is undefined (called for connection state change only), re-evaluate
+  // based on last known cache size
+  else {
+    const cacheSize = Object.keys(priceCache||{}).length;
+    if(cacheSize > 0) {
+      badge.textContent = isOpen ? 'LIVE' : 'REAL';
+      badge.style.color = isOpen ? 'var(--green)' : 'var(--cyan)';
+    }
   }
 }
 
@@ -1086,19 +1148,19 @@ function connectZerodha() {
   el.innerHTML='<i class="ti ti-loader-2 spin"></i> Connecting to Zerodha…';
   el.className='conn-status';
 
-  // Store credentials securely in session
-  try { sessionStorage.setItem('kite_creds', JSON.stringify({key,secret,token})); } catch(e){}
+  // Store credentials persistently in localStorage so they survive page reload
+  try { localStorage.setItem('kite_creds', JSON.stringify({key,secret,token})); } catch(e){}
 
   setTimeout(()=>{
     if(token) {
       kiteConnected = true;
       el.className='conn-status ok';
       el.innerHTML='<i class="ti ti-circle-check"></i> Connected · '+key.substring(0,6)+'…';
-      document.getElementById('tbDataBadge').textContent='LIVE';
-      document.getElementById('tbDataBadge').style.color='var(--green)';
       addLog('Zerodha Kite API connected — fetching live prices…','info');
-      // Immediately refresh prices with Kite
-      startPriceFeed();
+      // Trigger an immediate price refresh; the existing boot() interval will keep polling
+      // Do NOT call startPriceFeed() here to avoid creating a duplicate interval
+      refreshPrices();
+      updateBadgeStatus();
     } else {
       el.className='conn-status err';
       el.innerHTML='<i class="ti ti-alert-circle"></i> Access token required — click Kite Login';
@@ -1120,8 +1182,24 @@ function saveApiKeys() {
   const key    = document.getElementById('apiKey').value.trim();
   const secret = document.getElementById('apiSecret').value.trim();
   const token  = document.getElementById('accessToken').value.trim();
-  try { sessionStorage.setItem('kite_creds', JSON.stringify({key,secret,token})); } catch(e){}
-  addLog('API keys saved to session','info');
+  try { localStorage.setItem('kite_creds', JSON.stringify({key,secret,token})); } catch(e){}
+  addLog('API keys saved persistently — will auto-connect on next load','info');
+  const el = document.getElementById('connStatus');
+  el.className='conn-status ok';
+  el.innerHTML='<i class="ti ti-device-floppy"></i> Keys saved — click Connect to activate';
+}
+
+function clearApiKeys() {
+  try { localStorage.removeItem('kite_creds'); } catch(e){}
+  document.getElementById('apiKey').value = '';
+  document.getElementById('apiSecret').value = '';
+  document.getElementById('accessToken').value = '';
+  kiteConnected = false;
+  const el = document.getElementById('connStatus');
+  el.className='conn-status err';
+  el.innerHTML='<i class="ti ti-trash"></i> API keys cleared';
+  updateBadgeStatus(Object.keys(priceCache||{}).length);
+  addLog('API keys cleared from storage','warn');
 }
 
 // ── STRATEGY ENGINE ──
@@ -1306,28 +1384,43 @@ async function fetchYahooPrices(symbols) {
 }
 
 async function fetchKitePrices(symbols) {
-  // Use kite-proxy function with quote endpoint
-  const nsyms = symbols.map(s => 'NSE:'+s).join(',');
+  // ── Uses /.netlify/functions/kite-quotes (server-side proxy) ──
+  // Credentials are stored in the browser (localStorage) and sent in the request body
+  // so the Netlify function can forward them to Kite's API.
+  // The access token is NEVER visible in client network requests to Kite directly.
+  const creds = (() => { try { return JSON.parse(localStorage.getItem('kite_creds')||'{}'); } catch{ return {}; } })();
+  if(!creds.key || !creds.token) {
+    console.warn('Kite credentials not found in localStorage');
+    return {};
+  }
   try {
-    const res = await fetch('/.netlify/functions/kite-proxy', {
+    const res = await fetch('/.netlify/functions/kite-quotes', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ endpoint: '/quote?i='+encodeURIComponent(nsyms), method:'GET' })
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        symbols,
+        api_key:      creds.key,
+        access_token: creds.token,
+      }),
     });
-    const data = await res.json();
-    const map = {};
-    if(data.data) {
-      Object.entries(data.data).forEach(([key, q]) => {
-        const sym = key.replace('NSE:','');
-        if(q) map[sym] = {
-          price: q.last_price,
-          change: ((q.last_price - q.ohlc?.close) / (q.ohlc?.close||q.last_price)) * 100,
-          prevClose: q.ohlc?.close,
-          ts: Date.now()
-        };
-      });
+    if(!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      // Token expired → clear connection state and prompt re-login
+      if(res.status === 401) {
+        kiteConnected = false;
+        const el = document.getElementById('connStatus');
+        if(el) { el.className='conn-status err'; el.innerHTML='<i class="ti ti-alert-circle"></i> Token expired — click Kite Login for a new one'; }
+        addLog('⚠ Kite access token expired — please re-login and paste a new token','warn');
+      }
+      console.warn('kite-quotes error:', err.error);
+      return {};
     }
-    return map;
+    const data = await res.json();
+    if(data.status === 'success' && data.data) {
+      addLog(`Live prices updated via Kite API — ${Object.keys(data.data).length} symbols`, 'info');
+      return data.data; // Already in { sym: { price, change, prevClose, ... } } format
+    }
+    return {};
   } catch(e) {
     console.warn('Kite price fetch failed:', e.message);
     return {};
@@ -1340,14 +1433,20 @@ async function refreshPrices() {
     ...WATCHLIST_DATA.idx.map(s=>s.sym),
     ...WATCHLIST_DATA.com.map(s=>s.sym),
   ];
-  // Dedupe
   const uniq = [...new Set(allSyms)];
 
   let fetched = {};
   if(kiteConnected) {
-    const eqSyms = WATCHLIST_DATA.eq.map(s=>s.sym);
-    fetched = await fetchKitePrices(eqSyms);
-    addLog('Live prices updated via Kite API', 'info');
+    // Kite can handle all: equities, indexes, and commodities (kite-quotes handles prefix mapping)
+    fetched = await fetchKitePrices(uniq);
+    if(Object.keys(fetched).length === 0) {
+      // Kite fetch returned nothing — fall back to Yahoo
+      addLog('Kite fetch returned no data — falling back to Yahoo Finance', 'warn');
+      kiteConnected = false;
+      const el = document.getElementById('connStatus');
+      if(el) { el.className='conn-status err'; el.innerHTML='<i class="ti ti-alert-circle"></i> No data from Kite — check token'; }
+      fetched = await fetchYahooPrices(uniq);
+    }
   } else {
     fetched = await fetchYahooPrices(uniq);
     if(Object.keys(fetched).length > 0) {
@@ -1358,37 +1457,31 @@ async function refreshPrices() {
   // Apply to WATCHLIST_DATA and stockState
   Object.entries(fetched).forEach(([sym, d]) => {
     priceCache[sym] = d;
-    // Update watchlist base prices
     ['eq','idx','com'].forEach(mkt => {
       const item = WATCHLIST_DATA[mkt].find(i=>i.sym===sym);
       if(item) { item.price = d.price; item.change = d.change; }
     });
-    // Update stock state
     if(stockState[sym]) {
       stockState[sym].price = d.price;
       stockState[sym].change = d.change;
     }
   });
 
-  // Update topbar badge
-  if(Object.keys(fetched).length > 0) {
-    document.getElementById('tbDataBadge').textContent = kiteConnected ? 'LIVE' : 'REAL';
-    document.getElementById('tbDataBadge').style.color = kiteConnected ? 'var(--green)' : 'var(--cyan)';
-  }
-
+  updateBadgeStatus(Object.keys(fetched).length);
   buildWatchlist();
   const st = stockState[activeSymbol];
   if(st) updateHeader(st);
 }
 
-function startPriceFeed() {
-  refreshPrices(); // immediate
+function startPriceFeed(skipImmediate) {
+  // Always clear any existing interval first to prevent duplicate polling
   if(priceFetchInterval) clearInterval(priceFetchInterval);
-  // Refresh every 60s when market open, every 5min when closed
   const ist = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
   const h = ist.getHours(), m = ist.getMinutes(), day = ist.getDay();
   const isOpen = day>=1&&day<=5&&(h*60+m)>=555&&(h*60+m)<930;
   priceFetchInterval = setInterval(refreshPrices, isOpen ? 60000 : 300000);
+  // Only do an immediate fetch if not skipped (boot already fetched on init)
+  if(!skipImmediate) refreshPrices();
 }
 
 // Stock state: RSI, signals, trades, etc.
@@ -1493,15 +1586,16 @@ let bbData   = {upper:[],lower:[],mid:[],ema44:[]};
 let openPosition = null;
 
 function initPriceData(sym) {
-  const base = stockState[sym]?.price || 1000;
+  // Use real prevClose if available, else stockState price, else hardcoded seed
+  const cached = priceCache[sym];
+  const base = (cached?.prevClose) || (cached?.price) || stockState[sym]?.price || 1000;
   priceData  = [];
   volumeData = [];
   const N = 80;
-  let p = base * (0.97 + Math.random()*0.06);
+  // Fill history as flat line at prevClose — no fake random drift
+  // This means chart shows "last closed price" as baseline before any live tick
   for(let i=0;i<N;i++){
-    const d = (Math.random()-0.48)*base*0.008;
-    p = Math.max(p+d, base*0.8);
-    priceData.push({ t:i, v:parseFloat(p.toFixed(2)) });
+    priceData.push({ t:i, v:parseFloat(base.toFixed(2)) });
     volumeData.push({ t:i, v:Math.floor(50000+Math.random()*500000) });
   }
   recalcIndicators();
@@ -1871,12 +1965,53 @@ function executeTrade(side, price, qty, signalType='AUTO') {
   }
 }
 
-function placeKiteOrder(side, sym, qty) {
-  const creds = JSON.parse(sessionStorage.getItem('kite_creds')||'{}');
-  if(!creds.token) { addLog('Kite order skipped — no access token','warn'); return; }
-  addLog(`→ Kite API: ${side} ${sym} × ${qty}`, 'info');
-  // Real implementation:
-  // fetch('/api/order', { method:'POST', body:JSON.stringify({side,sym,qty,token:creds.token}) });
+async function placeKiteOrder(side, sym, qty) {
+  const creds = (() => { try { return JSON.parse(localStorage.getItem('kite_creds')||'{}'); } catch{ return {}; } })();
+  if(!creds.key || !creds.token) {
+    addLog('⚠ Kite order skipped — no credentials saved','warn');
+    return;
+  }
+
+  addLog(`→ Sending ${side} order to Kite: ${sym} × ${qty}…`, 'info');
+
+  // Determine exchange: options → NFO, commodities → MCX, equities → NSE
+  const MCX_SYMS = ['GOLD','SILVER','CRUDEOIL','NATURALGAS','COPPER','ALUMINIUM','ZINC','LEAD','NICKEL','COTTON'];
+  const isOption  = sym.includes(' CE') || sym.includes(' PE');
+  const isMCX     = MCX_SYMS.includes(sym);
+  const exchange  = isOption ? 'NFO' : isMCX ? 'MCX' : 'NSE';
+
+  // Product: MIS (intraday) by default; options use NRML
+  const product = isOption ? 'NRML' : 'MIS';
+
+  try {
+    const res = await fetch('/.netlify/functions/place-order', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        api_key:      creds.key,
+        access_token: creds.token,
+        symbol:       sym.replace(/ CE| PE/,'').toUpperCase(),
+        exchange,
+        side:         side.toUpperCase(),
+        quantity:     qty,
+        order_type:   'MARKET',
+        product,
+        tag:          'algorigin',
+      }),
+    });
+
+    const data = await res.json();
+
+    if(!res.ok || data.error) {
+      addLog(`❌ Kite order failed: ${data.error || 'Unknown error'}`, 'warn');
+      return;
+    }
+
+    addLog(`✅ Kite order placed: ${side} ${sym} × ${qty} · Order ID: ${data.order_id}`, side==='BUY'?'buy':'sell');
+
+  } catch(err) {
+    addLog(`❌ Kite order error: ${err.message}`, 'warn');
+  }
 }
 
 function closePosition() {
@@ -2005,59 +2140,109 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ── LIVE SIMULATION ──
-let tickInterval = null;
-
 function startSimulation() {
   if(tickInterval) clearInterval(tickInterval);
   tickInterval = setInterval(()=>{
-    // Simulate new price tick
-    const last = priceData[priceData.length-1]?.v || 1000;
-    const d = (Math.random()-0.48)*last*0.003;
-    const newPrice = Math.max(last+d, last*0.8);
-    priceData.push({t:priceData.length, v:parseFloat(newPrice.toFixed(2))});
-    if(priceData.length>120) priceData.shift();
+    const last = priceData[priceData.length-1]?.v || stockState[activeSymbol]?.price || 1000;
+
+    if(!kiteConnected) {
+      // NOT connected: DO NOT generate fake prices.
+      // Just keep the flat prevClose line and run signals on real fetched prices.
+      const st = stockState[activeSymbol];
+      const realPrice = (priceCache[activeSymbol]?.prevClose) || (priceCache[activeSymbol]?.price) || st?.price || last;
+
+      // Push the real prevClose/fetched price into chart (stable line, no random drift)
+      priceData.push({t:priceData.length, v:parseFloat(realPrice.toFixed(2))});
+      if(priceData.length>120) priceData.shift();
+
+      if(st) {
+        st.price = realPrice;
+        // change% = difference from prevClose vs prevClose (0 when market closed, real % when open)
+        const cached = priceCache[activeSymbol];
+        st.change = cached?.change ?? 0;
+      }
+
+      const sigResult = computeSignal(activeSymbol);
+      if(st) st.signal = sigResult.signal;
+      if(!openPosition) updateSignalBanner(sigResult.signal, sigResult.rsi, sigResult.confidence);
+
+      if(autoTradeOn && !openPosition && sigResult.signal==='buy') {
+        executeTrade('BUY', realPrice, parseInt(document.getElementById('s1Qty')?.value)||1, 'AUTO');
+      } else if(autoTradeOn && openPosition && sigResult.signal==='sell') {
+        executeTrade('SELL', realPrice, openPosition.qty, 'AUTO');
+      }
+
+      if(openPosition) {
+        openPosition.highPrice = Math.max(openPosition.highPrice, realPrice);
+        const slPct = parseInt(document.getElementById('s1SL')?.value)||20;
+        const slPrice = openPosition.highPrice * (1-slPct/100);
+        document.getElementById('posSlP').textContent = '₹'+slPrice.toFixed(2);
+        document.getElementById('posUnreal').textContent = (realPrice>openPosition.entryPrice?'+':'')+((realPrice-openPosition.entryPrice)*openPosition.qty).toFixed(2);
+        const prog = Math.max(0,Math.min(100,((realPrice-slPrice)/(openPosition.highPrice-slPrice))*100));
+        document.getElementById('slFill').style.width=prog+'%';
+        document.getElementById('slLbl').textContent=`SL: ₹${slPrice.toFixed(0)} · ${(100-prog).toFixed(0)}% consumed`;
+        if(autoTradeOn && realPrice<=slPrice) {
+          executeTrade('SELL',realPrice,openPosition.qty,'SL-HIT');
+          addLog('⚠ Trailing SL triggered @ ₹'+realPrice.toFixed(2),'warn');
+        }
+      }
+
+      updateHeader(st||{price:realPrice,change:0});
+      updateMetrics();
+
+      // Update other stocks from cache (real prevClose prices)
+      Object.keys(stockState).forEach(s=>{
+        const ss=stockState[s];
+        const c = priceCache[s];
+        if(c) {
+          ss.price = c.price || c.prevClose || ss.price;
+          ss.change = c.change ?? 0;
+        }
+        // RSI still drifts slightly for other symbols (background, not active)
+        ss.rsi=Math.max(10,Math.min(90,(ss.rsi||50)+(Math.random()-0.5)*1));
+      });
+
+    } else {
+      // Live mode: prices come from refreshPrices() via Kite
+      const livePrice = stockState[activeSymbol]?.price || last;
+      priceData.push({t:priceData.length, v:parseFloat(livePrice.toFixed(2))});
+      if(priceData.length>120) priceData.shift();
+
+      const st = stockState[activeSymbol];
+      if(!openPosition && st) {
+        const sigResult = computeSignal(activeSymbol);
+        st.signal = sigResult.signal;
+        updateSignalBanner(sigResult.signal, sigResult.rsi, sigResult.confidence);
+        if(autoTradeOn && sigResult.signal==='buy') {
+          executeTrade('BUY', livePrice, parseInt(document.getElementById('s1Qty')?.value)||1, 'AUTO');
+        }
+      } else if(openPosition && st) {
+        const sigResult = computeSignal(activeSymbol);
+        if(autoTradeOn && sigResult.signal==='sell') {
+          executeTrade('SELL', livePrice, openPosition.qty, 'AUTO');
+        }
+        openPosition.highPrice = Math.max(openPosition.highPrice, livePrice);
+        const slPct = parseInt(document.getElementById('s1SL')?.value)||20;
+        const slPrice = openPosition.highPrice * (1-slPct/100);
+        document.getElementById('posSlP').textContent = '₹'+slPrice.toFixed(2);
+        document.getElementById('posUnreal').textContent = (livePrice>openPosition.entryPrice?'+':'')+((livePrice-openPosition.entryPrice)*openPosition.qty).toFixed(2);
+        const prog = Math.max(0,Math.min(100,((livePrice-slPrice)/(openPosition.highPrice-slPrice))*100));
+        document.getElementById('slFill').style.width=prog+'%';
+        document.getElementById('slLbl').textContent=`SL: ₹${slPrice.toFixed(0)} · ${(100-prog).toFixed(0)}% consumed`;
+        if(autoTradeOn && livePrice<=slPrice) {
+          executeTrade('SELL',livePrice,openPosition.qty,'SL-HIT');
+          addLog('⚠ Trailing SL triggered @ ₹'+livePrice.toFixed(2),'warn');
+        }
+      }
+      if(st) updateHeader(st);
+      updateMetrics();
+    }
+
     volumeData.push({t:volumeData.length,v:Math.floor(50000+Math.random()*500000)});
     if(volumeData.length>120) volumeData.shift();
 
-    // Update stock state
-    const st = stockState[activeSymbol];
-    if(st) { st.price = newPrice; st.change = ((newPrice/priceData[0]?.v||newPrice)-1)*100; }
-
     recalcIndicators();
 
-    // Check signals
-    const sigResult = computeSignal(activeSymbol);
-    if(st) st.signal = sigResult.signal;
-    if(!openPosition) updateSignalBanner(sigResult.signal, sigResult.rsi, sigResult.confidence);
-
-    // Auto-execute
-    if(autoTradeOn && !openPosition && sigResult.signal==='buy') {
-      executeTrade('BUY', newPrice, parseInt(document.getElementById('s1Qty')?.value)||1, 'AUTO');
-    } else if(autoTradeOn && openPosition && sigResult.signal==='sell') {
-      executeTrade('SELL', newPrice, openPosition.qty, 'AUTO');
-    }
-
-    // Trailing SL check
-    if(openPosition) {
-      openPosition.highPrice = Math.max(openPosition.highPrice, newPrice);
-      const slPct = parseInt(document.getElementById('s1SL')?.value)||20;
-      const slPrice = openPosition.highPrice * (1-slPct/100);
-      document.getElementById('posSlP').textContent = '₹'+slPrice.toFixed(2);
-      document.getElementById('posUnreal').textContent = (newPrice>openPosition.entryPrice?'+':'')+((newPrice-openPosition.entryPrice)*openPosition.qty).toFixed(2);
-      const prog = Math.max(0,Math.min(100,((newPrice-slPrice)/(openPosition.highPrice-slPrice))*100));
-      document.getElementById('slFill').style.width=prog+'%';
-      document.getElementById('slLbl').textContent=`SL: ₹${slPrice.toFixed(0)} · ${(100-prog).toFixed(0)}% consumed`;
-      if(autoTradeOn && newPrice<=slPrice) {
-        executeTrade('SELL',newPrice,openPosition.qty,'SL-HIT');
-        addLog('⚠ Trailing SL triggered @ ₹'+newPrice.toFixed(2),'warn');
-      }
-    }
-
-    updateHeader(st||{price:newPrice,change:0});
-    updateMetrics();
-
-    // Update charts
     if(charts.price) {
       const labels = makeLabels();
       charts.price.data.labels = labels;
@@ -2081,15 +2266,7 @@ function startSimulation() {
       charts.macd.update('none');
     }
 
-    // Update watchlist prices
     buildWatchlist();
-    // Randomly move other stock RSIs
-    Object.keys(stockState).forEach(s=>{
-      const ss=stockState[s];
-      ss.rsi=Math.max(10,Math.min(90,(ss.rsi||50)+(Math.random()-0.5)*2));
-      const pchg=(Math.random()-0.49)*0.004;
-      ss.price=ss.price*(1+pchg);
-    });
 
   }, 1500);
 }
@@ -2128,7 +2305,7 @@ function showGTab(n, btn) {
 }
 
 // ── BOOT ──
-function boot() {
+async function boot() {
   // Wire up Netlify Identity for admin detection
   if(window.netlifyIdentity) {
     netlifyIdentity.on('init', user => {
@@ -2149,11 +2326,54 @@ function boot() {
   }
 
   switchStrategy(1);
+
+  // ── Fetch real prevClose prices FIRST before building chart ──
+  // This ensures chart baseline = real last-close price, not hardcoded seed
+  addLog('Fetching last-close prices from market…','info');
+  const allSyms = [
+    ...WATCHLIST_DATA.eq.map(s=>s.sym),
+    ...WATCHLIST_DATA.idx.map(s=>s.sym),
+    ...WATCHLIST_DATA.com.map(s=>s.sym),
+  ];
+  const uniq = [...new Set(allSyms)];
+  try {
+    const fetched = await fetchYahooPrices(uniq);
+    if(Object.keys(fetched).length > 0) {
+      // Populate priceCache and stockState with real prevClose
+      Object.entries(fetched).forEach(([sym, d]) => {
+        priceCache[sym] = d;
+        ['eq','idx','com'].forEach(mkt => {
+          const item = WATCHLIST_DATA[mkt].find(i=>i.sym===sym);
+          if(item) { item.price = d.prevClose || d.price; item.change = d.change; }
+        });
+        if(stockState[sym]) {
+          stockState[sym].price  = d.prevClose || d.price;
+          stockState[sym].change = d.change;
+        }
+      });
+      addLog(`Last-close prices loaded — ${Object.keys(fetched).length} symbols`,'info');
+
+      // Update topbar badge
+      updateBadgeStatus(Object.keys(fetched).length);
+    } else {
+      addLog('Could not fetch live prices — check network. Using seed prices.','warn');
+      updateBadgeStatus(0);
+    }
+  } catch(e) {
+    addLog('Price fetch error: '+e.message,'warn');
+  }
+
+  // Now init chart — will use real prevClose from priceCache
   initPriceData('TCS');
   buildWatchlist();
   rebuildCharts();
   updateRankTable();
   startSimulation();
+
+  // Start price feed — single call, startPriceFeed() owns the interval lifecycle
+  // Pass true to skip the immediate fetch since boot() already fetched above
+  startPriceFeed(true);
+
   addLog('RSI Algo Trader initialised — Session: '+(SESSION.name||'Trader'),'info');
   addLog('Strategy: '+STRATEGIES[currentStrategy].name,'info');
   addLog('Market: NSE · Nifty 50 equities, indexes, options','info');
