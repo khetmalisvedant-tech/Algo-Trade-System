@@ -1,112 +1,64 @@
+
 const KITE_BASE = 'https://api.kite.trade';
 
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   };
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
+  if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers };
+
+  // Auth: API key + access token from Netlify env (set by save-token.js)
+  const apiKey   = process.env.KITE_API_KEY;
+  const apiToken = process.env.KITE_ACCESS_TOKEN;
+  if (!apiKey || !apiToken) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'No Kite credentials configured' }) };
   }
 
-  let body = {};
-  try { body = JSON.parse(event.body || '{}'); } catch {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) };
+  let symbols;
+  try { symbols = JSON.parse(event.body).symbols; } catch { symbols = []; }
+
+  if (!symbols || symbols.length === 0) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: 'No symbols provided' }) };
   }
 
-  const { symbols = [], api_key, access_token } = body;
-  const apiKey    = api_key     || process.env.KITE_API_KEY;
-  const accessTok = access_token || process.env.KITE_ACCESS_TOKEN;
+  // Kite /quote accepts: NSE:RELIANCE, BSE:RELIANCE, NFO:NIFTY24DECFUT, MCX:GOLD
+  const qs = symbols.map(s => `i=${encodeURIComponent(s)}`).join('&');
 
-  if (!apiKey || !accessTok) {
-    return {
-      statusCode: 401, headers,
-      body: JSON.stringify({ error: 'Missing Kite credentials' }),
-    };
-  }
-
-  if (!symbols.length) {
-    return {
-      statusCode: 400, headers,
-      body: JSON.stringify({ error: 'No symbols provided' }),
-    };
-  }
-
-  // Build i= param: NSE:TCS,NSE:RELIANCE,...
-  // Special symbols: indexes use NSE:NIFTY 50, commodities use MCX: prefix
-  const INDEX_MAP = {
-    'NIFTY50': 'NSE:NIFTY 50',
-    'BANKNIFTY': 'NSE:NIFTY BANK',
-    'NIFTYMID50': 'NSE:NIFTY MIDCAP 50',
-    'SENSEX': 'BSE:SENSEX',
-    'NIFTYIT': 'NSE:NIFTY IT',
-    'NIFTYFMCG': 'NSE:NIFTY FMCG',
-  };
-  const MCX_SYMS = ['GOLD','SILVER','CRUDEOIL','NATURALGAS','COPPER','ALUMINIUM','ZINC','LEAD','NICKEL','COTTON'];
-
-  const iParam = symbols.map(s => {
-    if (INDEX_MAP[s])       return INDEX_MAP[s];
-    if (MCX_SYMS.includes(s)) return `MCX:${s}`;
-    return `NSE:${s}`;
-  }).join(',');
-
-  try {
-    const res = await fetch(
-      `${KITE_BASE}/quote?i=${encodeURIComponent(iParam)}`,
-      {
-        headers: {
-          'X-Kite-Version': '3',
-          'Authorization': `token ${apiKey}:${accessTok}`,
-        },
-      }
-    );
-
-    const json = await res.json();
-
-    if (json.status === 'error') {
-      return {
-        statusCode: 401, headers,
-        body: JSON.stringify({ error: json.message, error_type: json.error_type }),
-      };
+  const res = await fetch(`${KITE_BASE}/quote?${qs}`, {
+    headers: {
+      'X-Kite-Version': '3',
+      'Authorization': `token ${apiKey}:${apiToken}`,
     }
+  });
 
-    // Transform Kite quote format → dashboard format
-    const data = {};
-    if (json.data) {
-      Object.entries(json.data).forEach(([key, q]) => {
-        // key = "NSE:TCS" → sym = "TCS"
-        const sym = key.split(':')[1]?.replace('NIFTY 50','NIFTY50').replace('NIFTY BANK','BANKNIFTY') || key;
-        const prevClose = q.ohlc?.close || q.last_price;
-        const change    = prevClose ? ((q.last_price - prevClose) / prevClose) * 100 : 0;
+  const json = await res.json();
 
-        data[sym] = {
-          price:      q.last_price,
-          change:     parseFloat(change.toFixed(2)),
-          prevClose:  prevClose,
-          open:       q.ohlc?.open,
-          high:       q.ohlc?.high,
-          low:        q.ohlc?.low,
-          volume:     q.volume_traded,
-          bid:        q.depth?.buy?.[0]?.price,
-          ask:        q.depth?.sell?.[0]?.price,
-          oi:         q.oi,
-          ts:         Date.now(),
-        };
-      });
-    }
+  if (!res.ok) {
+    return { statusCode: res.status, headers, body: JSON.stringify({ error: json.message || 'Kite API error', kite: json }) };
+  }
 
-    return {
-      statusCode: 200, headers,
-      body: JSON.stringify({ status: 'success', source: 'kite', data }),
-    };
-
-  } catch (err) {
-    return {
-      statusCode: 502, headers,
-      body: JSON.stringify({ error: 'Kite quotes fetch failed', details: err.message }),
+  // Normalize: extract price, change%, volume, OHLC from Kite response
+  const out = {};
+  for (const [key, d] of Object.entries(json.data || {})) {
+    const sym = key.split(':')[1]; // strip "NSE:" prefix for dashboard lookup
+    out[sym] = {
+      price:     d.last_price,
+      open:      d.ohlc?.open,
+      high:      d.ohlc?.high,
+      low:       d.ohlc?.low,
+      close:     d.ohlc?.close,
+      prevClose: d.ohlc?.close,
+      volume:    d.volume,
+      change:    d.net_change,       // absolute change
+      changePct: d.last_price && d.ohlc?.close
+                 ? parseFloat(((d.last_price - d.ohlc.close) / d.ohlc.close * 100).toFixed(2))
+                 : 0,
+      oi:        d.oi || 0,
+      oi_change: d.oi_day_change || 0,
     };
   }
+
+  return { statusCode: 200, headers, body: JSON.stringify({ data: out }) };
 };

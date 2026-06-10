@@ -444,6 +444,7 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
   z-index:300;border-radius:0!important;
   display:flex;flex-direction:column;
 }
+
 .chart-block.fullscreen .chart-canvas-wrap{flex:1;height:auto!important}
 
 /* ── TABS ── */
@@ -728,6 +729,14 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
       <button class="mtab" id="tabCom" onclick="switchMarket('com')" style="color:var(--amber)">🛢 Commo</button>
     </div>
     <div class="wl-inner" id="watchlist"></div>
+    <!-- Add these buttons in the chart header area -->
+<div class="tf-bar">
+  <button class="tf-btn active" onclick="setTimeframe('minute','1')">1m</button>
+  <button class="tf-btn" onclick="setTimeframe('5minute','2')">5m</button>
+  <button class="tf-btn" onclick="setTimeframe('15minute','5')">15m</button>
+  <button class="tf-btn" onclick="setTimeframe('60minute','10')">1h</button>
+  <button class="tf-btn" onclick="setTimeframe('day','60')">1D</button>
+</div>
   </div>
 
 </div><!-- /sidebar -->
@@ -824,7 +833,14 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
 
   <!-- Charts -->
   <div class="charts-area">
-
+<!-- Add these buttons in the chart header area -->
+<div class="tf-bar">
+  <button class="tf-btn active" onclick="setTimeframe('minute','1')">1m</button>
+  <button class="tf-btn" onclick="setTimeframe('5minute','2')">5m</button>
+  <button class="tf-btn" onclick="setTimeframe('15minute','5')">15m</button>
+  <button class="tf-btn" onclick="setTimeframe('60minute','10')">1h</button>
+  <button class="tf-btn" onclick="setTimeframe('day','60')">1D</button>
+</div>
     <!-- Price Chart -->
     <div class="chart-block" id="priceBlock">
       <div class="chart-head">
@@ -1347,7 +1363,40 @@ const WATCHLIST_DATA = {
     {sym:'COTTON',     full:'Cotton (MCX)',               price:62000, change:0, tag:'com'},
   ],
 };
+// Kite instrument prefix map
+// Equities + indices use NSE:, MCX commodities use MCX:, options use NFO:
+const KITE_PREFIX = {
+  eq:  'NSE',   // e.g. NSE:RELIANCE
+  idx: 'NSE',   // e.g. NSE:NIFTY 50  (yes, with space — Kite accepts this)
+  com: 'MCX',   // e.g. MCX:GOLD
+  opt: 'NFO',   // e.g. NFO:NIFTY24DEC23000CE (full trading symbol)
+};
 
+// When building the quote request, prefix each symbol:
+function toKiteSymbol(sym, market) {
+  return `${KITE_PREFIX[market] || 'NSE'}:${sym}`;
+}
+
+// UPDATED fetchKitePrices — replaces the existing function
+async function fetchKitePrices() {
+  const creds = getKiteCreds();
+  if (!creds.key || !creds.token) return {};
+
+  // Build full symbol list with correct prefixes
+  const symbols = [];
+  ['eq','idx','com'].forEach(mkt => {
+    (WATCHLIST_DATA[mkt] || []).forEach(item => symbols.push(toKiteSymbol(item.sym, mkt)));
+  });
+
+  const res = await fetch('/.netlify/functions/kite-quotes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ symbols })
+  });
+
+  const json = await res.json();
+  return json.data || {};
+}
 // ── REAL PRICE FETCHING ──
 // When Kite API is connected use it; fallback to Yahoo Finance query API
 let priceCache = {};  // sym → {price, change, prevClose, ts}
@@ -1907,7 +1956,63 @@ function updateMetrics() {
 
 // ── TRADE EXECUTION ──
 let trades = [];
+// Before placing any auto-trade order, check these guards:
+function canAutoTrade(side) {
+  if (!kiteConnected) { addLog('⚠ Auto-trade blocked: Kite not connected', 'warn'); return false; }
+  if (!autoTradeOn)   { return false; }
 
+  // Block if already in a position for this symbol
+  if (side === 'BUY' && openPosition?.sym === activeSymbol) {
+    addLog(`⚠ Already in position: ${activeSymbol} — skipping BUY`, 'warn');
+    return false;
+  }
+  if (side === 'SELL' && !openPosition) {
+    addLog('⚠ No open position to SELL — skipping', 'warn');
+    return false;
+  }
+
+  // Block outside market hours
+  const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const mins = ist.getHours() * 60 + ist.getMinutes();
+  const day  = ist.getDay();
+  if (day === 0 || day === 6 || mins < 555 || mins >= 930) {
+    addLog('⚠ Market closed — auto-trade blocked', 'warn');
+    return false;
+  }
+
+  return true;
+}
+// Called every 60s alongside refreshPrices()
+// Evaluates signal for the active symbol and fires if conditions met
+function autoTradeTick() {
+  if (!autoTradeOn || !kiteConnected) return;
+
+  const { signal, rsi, confidence } = computeSignal(activeSymbol);
+  const minConf = parseInt(document.getElementById('cfgMinConf')?.value) || 75;
+
+  if (signal === 'buy' && confidence >= minConf && canAutoTrade('BUY')) {
+    const qty = parseInt(document.getElementById('s1Qty')?.value) || 1;
+    const price = stockState[activeSymbol]?.price || 0;
+    executeTrade('BUY', price, qty, 'AUTO');
+    addLog(`🤖 Auto-BUY fired: ${activeSymbol} @ ₹${price} (conf: ${confidence}%)`, 'buy');
+  }
+
+  if (signal === 'sell' && openPosition?.sym === activeSymbol && canAutoTrade('SELL')) {
+    const price = stockState[activeSymbol]?.price || 0;
+    executeTrade('SELL', price, openPosition.qty, 'AUTO');
+    addLog(`🤖 Auto-SELL fired: ${activeSymbol} @ ₹${price} (conf: ${confidence}%)`, 'sell');
+  }
+}
+
+// Call autoTradeTick() in startPriceFeed() alongside the price interval:
+function startPriceFeed() {
+  if (priceFetchInterval) clearInterval(priceFetchInterval);
+  priceFetchInterval = setInterval(async () => {
+    await refreshPrices();
+    autoTradeTick(); // runs after prices are fresh
+  }, 60000);
+  refreshPrices(); // immediate on start
+}
 function manualOrder(side) {
   const st = stockState[activeSymbol]||{};
   const price = st.price || priceData[priceData.length-1]?.v || 0;
