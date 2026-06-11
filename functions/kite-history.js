@@ -18,35 +18,39 @@ exports.handler = async (event) => {
   const [exchange, ...rest] = sym.split(':');
   const tradingSymbol = rest.join(':');
 
-  const instrRes = await fetch(`https://api.kite.trade/instruments/${exchange}`, {
-    headers: { 'X-Kite-Version': '3', 'Authorization': `token ${apiKey}:${apiToken}` }
-  });
-  const csv = await instrRes.text();
-  const lines = csv.split('\n').slice(1); // skip header
-  let token = null;
-  for (const line of lines) {
-    const [instrToken,,tsym] = line.split(',');
-    if (tsym === tradingSymbol) { token = instrToken; break; }
+  try {
+    const instrRes = await fetch(`https://api.kite.trade/instruments/${exchange}`, {
+      headers: { 'X-Kite-Version': '3', 'Authorization': `token ${apiKey}:${apiToken}` }
+    });
+    const csv = await instrRes.text();
+    const lines = csv.split('\n').slice(1); // skip header
+    let token = null;
+    for (const line of lines) {
+      const [instrToken,,tsym] = line.split(',');
+      if (tsym === tradingSymbol) { token = instrToken; break; }
+    }
+    if (!token) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Symbol not found in instruments' }) };
+
+    // Step 2: fetch historical candles
+    const to   = new Date();
+    const from = new Date(to - parseInt(days) * 86400000);
+    const fmt  = d => d.toISOString().slice(0, 19).replace('T', ' ');
+
+    const url = `https://api.kite.trade/instruments/historical/${token}/${interval}`
+                + `?from=${encodeURIComponent(fmt(from))}&to=${encodeURIComponent(fmt(to))}&continuous=0`;
+
+    const histRes = await fetch(url, {
+      headers: { 'X-Kite-Version': '3', 'Authorization': `token ${apiKey}:${apiToken}` }
+    });
+    const data = await histRes.json();
+
+    // data.data.candles = [[timestamp, open, high, low, close, volume], ...]
+    const candles = (data.data?.candles || []).map(([t, o, h, l, c, v]) => ({
+      t: new Date(t).toISOString(), o, h, l, c, v
+    }));
+
+    return { statusCode: 200, headers, body: JSON.stringify({ candles }) };
+  } catch (err) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
   }
-  if (!token) return { statusCode: 404, headers, body: JSON.stringify({ error: 'Symbol not found in instruments' }) };
-
-  // Step 2: fetch historical candles
-  const to   = new Date();
-  const from = new Date(to - parseInt(days) * 86400000);
-  const fmt  = d => d.toISOString().slice(0, 19).replace('T', ' ');
-
-  const url = `https://api.kite.trade/instruments/historical/${token}/${interval}`
-              + `?from=${encodeURIComponent(fmt(from))}&to=${encodeURIComponent(fmt(to))}&continuous=0`;
-
-  const histRes = await fetch(url, {
-    headers: { 'X-Kite-Version': '3', 'Authorization': `token ${apiKey}:${apiToken}` }
-  });
-  const data = await histRes.json();
-
-  // data.data.candles = [[timestamp, open, high, low, close, volume], ...]
-  const candles = (data.data?.candles || []).map(([t, o, h, l, c, v]) => ({
-    t: new Date(t).toISOString(), o, h, l, c, v
-  }));
-
-  return { statusCode: 200, headers, body: JSON.stringify({ candles }) };
 };

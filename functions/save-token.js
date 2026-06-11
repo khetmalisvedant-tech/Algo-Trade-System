@@ -1,24 +1,119 @@
 // netlify/functions/save-token.js
 // ADMIN ONLY: Updates the KITE_ACCESS_TOKEN environment variable via Netlify API.
-// Called automatically when admin clicks "Connect" with their API credentials.
 //
-// This means the admin can refresh the daily Kite token without touching Netlify dashboard.
+// Two modes:
+// 1. POST: Manual token update (admin clicks "Connect" in dashboard)
+// 2. GET: Auto token exchange (Kite redirects here with request_token)
 //
 // Required env vars (set once, never change):
 //   NETLIFY_SITE_ID   = your Netlify site ID (found in Site settings → General)
 //   NETLIFY_API_TOKEN = a personal access token from app.netlify.com/user/applications
 //   ADMIN_EMAIL       = your email (for admin-only check)
+//   KITE_API_SECRET   = your Kite API secret (for auto token exchange only)
+
+const crypto = require('crypto');
+
+// Helper: update env var via Netlify API
+async function updateNetlifyEnv(key, value) {
+  const netlifyToken = process.env.NETLIFY_API_TOKEN;
+  const siteId = process.env.NETLIFY_SITE_ID;
+
+  if (!netlifyToken || !siteId) {
+    console.log('NETLIFY_API_TOKEN or NETLIFY_SITE_ID not set');
+    return false;
+  }
+
+  try {
+    const res = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/env`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${netlifyToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        { key, values: [{ context: 'all', value }] }
+      ]),
+    });
+    return res.ok;
+  } catch (err) {
+    console.error('Netlify API error:', err);
+    return false;
+  }
+}
 
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
-  if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+
+  // ============= GET: Handle Kite redirect =============
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.request_token) {
+    const requestToken = event.queryStringParameters.request_token;
+    const apiKey    = process.env.KITE_API_KEY;
+    const apiSecret = process.env.KITE_API_SECRET;
+
+    if (!apiKey || !apiSecret) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'KITE_API_KEY or KITE_API_SECRET not configured' })
+      };
+    }
+
+    try {
+      // Generate checksum: sha256(api_key + request_token + api_secret)
+      const checksum = crypto.createHash('sha256')
+        .update(apiKey + requestToken + apiSecret)
+        .digest('hex');
+
+      // Exchange for access token
+      const tokenRes = await fetch('https://api.kite.trade/session/token', {
+        method: 'POST',
+        headers: {
+          'X-Kite-Version': '3',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          api_key: apiKey, request_token: requestToken, checksum
+        }).toString()
+      });
+
+      const tokenData = await tokenRes.json();
+      const accessToken = tokenData.data?.access_token;
+
+      if (accessToken) {
+        // Save to Netlify env var
+        await updateNetlifyEnv('KITE_ACCESS_TOKEN', accessToken);
+        // Redirect back to dashboard
+        return {
+          statusCode: 302,
+          headers: { Location: '/dashboard.html?kite=connected' }
+        };
+      } else {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Failed to exchange token: ' + tokenData.message })
+        };
+      }
+    } catch (err) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Token exchange failed: ' + err.message })
+      };
+    }
+  }
+
+  // ============= POST: Manual token update =============
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
+  }
 
   // Admin-only check
   const context = event.clientContext;
@@ -44,7 +139,6 @@ exports.handler = async (event) => {
   const siteId = process.env.NETLIFY_SITE_ID;
 
   if (!netlifyToken || !siteId) {
-    // Graceful fallback — token saved in memory for this session but won't persist
     console.log('NETLIFY_API_TOKEN or NETLIFY_SITE_ID not set — token update skipped (works for this session only)');
     return {
       statusCode: 200,
@@ -58,7 +152,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Update env var via Netlify API
+    // Update env vars via Netlify API
     const res = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/env`, {
       method: 'PATCH',
       headers: {
