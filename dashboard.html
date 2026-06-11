@@ -2409,19 +2409,38 @@ async function boot() {
   if(window.netlifyIdentity) {
     netlifyIdentity.on('init', user => {
       _netlifyUser = user;
-      initRole(user ? user.email : null);
+      const email = user ? user.email : null;
+      if(email) localStorage.setItem('admin_email_cache', email);
+      initRole(email);
     });
     netlifyIdentity.on('login', user => {
       _netlifyUser = user;
-      initRole(user ? user.email : null);
+      const email = user ? user.email : null;
+      if(email) localStorage.setItem('admin_email_cache', email);
+      initRole(email);
     });
     netlifyIdentity.on('logout', () => {
       _netlifyUser = null;
+      localStorage.removeItem('admin_email_cache');
       initRole(null);
     });
+    // Restore admin role immediately from cache (survives Kite OAuth redirect)
+    const _cachedEmail = localStorage.getItem('admin_email_cache');
+    if(_cachedEmail) initRole(_cachedEmail);
     netlifyIdentity.init({ logo: false });
   } else {
     initRole(null);
+  }
+
+  // Handle Kite OAuth redirect — auto-connect if redirected back with ?kite=connected
+  const _urlParams = new URLSearchParams(window.location.search);
+  if(_urlParams.get('kite') === 'connected') {
+    history.replaceState({}, '', '/dashboard.html'); // clean URL
+    setTimeout(() => { if(IS_ADMIN) connectZerodha(); }, 1500); // wait for keys to restore
+  } else if(_urlParams.get('kite') === 'error') {
+    const reason = _urlParams.get('reason') || 'unknown';
+    addLog('Kite login failed: ' + reason, 'warn');
+    history.replaceState({}, '', '/dashboard.html');
   }
 
   switchStrategy(1);
