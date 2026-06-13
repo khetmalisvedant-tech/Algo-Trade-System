@@ -828,7 +828,7 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
     </div>
     <div id="credsNoKey">
       <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.6">Enter your Zerodha API credentials once — they are encrypted and stored securely. No manual token paste ever needed again.</div>
-      <button class="btn green full" onclick="openRiskModal('creds')"><i class="ti ti-key"></i> Setup Kite Credentials</button>
+      <button class="btn green full" id="setupKiteBtn" onclick="openRiskModal('creds')" style="cursor:pointer"><i class="ti ti-key"></i> Setup Kite Credentials</button>
     </div>
   </div>
 
@@ -3172,7 +3172,7 @@ async function boot() {
 // ═══════════════════════════════════════════════════════════════════════
 
 // ── USER STATE ──
-let currentUserEmail = null;
+let currentUserEmail = null ;
 let riskSettings     = null;
 let credentialsState = { hasKey: false, hasToken: false, tokenValid: false, keyMasked: '' };
 let kiteConnected    = false;
@@ -4155,7 +4155,31 @@ async function fetchKitePrices(symbols) {
   if (Object.keys(result).length > 0) return result;
   return _origFetchKitePrices(symbols);
 }
-
+document.addEventListner('DOMContentLoaded',function(){
+  const btn = document.getElementById('setupKiteBtn');
+  if(btn){
+    btn.addEventListner('click',function(e){
+      e.preventDefault();
+      const overlay = document.getElementById('riskOverlay');
+      if(!overlay){
+        alert('Model not initialized. Refreshing....');
+        location.reload();
+        return;
+      }
+      overlay.classList.add('open');
+      document.querySelectorAll('.risk-rc').forEach(el=>el.classList.remove('vis'));
+      document.querySelector('.etab').forEach(el=> el.classList.remove('act'));
+      const credsTab = document.getElementById('rrc-creds');
+      const firstTab = document.querySelectorAll('.rtab')[0];
+      if(credsTab) credsTab.classList.add('vis');
+      if(firstTab) firstTab.classList.add('act');
+      const email = typeof getCurrentEmail === 'function' ? getCurrentEmail() : null;
+      const lbl = document.getElementById('riskUserlabel');
+      if(ldl) ldl.textContent = email ? ('Logged in as: '+ email):"Not logged in";
+      if(email && typeof checkCredentials === 'function') checkCredentials(email);
+    })
+  }
+})
 window.addEventListener('load', boot);
 
 </script>
