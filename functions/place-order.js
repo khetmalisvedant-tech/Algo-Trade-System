@@ -14,20 +14,20 @@ exports.handler = async (event) => {
   // ① Auth required
   const user = event.clientContext?.user;
   if (!user) return { statusCode: 401, headers, body: JSON.stringify({ error: 'Login required' }) };
-const dailyLossLimit = parseFloat(process.env.DAILY_LOSS_LIMIT_PCT || '2'); // 2% default
+  const dailyLossLimit = parseFloat(process.env.DAILY_LOSS_LIMIT_PCT || '2'); // 2% default
 
-const posRes = await fetch('https://api.kite.trade/portfolio/positions', {
+  const posRes = await fetch('https://api.kite.trade/portfolio/positions', {
   headers: { 'X-Kite-Version': '3', 'Authorization': `token ${apiKey}:${tok}` }
-});
-const posData = await posRes.json();
-const dayPnl = (posData.data?.day || []).reduce((sum, p) => sum + (p.pnl || 0), 0);
+  });
+  const posData = await posRes.json();
+  const dayPnl = (posData.data?.day || []).reduce((sum, p) => sum + (p.pnl || 0), 0);
 
-const marginsRes = await fetch('https://api.kite.trade/user/margins', { ... });
-const margins = await marginsRes.json();
-const equity = margins.data?.equity?.net || 1;
-const lossPct = (dayPnl / equity) * 100;
+  const marginsRes = await fetch('https://api.kite.trade/user/margins',{});
+  const margins = await marginsRes.json();
+  const equity = margins.data?.equity?.net || 1;
+  const lossPct = (dayPnl / equity) * 100;
 
-if (lossPct < -dailyLossLimit) {
+  if (lossPct < -dailyLossLimit) {
   return { statusCode: 429, headers, body: JSON.stringify({
     error: `CIRCUIT_BREAKER: Daily loss limit ${dailyLossLimit}% reached (current: ${lossPct.toFixed(2)}%)`,
     circuit_breaker: true
@@ -56,7 +56,7 @@ if (lossPct < -dailyLossLimit) {
   const qty = parseInt(quantity, 10);
   if (isNaN(qty) || qty <= 0) return { statusCode: 400, headers, body: JSON.stringify({ error: 'quantity must be positive integer' }) };
   const maxQty = exchange==='MCX' ? MAX_QTY_MCX : exchange==='NFO' ? MAX_QTY_NFO : MAX_QTY_NSE;
-  if (qty > maxQty) return { statusCode: 400, headers, body: JSON.stringify({ error: `Quantity ${qty} exceeds max ${maxQty} for ${exchange}` }) };
+  if (qty > maxQty) return { statusCode: 400, headers, body: JSON.stringify({ error: `Quantity ${qty} exceeds max ${maxQty} for ${exchange}` }) };};
 
   // ⑤ Proceed to place order (rest of code same as before)
   // ... URLSearchParams build + fetch to Kite ...;

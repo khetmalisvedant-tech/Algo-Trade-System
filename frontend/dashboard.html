@@ -4146,35 +4146,7 @@ function initRole(email) {
   document.getElementById('userCredsSection').style.display = '';
   document.getElementById('userSection').style.display = 'none';
 }
-// dashboard.html — WebSocket integration
-const RENDER_WS = `wss://${RENDER_BACKEND_URL.replace('https://','')}`;
-let ws;
 
-function connectRenderWS() {
-  ws = new WebSocket(RENDER_WS);
-  
-  ws.onmessage = (evt) => {
-    const msg = JSON.parse(evt.data);
-    if (msg.type === 'ticks') processTicks(msg.data);
-  };
-  
-  ws.onclose = () => setTimeout(connectRenderWS, 3000);
-}
-
-async function subscribeSymbol(sym) {
-  // 1. Resolve token from Render
-  const r = await fetch(`${RENDER_BACKEND_URL}/instrument?sym=${sym}`);
-  const { token } = await r.json();
-  
-  // 2. Tell Render to subscribe this token
-  await fetch(`${RENDER_BACKEND_URL}/subscribe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ tokens: [token] }),
-  });
-  
-  return token;
-}
 
 // ── UPDATED fetchKitePrices (override to use auto-resolver) ──
 const _origFetchKitePrices = fetchKitePrices;
