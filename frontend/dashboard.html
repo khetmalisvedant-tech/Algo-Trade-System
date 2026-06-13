@@ -55,7 +55,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:1
 }
 .tb-logo{
   width:28px;height:28px;
-  background:rgba(16,185,129,0.1);
+  background:rgba(19, 191, 133, 0.1);
   border:1px solid rgba(16,185,129,0.25);
   border-radius:2px;
   display:flex;align-items:center;justify-content:center;
@@ -551,6 +551,206 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
   border-radius:2px;font-size:10px;color:var(--amber);
   line-height:1.6;font-family:var(--mono);
 }
+
+/* ── RISK MODAL ── */
+.risk-overlay{
+  position:fixed;inset:0;z-index:500;
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;
+}
+.risk-overlay.open{display:flex}
+.risk-modal{
+  width:700px;max-width:96vw;max-height:90vh;overflow-y:auto;
+  background:var(--bg1);border:1px solid var(--border2);border-radius:4px;
+}
+.risk-head{
+  padding:14px 18px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--bg1);z-index:10;
+}
+.risk-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg)}
+.rtab{
+  padding:8px 14px;font-size:11px;font-family:var(--mono);
+  cursor:pointer;color:var(--text3);border:none;background:none;
+  border-bottom:2px solid transparent;transition:all 0.1s;
+}
+.rtab.act{color:var(--text);border-bottom-color:var(--blue)}
+.rtab:hover{color:var(--text2)}
+.risk-body{padding:16px}
+.risk-rc{display:none}.risk-rc.vis{display:block}
+.risk-section{margin-bottom:20px}
+.risk-section-title{
+  font-size:9px;color:var(--text3);letter-spacing:0.12em;
+  text-transform:uppercase;font-family:var(--mono);
+  margin-bottom:10px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:6px;
+}
+.risk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.risk-field{display:flex;flex-direction:column;gap:4px}
+.risk-label{font-size:11px;color:var(--text2)}
+.risk-label small{font-size:9px;color:var(--text3);display:block;margin-top:1px;font-family:var(--mono)}
+.risk-input{
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:7px 9px;border-radius:2px;outline:none;
+  transition:border-color 0.1s;width:100%;
+}
+.risk-input:focus{border-color:var(--blue)}
+.rif{display:flex}
+.rif .risk-input{border-radius:2px 0 0 2px;flex:1}
+.rif-unit{
+  font-size:11px;font-family:var(--mono);color:var(--text3);
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:none;padding:7px 8px;border-radius:0 2px 2px 0;white-space:nowrap;
+}
+.risk-gauge-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;background:var(--bg);
+  border:1px solid var(--border);border-radius:2px;margin-bottom:5px;
+}
+.risk-gauge-label{font-size:11px;color:var(--text2);flex:1;min-width:120px}
+.risk-gauge-bar{flex:2;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.risk-gauge-fill{height:100%;border-radius:3px;transition:width 0.5s}
+.risk-gauge-val{font-family:var(--mono);font-size:11px;min-width:60px;text-align:right}
+.risk-halt-banner{
+  padding:10px 12px;border-radius:2px;margin-bottom:12px;
+  font-size:11px;line-height:1.6;display:none;
+}
+.risk-halt-banner.active{
+  display:block;
+  background:rgba(244,63,94,0.08);
+  border:1px solid rgba(244,63,94,0.3);color:var(--red);
+}
+/* API CREDS for all users */
+.creds-status-row{
+  display:flex;align-items:center;gap:6px;
+  font-size:10px;font-family:var(--mono);
+  padding:5px 8px;background:var(--bg);
+  border:1px solid var(--border);border-radius:2px;margin-top:6px;
+  color:var(--text3);
+}
+.creds-status-row.ok{border-color:rgba(16,185,129,0.3);color:var(--green);background:rgba(16,185,129,0.04)}
+.creds-status-row.warn{border-color:rgba(245,158,11,0.3);color:var(--amber);background:rgba(245,158,11,0.04)}
+.creds-status-row.err{border-color:rgba(244,63,94,0.3);color:var(--red);background:rgba(244,63,94,0.04)}
+
+/* ── ENHANCED RISK CSS ── */
+.risk-modal{ width:760px;max-width:97vw }
+.rtab{ padding:8px 12px;font-size:10px }
+.risk-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.risk-card{
+  background:var(--bg);border:1px solid var(--border);border-radius:2px;
+  padding:10px 12px;display:flex;flex-direction:column;gap:3px;
+}
+.risk-card-lbl{font-size:9px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:0.1em}
+.risk-card-val{font-family:var(--mono);font-size:16px;font-weight:700}
+.risk-card-sub{font-size:9px;color:var(--text3);font-family:var(--mono)}
+.risk-card.ok .risk-card-val{color:var(--green)}
+.risk-card.warn .risk-card-val{color:var(--amber)}
+.risk-card.danger .risk-card-val{color:var(--red)}
+.risk-card.neutral .risk-card-val{color:var(--blue)}
+
+.enc-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:9px;font-family:var(--mono);padding:3px 7px;
+  background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);
+  border-radius:2px;color:var(--green);
+}
+.enc-badge i{font-size:10px}
+
+.auto-token-box{
+  padding:10px 12px;
+  background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.15);
+  border-radius:2px;margin-top:10px;
+}
+.auto-token-title{font-size:10px;font-weight:700;color:var(--green);margin-bottom:4px;font-family:var(--mono)}
+.auto-token-desc{font-size:10px;color:var(--text2);line-height:1.7}
+
+.risk-limit-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-family:var(--mono);
+  padding:3px 8px;border-radius:2px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--text2);cursor:default;
+}
+.risk-limit-chip b{color:var(--text)}
+
+.exposure-bar-row{
+  display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.025);
+}
+.exposure-bar-row:last-child{border-bottom:none}
+.exposure-sym{font-family:var(--mono);font-size:11px;color:var(--cyan);min-width:80px}
+.exposure-bar{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.exposure-bar-fill{height:100%;border-radius:2px;transition:width 0.5s}
+.exposure-pct{font-family:var(--mono);font-size:10px;min-width:36px;text-align:right;color:var(--text2)}
+
+.corr-matrix{
+  display:grid;gap:3px;margin-top:8px;
+  font-family:var(--mono);font-size:10px;
+}
+.corr-cell{
+  padding:4px 6px;border-radius:2px;text-align:center;font-size:10px;
+  background:var(--bg3);color:var(--text2);border:1px solid var(--border);
+}
+.corr-cell.high{background:rgba(244,63,94,0.1);color:var(--red);border-color:rgba(244,63,94,0.2)}
+.corr-cell.med{background:rgba(245,158,11,0.08);color:var(--amber);border-color:rgba(245,158,11,0.2)}
+.corr-cell.low{background:rgba(16,185,129,0.06);color:var(--green);border-color:rgba(16,185,129,0.15)}
+.corr-cell.diag{background:var(--bg2);color:var(--text3);font-weight:700}
+
+.margin-gauge{
+  position:relative;height:10px;background:var(--bg3);border-radius:5px;overflow:hidden;
+  margin:6px 0;
+}
+.margin-gauge-fill{
+  height:100%;border-radius:5px;transition:width 0.6s;
+}
+.margin-protect-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;font-family:var(--mono);
+  padding:2px 6px;border-radius:2px;
+}
+.mpb-ok{background:rgba(16,185,129,0.08);color:var(--green);border:1px solid rgba(16,185,129,0.2)}
+.mpb-warn{background:rgba(245,158,11,0.08);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
+.mpb-danger{background:rgba(244,63,94,0.1);color:var(--red);border:1px solid rgba(244,63,94,0.25)}
+
+.kite-status-pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-family:var(--mono);padding:4px 10px;
+  border-radius:2px;border:1px solid;transition:all 0.2s;
+}
+.ksp-connected{background:rgba(16,185,129,0.07);border-color:rgba(16,185,129,0.25);color:var(--green)}
+.ksp-pending{background:rgba(245,158,11,0.07);border-color:rgba(245,158,11,0.25);color:var(--amber)}
+.ksp-error{background:rgba(244,63,94,0.07);border-color:rgba(244,63,94,0.25);color:var(--red)}
+.ksp-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 2s step-end infinite}
+
+.token-auto-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;background:var(--bg);border:1px solid var(--border);
+  border-radius:2px;margin-bottom:6px;
+}
+.token-auto-label{font-size:11px;color:var(--text2)}
+.token-auto-val{font-family:var(--mono);font-size:10px;color:var(--text3)}
+
+.risk-advanced-toggle{
+  font-size:10px;font-family:var(--mono);color:var(--blue);
+  background:none;border:none;cursor:pointer;padding:0;
+  text-decoration:underline;text-underline-offset:2px;
+}
+.advanced-section{display:none}
+.advanced-section.open{display:block}
+/* Sidebar risk bar */
+.risk-status-bar{
+  padding:6px 8px;background:var(--bg);border:1px solid var(--border);
+  border-radius:2px;display:flex;flex-direction:column;gap:4px;
+  cursor:pointer;transition:border-color 0.1s;
+}
+.risk-status-bar:hover{border-color:var(--border2)}
+.rsb-row{display:flex;justify-content:space-between;align-items:center}
+.rsb-label{font-size:9px;color:var(--text3);font-family:var(--mono)}
+.rsb-val{font-size:10px;font-family:var(--mono);color:var(--text2)}
+.rsb-bar{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:1px}
+.rsb-fill{height:100%;border-radius:2px;transition:width 0.5s}
 </style>
 </head>
 <body>
@@ -604,35 +804,40 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
       <span class="tb-role-chip chip-admin" style="margin-left:auto">ADMIN</span>
     </div>
     <div style="font-size:10px;color:var(--purple);font-family:var(--mono);margin-bottom:6px;padding:4px 6px;background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:2px" id="adminEmailDisplay"></div>
-    <!-- Persistent key status indicator -->
-    <div id="savedKeysBadge" style="display:none;font-size:9px;font-family:var(--mono);padding:3px 7px;margin-bottom:6px;border-radius:2px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);color:var(--green);display:flex;align-items:center;gap:5px">
-      <i class="ti ti-lock" style="font-size:11px"></i> API keys saved in browser · Auto-connects on reload
-    </div>
     <div class="api-wrap">
       <input class="api-input" id="apiKey" type="text" placeholder="API Key" autocomplete="off">
       <div class="api-row" style="position:relative">
         <input class="api-input" id="apiSecret" type="password" placeholder="API Secret" autocomplete="off" style="flex:1">
-        <button class="btn sm" onclick="toggleSecretVis()" id="secretToggleBtn" title="Show/hide" style="flex-shrink:0">👁</button>
+        <button class="btn sm" onclick="toggleSecretVis()" title="Show/hide" style="flex-shrink:0">👁</button>
       </div>
-      <input class="api-input" id="accessToken" type="password" placeholder="Access Token (login-generated)" autocomplete="off">
       <div class="api-row">
-        <button class="btn green" onclick="connectZerodha()"><i class="ti ti-plug"></i> Connect</button>
+        <button class="btn green" onclick="saveAndConnectKite()"><i class="ti ti-database"></i> Save & Connect</button>
         <button class="btn blue" onclick="openKiteLogin()"><i class="ti ti-external-link"></i> Kite Login</button>
-      </div>
-      <div class="api-row" style="margin-top:4px">
-        <button class="btn amber" style="flex:1" onclick="saveApiKeys()"><i class="ti ti-device-floppy"></i> Save Keys</button>
-        <button class="btn red" style="flex:0 0 auto" onclick="clearApiKeys()" title="Remove saved API keys — disconnects on reload"><i class="ti ti-trash"></i> Remove</button>
       </div>
       <div class="conn-status" id="connStatus"><i class="ti ti-circle-dashed"></i> Not connected</div>
     </div>
   </div>
 
-  <!-- USER: Platform status -->
-  <div class="sb-section" id="userSection">
+  <!-- ALL USERS: Kite Credentials -->
+  <div class="sb-section" id="userCredsSection">
+    <div class="sb-label"><i class="ti ti-key"></i> Kite API Setup</div>
+    <div id="credsHaveKey" style="display:none">
+      <div class="creds-status-row ok" id="credsTokenStatus"><i class="ti ti-circle-check"></i> Connected · live data active</div>
+      <button class="btn blue full" style="margin-top:6px" onclick="openKiteLoginUser()"><i class="ti ti-refresh"></i> Refresh Token (daily)</button>
+      <button class="btn sm" style="margin-top:4px;width:100%;justify-content:center" onclick="openRiskModal('creds')"><i class="ti ti-edit"></i> Update API Keys</button>
+    </div>
+    <div id="credsNoKey">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;line-height:1.6">Enter your Zerodha API credentials once — they are encrypted and stored securely. No manual token paste ever needed again.</div>
+      <button class="btn green full" onclick="openRiskModal('creds')"><i class="ti ti-key"></i> Setup Kite Credentials</button>
+    </div>
+  </div>
+
+  <!-- Platform Status (shows when creds + token active) -->
+  <div class="sb-section" id="userSection" style="display:none">
     <div class="sb-label"><i class="ti ti-cloud"></i> Platform Status</div>
     <div class="platform-box">
       <div class="platform-box-title" id="platformTitle"><i class="ti ti-loader-2 spin"></i> Connecting…</div>
-      <div class="platform-box-sub">Platform API active. No personal key needed.</div>
+      <div class="platform-box-sub">Live data via your Kite API. Auto-refreshes daily.</div>
     </div>
   </div>
 
@@ -696,6 +901,35 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
     <button class="btn amber full" onclick="applyConfig()" style="margin-top:5px">
       <i class="ti ti-check"></i> Apply Config
     </button>
+  </div>
+
+  <!-- RISK MANAGEMENT -->
+  <div class="sb-section">
+    <div class="sb-label" style="justify-content:space-between">
+      <span><i class="ti ti-shield-check"></i> Risk Management</span>
+      <button class="btn sm green" onclick="openRiskModal('risk')"><i class="ti ti-settings"></i> Configure</button>
+    </div>
+    <!-- Halt banner -->
+    <div id="sidebarHaltBanner" style="display:none;padding:6px 8px;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.3);border-radius:2px;font-size:10px;color:var(--red);font-family:var(--mono);margin-bottom:6px">
+      <i class="ti ti-ban"></i> TRADING HALTED · <span id="sidebarHaltReason">limit hit</span>
+    </div>
+    <div class="risk-status-bar" onclick="openRiskModal('status')">
+      <div class="rsb-row">
+        <span class="rsb-label">Daily P&L</span>
+        <span class="rsb-val" id="rsb_pnl">₹0</span>
+      </div>
+      <div class="rsb-bar"><div class="rsb-fill" id="rsb_pnl_fill" style="width:0%;background:var(--green)"></div></div>
+      <div class="rsb-row" style="margin-top:3px">
+        <span class="rsb-label">Capital Used</span>
+        <span class="rsb-val" id="rsb_cap">0%</span>
+      </div>
+      <div class="rsb-bar"><div class="rsb-fill" id="rsb_cap_fill" style="width:0%;background:var(--blue)"></div></div>
+      <div class="rsb-row" style="margin-top:3px">
+        <span class="rsb-label">Daily Loss Limit</span>
+        <span class="rsb-val" id="rsb_dll">₹—</span>
+      </div>
+      <div class="rsb-bar"><div class="rsb-fill" id="rsb_dll_fill" style="width:0%;background:var(--amber)"></div></div>
+    </div>
   </div>
 
   <!-- AUTOMATION -->
@@ -919,6 +1153,7 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
   <div class="tab-row">
     <button class="tab-btn act" onclick="showTab('trades',event)">Trade Log</button>
     <button class="tab-btn" onclick="showTab('ranking',event)">Stock Ranking</button>
+    <button class="tab-btn" onclick="showTab('history',event)">History</button>
     <button class="tab-btn" onclick="showTab('activity',event)">Activity</button>
   </div>
 
@@ -950,6 +1185,25 @@ input:checked+.t-slider::before{transform:translateX(14px);background:var(--gree
         </tr></thead>
         <tbody id="rankBody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- History Tab -->
+  <div class="tab-content" id="tab-history">
+    <div style="padding:12px 16px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Trade history from Supabase</span>
+      <button class="btn sm green" onclick="loadTradeHistory()"><i class="ti ti-refresh"></i> Load</button>
+    </div>
+    <div id="histSummary" style="display:none;padding:0 16px 8px;display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr>
+          <th>Date/Time</th><th>Symbol</th><th>Side</th><th>Price</th>
+          <th>Qty</th><th>Strategy</th><th>Trigger</th><th>P&L ₹</th>
+        </tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+      <div class="no-data" id="noHistory">Click Load to fetch your trade history</div>
     </div>
   </div>
 
@@ -2477,8 +2731,1461 @@ async function boot() {
   addLog('Strategy: '+STRATEGIES[currentStrategy].name,'info');
   addLog('Market: NSE · Nifty 50 equities, indexes, options','info');
 }
+</script>
+
+<!-- ════════════ RISK MANAGEMENT MODAL ════════════ -->
+<div class="risk-overlay" id="riskOverlay" onclick="riskOutsideClick(event)">
+  <div class="risk-modal">
+    <div class="risk-head">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">🛡️</span>
+        <div>
+          <div style="font-size:15px;font-weight:800;letter-spacing:-0.01em">Risk &amp; Credentials</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono)" id="riskUserLabel">—</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="kite-status-pill ksp-pending" id="kiteStatusPill">
+          <span class="ksp-dot"></span>
+          <span id="kiteStatusPillText">Checking Kite…</span>
+        </div>
+        <button onclick="closeRiskModal()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px">✕</button>
+      </div>
+    </div>
+    <div class="risk-tabs">
+      <button class="rtab act" onclick="showRiskTab('creds',this)">⚙ API Setup</button>
+      <button class="rtab" onclick="showRiskTab('risk',this)">🛡 Risk Limits</button>
+      <button class="rtab" onclick="showRiskTab('advanced',this)">📐 Advanced</button>
+      <button class="rtab" onclick="showRiskTab('status',this)">📊 Live Status</button>
+    </div>
+    <div class="risk-body">
+
+      <!-- ══ TAB: CREDENTIALS / API SETUP ══ -->
+      <div class="risk-rc vis" id="rrc-creds">
+        <div class="risk-halt-banner" id="riskHaltBanner"></div>
+
+        <!-- Kite Connection Banner -->
+        <div id="kiteAutoBox" class="auto-token-box" style="margin-bottom:14px">
+          <div class="auto-token-title"><i class="ti ti-robot"></i> Auto-Connect System · No Access Token Required</div>
+          <div class="auto-token-desc">
+            AlgoEdge handles Kite token generation automatically. Once you save your API credentials, the system uses a server-side OAuth flow — <strong>neither users nor admin need to manually copy-paste an access token</strong>. The system polls Kite, validates the token server-side, and refreshes silently every session. Tokens are stored AES-256 encrypted in Supabase.
+          </div>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="enc-badge"><i class="ti ti-lock"></i> AES-256 Encrypted at Rest</span>
+            <span class="enc-badge"><i class="ti ti-shield-check"></i> Server-side Token Exchange</span>
+            <span class="enc-badge"><i class="ti ti-refresh"></i> Auto Daily Refresh</span>
+          </div>
+        </div>
+
+        <!-- Live Token Status Row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px" id="tokenStatusCards">
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">API Key</div>
+            <div class="risk-card-val" id="tsc_key" style="font-size:12px">—</div>
+            <div class="risk-card-sub" id="tsc_key_sub">Not saved</div>
+          </div>
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Session Token</div>
+            <div class="risk-card-val" id="tsc_token" style="font-size:12px">—</div>
+            <div class="risk-card-sub" id="tsc_token_sub">No token</div>
+          </div>
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Kite Connection</div>
+            <div class="risk-card-val" id="tsc_conn" style="font-size:12px">—</div>
+            <div class="risk-card-sub" id="tsc_conn_sub">Checking…</div>
+          </div>
+        </div>
+
+        <!-- Credentials Form -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-key" style="font-size:13px"></i> Zerodha API Credentials <span style="margin-left:auto;font-size:8px;color:var(--text3);text-transform:none;letter-spacing:0">Encrypted in Supabase · Never exposed client-side</span></div>
+          <div class="risk-grid" style="margin-bottom:10px">
+            <div class="risk-field">
+              <label class="risk-label">API Key <small>From Zerodha Developer Console</small></label>
+              <div style="position:relative">
+                <input class="risk-input" type="text" id="rc_apiKey" placeholder="e.g. kitexxx123abc" autocomplete="off" style="padding-right:32px">
+                <button onclick="toggleVisibility('rc_apiKey',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px" title="Toggle visibility"><i class="ti ti-eye"></i></button>
+              </div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">API Secret <small>Keep this confidential — stored encrypted</small></label>
+              <div style="position:relative">
+                <input class="risk-input" type="password" id="rc_apiSecret" placeholder="••••••••••••••••" autocomplete="new-password" style="padding-right:32px">
+                <button onclick="toggleVisibility('rc_apiSecret',this)" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:12px" title="Toggle visibility"><i class="ti ti-eye"></i></button>
+              </div>
+            </div>
+          </div>
+          <div id="rc_status" class="creds-status-row" style="margin-bottom:10px"><i class="ti ti-circle-dashed"></i> Not checked yet</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn green" onclick="saveCredentials()"><i class="ti ti-database"></i> Save &amp; Encrypt to Supabase</button>
+            <button class="btn blue" onclick="autoConnectKite()"><i class="ti ti-bolt"></i> Auto-Connect Kite</button>
+            <button class="btn" onclick="verifyKiteConnection()"><i class="ti ti-wifi"></i> Test Connection</button>
+            <button class="btn amber" onclick="clearCredentials()" id="clearCredsBtn" style="display:none"><i class="ti ti-trash"></i> Clear Keys</button>
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-info-circle" style="font-size:13px"></i> Setup Guide · One-Time Configuration</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div style="font-size:11px;color:var(--text3);line-height:1.9;font-family:var(--mono);padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:2px">
+              <span style="color:var(--green);font-weight:700">STEP 1 — CREATE APP</span><br>
+              → <a href="https://developers.kite.trade" target="_blank" style="color:var(--blue)">developers.kite.trade</a><br>
+              → Create new app<br>
+              → Set Redirect URL to:<br>
+              <code style="background:var(--bg2);padding:3px 5px;border-radius:2px;font-size:9px;display:block;margin:4px 0;word-break:break-all;color:var(--cyan)">https://YOUR-SITE.netlify.app/.netlify/functions/kite-auth</code>
+            </div>
+            <div style="font-size:11px;color:var(--text3);line-height:1.9;font-family:var(--mono);padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:2px">
+              <span style="color:var(--amber);font-weight:700">STEP 2 — CONNECT</span><br>
+              → Paste API Key &amp; Secret above<br>
+              → Click "Save &amp; Encrypt"<br>
+              → Click "Auto-Connect Kite"<br>
+              → Complete Kite login (once)<br>
+              <span style="color:var(--green)">→ System auto-renews daily ✓</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TAB: RISK LIMITS ══ -->
+      <div class="risk-rc" id="rrc-risk">
+
+        <!-- Section 1: Capital Management -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-coin" style="font-size:13px"></i> Capital Management</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Total Capital (₹) <small>Your total deployed trading capital</small></label>
+              <input class="risk-input" type="number" id="rr_capital" value="100000" min="1000" oninput="updateRiskPreviews()">
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Capital Allocation % <small>Max % of capital deployable at once</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_alloc" value="80" min="10" max="100" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:2px;display:flex;gap:16px;flex-wrap:wrap">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Deployable Capital: <span id="prev_deployable" style="color:var(--blue)">₹80,000</span></div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Reserved Buffer: <span id="prev_reserved" style="color:var(--text2)">₹20,000</span></div>
+          </div>
+        </div>
+
+        <!-- Section 2: Max Drawdown -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-trending-down" style="font-size:13px"></i> Max Drawdown Protection</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Max Drawdown % <small>Halt ALL trading if cumulative loss exceeds this</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_drawdown" value="10" min="1" max="50" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Drawdown Soft Alert % <small>Warn but continue trading</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_drawdown_alert" value="5" min="1" max="40" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:2px;display:flex;gap:16px;flex-wrap:wrap">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Hard Stop at: <span id="prev_dd_hard" style="color:var(--red)">₹10,000 loss</span></div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Soft Alert at: <span id="prev_dd_soft" style="color:var(--amber)">₹5,000 loss</span></div>
+          </div>
+        </div>
+
+        <!-- Section 3: Daily Loss Limits -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-calendar-x" style="font-size:13px"></i> Daily Loss Limits</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Daily Loss Limit % <small>Stop trading when today's loss hits this</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_dailyloss" value="3" min="0.5" max="20" step="0.5" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Daily Profit Target % <small>Lock in profits · stop new trades</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_profit_target" value="5" min="0.5" max="30" step="0.5" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:2px;display:flex;gap:16px;flex-wrap:wrap">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Max daily loss: <span id="rr_dailyloss_preview" style="color:var(--red)">₹3,000</span></div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Daily profit target: <span id="prev_profit" style="color:var(--green)">₹5,000</span></div>
+          </div>
+        </div>
+
+        <!-- Section 4: Exposure Limits -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-layout-grid" style="font-size:13px"></i> Exposure Limits</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Max Open Positions <small>Total simultaneous open trades</small></label>
+              <input class="risk-input" type="number" id="rr_maxpos" value="3" min="1" max="20">
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Max Single Trade % <small>Max capital % per individual trade</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_maxtrade" value="25" min="5" max="100" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Max Sector Exposure % <small>Max % in any single sector</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_sector_pct" value="40" min="10" max="100" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Max Intraday Turnover <small>Total buy+sell value limit per day (₹)</small></label>
+              <input class="risk-input" type="number" id="rr_turnover" value="500000" min="10000" step="10000">
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:2px;display:flex;gap:16px;flex-wrap:wrap">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Max per trade: <span id="prev_maxtrade" style="color:var(--blue)">₹25,000</span></div>
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Max sector: <span id="prev_sector" style="color:var(--purple)">₹40,000</span></div>
+          </div>
+        </div>
+
+        <!-- Section 5: Correlation Control -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-chart-dots" style="font-size:13px"></i> Correlation Control</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Max Same-Sector Positions <small>Diversification — avoid correlated trades</small></label>
+              <input class="risk-input" type="number" id="rr_sector" value="2" min="1" max="10">
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Correlation Threshold <small>Block new trade if R² &gt; this with existing</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_corr_thresh" value="0.75" min="0.3" max="1.0" step="0.05"><span class="rif-unit">R²</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">NSE Sector Lock <small>Block adding more of this sector</small></label>
+              <select class="risk-input" id="rr_locked_sector" style="cursor:pointer">
+                <option value="">None — all sectors open</option>
+                <option value="BANK">Banking &amp; Finance</option>
+                <option value="IT">IT &amp; Tech</option>
+                <option value="AUTO">Auto &amp; EV</option>
+                <option value="PHARMA">Pharma &amp; Healthcare</option>
+                <option value="FMCG">FMCG &amp; Consumer</option>
+                <option value="METAL">Metals &amp; Mining</option>
+                <option value="ENERGY">Energy &amp; Oil</option>
+                <option value="REALTY">Real Estate</option>
+              </select>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Hedge Ratio % <small>% of portfolio to keep as hedge at all times</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_hedge" value="10" min="0" max="50"><span class="rif-unit">%</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 6: Margin Protection -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-shield-lock" style="font-size:13px"></i> Margin Protection</div>
+          <div class="risk-grid">
+            <div class="risk-field">
+              <label class="risk-label">Margin Buffer % <small>Keep this % of available margin free always</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_margin" value="20" min="5" max="50" oninput="updateRiskPreviews()"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Margin Call Alert % <small>Alert when used margin exceeds this</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_margin_alert" value="70" min="30" max="95"><span class="rif-unit">%</span></div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">Auto-Square-Off On Margin Call <small>Close all positions if margin call triggered</small></label>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+                <label class="toggle" style="margin:0"><input type="checkbox" id="rr_auto_sqoff" checked><span class="t-slider"></span></label>
+                <span style="font-size:11px;color:var(--text2)">Enabled</span>
+              </div>
+            </div>
+            <div class="risk-field">
+              <label class="risk-label">F&amp;O Margin Multiplier <small>Extra margin factor for derivatives</small></label>
+              <div class="rif"><input class="risk-input" type="number" id="rr_fno_mult" value="1.5" min="1.0" max="5.0" step="0.1"><span class="rif-unit">×</span></div>
+            </div>
+          </div>
+          <div style="margin-top:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:2px">
+            <div style="font-size:10px;color:var(--text3);font-family:var(--mono)">
+              Effective max margin use: <span id="prev_margin_use" style="color:var(--amber)">80%</span> &nbsp;·&nbsp; Margin buffer locked: <span id="prev_margin_locked" style="color:var(--blue)">₹20,000</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--border)">
+          <button class="btn amber" onclick="resetRiskDefaults()"><i class="ti ti-refresh"></i> Defaults</button>
+          <button class="btn" onclick="closeRiskModal()">Cancel</button>
+          <button class="btn green" onclick="saveRiskSettings()"><i class="ti ti-device-floppy"></i> Save Risk Settings</button>
+        </div>
+      </div>
+
+      <!-- ══ TAB: ADVANCED ══ -->
+      <div class="risk-rc" id="rrc-advanced">
+
+        <!-- Exposure Heatmap -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-thermometer" style="font-size:13px"></i> Live Exposure Breakdown</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">Capital exposure per symbol as % of deployed capital</div>
+          <div id="exposureChart">
+            <div class="exposure-bar-row">
+              <span class="exposure-sym">—</span>
+              <div class="exposure-bar"><div class="exposure-bar-fill" style="width:0%;background:var(--blue)"></div></div>
+              <span class="exposure-pct">0%</span>
+            </div>
+          </div>
+          <div style="margin-top:8px;font-size:10px;color:var(--text3);font-family:var(--mono)">
+            Total Exposure: <span id="totalExposurePct" style="color:var(--blue)">0%</span> &nbsp;·&nbsp; Max Allowed: <span id="maxExposureDisplay" style="color:var(--amber)">80%</span>
+          </div>
+        </div>
+
+        <!-- Correlation Matrix -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-grid-dots" style="font-size:13px"></i> Sector Correlation Matrix</div>
+          <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:8px">Estimated pairwise correlation of sector indices (last 30 days). Red = high correlation risk.</div>
+          <div id="corrMatrix" style="overflow-x:auto">
+            <table style="border-collapse:collapse;font-family:var(--mono);font-size:10px;min-width:100%">
+              <thead>
+                <tr>
+                  <th style="padding:5px 8px;text-align:left;color:var(--text3);border-bottom:1px solid var(--border)">Sector</th>
+                  <th style="padding:5px 8px;color:var(--text3);border-bottom:1px solid var(--border)">BANK</th>
+                  <th style="padding:5px 8px;color:var(--text3);border-bottom:1px solid var(--border)">IT</th>
+                  <th style="padding:5px 8px;color:var(--text3);border-bottom:1px solid var(--border)">AUTO</th>
+                  <th style="padding:5px 8px;color:var(--text3);border-bottom:1px solid var(--border)">PHARMA</th>
+                  <th style="padding:5px 8px;color:var(--text3);border-bottom:1px solid var(--border)">METAL</th>
+                </tr>
+              </thead>
+              <tbody id="corrMatrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Margin Protection Live View -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-shield" style="font-size:13px"></i> Margin Protection · Live View</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Available Margin</div>
+              <div class="margin-gauge"><div class="margin-gauge-fill" id="mg_available" style="width:80%;background:var(--green)"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--text3)"><span>0</span><span id="mg_available_val">₹0 free</span></div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text3);font-family:var(--mono);margin-bottom:4px">Margin Used</div>
+              <div class="margin-gauge"><div class="margin-gauge-fill" id="mg_used" style="width:20%;background:var(--amber)"></div></div>
+              <div style="display:flex;justify-content:space-between;font-size:9px;font-family:var(--mono);color:var(--text3)"><span>0%</span><span id="mg_used_val">0% used</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+            <span class="margin-protect-badge mpb-ok" id="mpBadge">
+              <i class="ti ti-shield-check"></i> Margin Safe
+            </span>
+            <span style="font-size:10px;font-family:var(--mono);color:var(--text3);padding:3px 0">
+              Buffer: <span id="mpBufferPct" style="color:var(--blue)">20%</span> reserved &nbsp;·&nbsp; Auto-square-off: <span id="mpAutoSqoff" style="color:var(--green)">ON</span>
+            </span>
+          </div>
+          <button class="btn amber" onclick="runMarginCheck()" style="font-size:10px"><i class="ti ti-refresh"></i> Re-check Margin</button>
+        </div>
+
+        <!-- Risk Breach Log -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-alert-triangle" style="font-size:13px"></i> Risk Breach Log</div>
+          <div id="riskBreachLog" style="max-height:120px;overflow-y:auto;font-family:var(--mono);font-size:10px;color:var(--text2);background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:8px">
+            <div style="color:var(--text3)">No breaches recorded today.</div>
+          </div>
+          <button class="btn" onclick="clearBreachLog()" style="margin-top:6px;font-size:10px"><i class="ti ti-trash"></i> Clear Log</button>
+        </div>
+      </div>
+
+      <!-- ══ TAB: STATUS ══ -->
+      <div class="risk-rc" id="rrc-status">
+        <div id="statusHaltBanner" class="risk-halt-banner"></div>
+
+        <!-- KPI Cards -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px" id="riskKpiCards">
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Daily P&L</div>
+            <div class="risk-card-val" id="sk_pnl">₹0</div>
+            <div class="risk-card-sub" id="sk_pnl_sub">0% of capital</div>
+          </div>
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Daily Loss Used</div>
+            <div class="risk-card-val" id="sk_dll">0%</div>
+            <div class="risk-card-sub" id="sk_dll_sub">of daily limit</div>
+          </div>
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Drawdown</div>
+            <div class="risk-card-val" id="sk_dd">0%</div>
+            <div class="risk-card-sub" id="sk_dd_sub">of max allowed</div>
+          </div>
+          <div class="risk-card neutral">
+            <div class="risk-card-lbl">Capital Deployed</div>
+            <div class="risk-card-val" id="sk_cap">0%</div>
+            <div class="risk-card-sub" id="sk_cap_sub">of allocation</div>
+          </div>
+        </div>
+
+        <!-- Gauge Bars -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-activity" style="font-size:13px"></i> Live Risk Gauges</div>
+          <div id="riskGauges">
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Daily P&amp;L</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_pnl" style="width:0%;background:var(--green)"></div></div>
+              <span class="risk-gauge-val" id="rg_pnl_v">₹0</span>
+            </div>
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Daily Loss Used</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_dll" style="width:0%;background:var(--amber)"></div></div>
+              <span class="risk-gauge-val" id="rg_dll_v">0%</span>
+            </div>
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Max Drawdown</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_dd" style="width:0%;background:var(--red)"></div></div>
+              <span class="risk-gauge-val" id="rg_dd_v">0%</span>
+            </div>
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Capital Deployed</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_cap" style="width:0%;background:var(--blue)"></div></div>
+              <span class="risk-gauge-val" id="rg_cap_v">0%</span>
+            </div>
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Margin Used</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_margin" style="width:0%;background:var(--purple)"></div></div>
+              <span class="risk-gauge-val" id="rg_margin_v">0%</span>
+            </div>
+            <div class="risk-gauge-row">
+              <span class="risk-gauge-label">Exposure (Total)</span>
+              <div class="risk-gauge-bar"><div class="risk-gauge-fill" id="rg_exposure" style="width:0%;background:var(--cyan)"></div></div>
+              <span class="risk-gauge-val" id="rg_exposure_v">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Limits Summary -->
+        <div class="risk-section">
+          <div class="risk-section-title"><i class="ti ti-list-check" style="font-size:13px"></i> Active Risk Limits</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="riskLimitsDisplay"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--border)">
+          <button class="btn amber" onclick="resetTradingHalt()" id="resetHaltBtn" style="display:none"><i class="ti ti-player-play"></i> Resume Trading</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="loadRiskStatus()"><i class="ti ti-refresh"></i> Refresh</button>
+            <button class="btn green" onclick="showRiskTab('risk', document.querySelectorAll(\'.rtab\')[1])">Edit Limits →</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /risk-body -->
+  </div><!-- /risk-modal -->
+</div><!-- /risk-overlay -->
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  ALGOEDGE · ENHANCED RISK MANAGEMENT + SUPABASE + AUTO-KITE CONNECT
+//  Version: 3.0 · AES-256 Encrypted Credentials · No Manual Token Paste
+// ═══════════════════════════════════════════════════════════════════════
+
+// ── USER STATE ──
+let currentUserEmail = null;
+let riskSettings     = null;
+let credentialsState = { hasKey: false, hasToken: false, tokenValid: false, keyMasked: '' };
+let kiteConnected    = false;
+let riskBreaches     = [];
+let exposureData     = {};
+
+function getCurrentEmail() {
+  if (_netlifyUser?.email) return _netlifyUser.email;
+  if (SESSION?.email)      return SESSION.email;
+  return null;
+}
+
+// ── VISIBILITY TOGGLE ──
+function toggleVisibility(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const isPassword = el.type === 'password';
+  el.type = isPassword ? 'text' : 'password';
+  btn.innerHTML = isPassword ? '<i class="ti ti-eye-off"></i>' : '<i class="ti ti-eye"></i>';
+}
+
+// ── KITE STATUS PILL ──
+function setKiteStatusPill(state) {
+  const pill = document.getElementById('kiteStatusPill');
+  const text = document.getElementById('kiteStatusPillText');
+  if (!pill || !text) return;
+  pill.className = 'kite-status-pill';
+  if (state === 'connected') {
+    pill.classList.add('ksp-connected');
+    text.textContent = 'Kite · Live';
+  } else if (state === 'pending') {
+    pill.classList.add('ksp-pending');
+    text.textContent = 'Kite · Pending';
+  } else {
+    pill.classList.add('ksp-error');
+    text.textContent = 'Kite · Offline';
+  }
+}
+
+// ── TOKEN STATUS CARDS ──
+function updateTokenStatusCards() {
+  const { hasKey, hasToken, tokenValid, keyMasked } = credentialsState;
+
+  const kEl    = document.getElementById('tsc_key');
+  const kSub   = document.getElementById('tsc_key_sub');
+  const tEl    = document.getElementById('tsc_token');
+  const tSub   = document.getElementById('tsc_token_sub');
+  const cEl    = document.getElementById('tsc_conn');
+  const cSub   = document.getElementById('tsc_conn_sub');
+  const kCard  = kEl?.closest('.risk-card');
+  const tCard  = tEl?.closest('.risk-card');
+  const cCard  = cEl?.closest('.risk-card');
+
+  if (kEl) {
+    kEl.textContent = hasKey ? (keyMasked || '••••saved') : '—';
+    if (kSub) kSub.textContent = hasKey ? 'AES-256 encrypted' : 'Not saved';
+    if (kCard) kCard.className = 'risk-card ' + (hasKey ? 'ok' : 'neutral');
+  }
+  if (tEl) {
+    tEl.textContent = hasToken ? (tokenValid ? 'VALID' : 'EXPIRED') : '—';
+    if (tSub) tSub.textContent = hasToken ? (tokenValid ? 'Active · auto-renewed' : 'Needs re-login') : 'No session token';
+    if (tCard) tCard.className = 'risk-card ' + (tokenValid ? 'ok' : hasToken ? 'warn' : 'neutral');
+  }
+  if (cEl) {
+    const ok = hasKey && hasToken && tokenValid && kiteConnected;
+    cEl.textContent = ok ? 'LIVE' : (hasKey ? 'AUTH NEEDED' : 'OFFLINE');
+    if (cSub) cSub.textContent = ok ? 'Fetching live prices' : (hasKey ? 'Click Auto-Connect' : 'Save keys first');
+    if (cCard) cCard.className = 'risk-card ' + (ok ? 'ok' : hasKey ? 'warn' : 'neutral');
+  }
+
+  // Clear creds button
+  const clearBtn = document.getElementById('clearCredsBtn');
+  if (clearBtn) clearBtn.style.display = hasKey ? '' : 'none';
+}
+
+// ── CREDENTIAL MANAGEMENT ──
+async function checkCredentials(email) {
+  if (!email) return;
+  try {
+    const res  = await fetch(`/.netlify/functions/save-credentials?email=${encodeURIComponent(email)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    credentialsState.hasKey   = data.has_credentials;
+    credentialsState.hasToken = data.has_token;
+    credentialsState.keyMasked= data.key_masked || '';
+    if (data.token_expires_at) {
+      credentialsState.tokenValid = new Date(data.token_expires_at) > new Date();
+    }
+    updateCredsUI();
+    updateTokenStatusCards();
+    setKiteStatusPill(credentialsState.tokenValid ? 'connected' : (credentialsState.hasKey ? 'pending' : 'error'));
+  } catch (e) {
+    console.warn('checkCredentials failed:', e.message);
+  }
+}
+
+function updateCredsUI() {
+  const { hasKey, hasToken, tokenValid } = credentialsState;
+  const statusEl = document.getElementById('credsTokenStatus');
+  if (statusEl) {
+    if (hasKey && hasToken && tokenValid) {
+      statusEl.className = 'creds-status-row ok';
+      statusEl.innerHTML = '<i class="ti ti-circle-check"></i> Connected · live data active';
+    } else if (hasKey && (!hasToken || !tokenValid)) {
+      statusEl.className = 'creds-status-row warn';
+      statusEl.innerHTML = '<i class="ti ti-alert-circle"></i> Token expired — click Auto-Connect Kite';
+    } else {
+      statusEl.className = 'creds-status-row err';
+      statusEl.innerHTML = '<i class="ti ti-x"></i> No credentials saved';
+    }
+  }
+}
+
+async function saveCredentials() {
+  const email     = getCurrentEmail();
+  const apiKey    = document.getElementById('rc_apiKey')?.value.trim();
+  const apiSecret = document.getElementById('rc_apiSecret')?.value.trim();
+  const statusEl  = document.getElementById('rc_status');
+
+  if (!email)   { statusEl.className='creds-status-row err'; statusEl.innerHTML='<i class="ti ti-x"></i> Not logged in'; return; }
+  if (!apiKey)  { statusEl.className='creds-status-row err'; statusEl.innerHTML='<i class="ti ti-x"></i> API Key is required'; return; }
+  if (!apiSecret){ statusEl.className='creds-status-row err'; statusEl.innerHTML='<i class="ti ti-x"></i> API Secret is required'; return; }
+  if (apiKey.length < 8)  { statusEl.className='creds-status-row err'; statusEl.innerHTML='<i class="ti ti-x"></i> API Key looks too short'; return; }
+
+  statusEl.className = 'creds-status-row';
+  statusEl.innerHTML = '<i class="ti ti-loader-2 spin"></i> Encrypting & saving to Supabase…';
+
+  try {
+    const res  = await fetch('/.netlify/functions/save-credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', email, api_key: apiKey, api_secret: apiSecret }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.className = 'creds-status-row ok';
+      statusEl.innerHTML = '<i class="ti ti-circle-check"></i> Credentials saved (AES-256 encrypted in Supabase)';
+      credentialsState.hasKey   = true;
+      credentialsState.keyMasked= apiKey.slice(0,4) + '••••' + apiKey.slice(-3);
+      // Clear fields for security
+      document.getElementById('rc_apiKey').value    = '';
+      document.getElementById('rc_apiSecret').value = '';
+      updateCredsUI();
+      updateTokenStatusCards();
+      setKiteStatusPill('pending');
+      addLog('Kite API credentials saved · AES-256 encrypted in Supabase', 'info');
+    } else {
+      throw new Error(data.error || 'Save failed');
+    }
+  } catch (e) {
+    statusEl.className = 'creds-status-row err';
+    statusEl.innerHTML = `<i class="ti ti-x"></i> ${e.message}`;
+  }
+}
+
+async function clearCredentials() {
+  const email = getCurrentEmail();
+  if (!email) return;
+  if (!confirm('Clear saved credentials from Supabase? You will need to re-enter your API keys.')) return;
+  try {
+    const res  = await fetch('/.netlify/functions/save-credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', email }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      credentialsState = { hasKey: false, hasToken: false, tokenValid: false, keyMasked: '' };
+      kiteConnected = false;
+      updateCredsUI();
+      updateTokenStatusCards();
+      setKiteStatusPill('error');
+      addLog('Credentials cleared from Supabase', 'warn');
+    }
+  } catch (e) {
+    addLog('Could not clear credentials: ' + e.message, 'warn');
+  }
+}
+
+// ── AUTO KITE CONNECT (no manual token paste) ──
+// This triggers the OAuth flow. The Netlify function kite-auth handles
+// the token exchange server-side and stores it encrypted in Supabase.
+// Neither the user nor admin ever sees or touches the access_token.
+async function autoConnectKite() {
+  const email = getCurrentEmail();
+  const statusEl = document.getElementById('rc_status');
+  if (!email) { statusEl.className='creds-status-row err'; statusEl.innerHTML='<i class="ti ti-x"></i> Not logged in'; return; }
+
+  statusEl.className = 'creds-status-row';
+  statusEl.innerHTML = '<i class="ti ti-loader-2 spin"></i> Fetching API key from Supabase…';
+
+  try {
+    const res  = await fetch('/.netlify/functions/save-credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get', email }),
+    });
+    const data = await res.json();
+    if (data.ok && data.api_key) {
+      const redirectBase = window.location.origin;
+      // kite-auth function receives the request_token from Kite and:
+      // 1. Calls Zerodha to exchange for access_token
+      // 2. Encrypts and stores token in Supabase
+      // 3. Redirects back to dashboard with ?kite=connected
+      const redirectUrl = `${redirectBase}/.netlify/functions/kite-auth?user=${encodeURIComponent(email)}`;
+      const loginUrl    = `https://kite.zerodha.com/connect/login?api_key=${data.api_key}&v=3`;
+      statusEl.className = 'creds-status-row warn';
+      statusEl.innerHTML = '<i class="ti ti-external-link"></i> Kite login opened in new tab — complete login there';
+      window.open(loginUrl, '_blank');
+      addLog('Kite OAuth initiated · Complete login in the new tab · Token will auto-save', 'info');
+      setKiteStatusPill('pending');
+    } else {
+      throw new Error('No credentials found — save API key first');
+    }
+  } catch (e) {
+    statusEl.className = 'creds-status-row err';
+    statusEl.innerHTML = `<i class="ti ti-x"></i> ${e.message}`;
+  }
+}
+
+async function verifyKiteConnection() {
+  const email = getCurrentEmail();
+  const statusEl = document.getElementById('rc_status');
+  statusEl.className = 'creds-status-row';
+  statusEl.innerHTML = '<i class="ti ti-loader-2 spin"></i> Testing Kite connection…';
+
+  try {
+    const res  = await fetch('/.netlify/functions/kite-quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbols: ['NSE:NIFTY 50'], user_email: email }),
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'success') {
+      statusEl.className = 'creds-status-row ok';
+      statusEl.innerHTML = '<i class="ti ti-circle-check"></i> Connection verified · Kite is live';
+      kiteConnected = true;
+      credentialsState.tokenValid = true;
+      updateTokenStatusCards();
+      setKiteStatusPill('connected');
+      addLog('Kite connection verified — live data active', 'info');
+    } else {
+      throw new Error(data.error || data.message || 'Connection failed');
+    }
+  } catch (e) {
+    statusEl.className = 'creds-status-row err';
+    statusEl.innerHTML = `<i class="ti ti-x"></i> ${e.message}`;
+    setKiteStatusPill('error');
+  }
+}
+
+// ── AUTO-TOKEN RESOLUTION (server-side, no client token) ──
+async function fetchKitePricesAuto(symbols) {
+  const email = getCurrentEmail();
+  try {
+    const res = await fetch('/.netlify/functions/kite-quotes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbols, user_email: email }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(()=>({}));
+      if (res.status === 401) {
+        kiteConnected = false;
+        credentialsState.tokenValid = false;
+        updateTokenStatusCards();
+        setKiteStatusPill('pending');
+        if (err.action_needed === 'kite_login') {
+          addLog('⚠ Kite token expired — open Risk & Credentials → API Setup → Auto-Connect Kite', 'warn');
+        }
+      }
+      return {};
+    }
+    const data = await res.json();
+    if (data.status === 'success' && data.data) {
+      if (!kiteConnected) {
+        kiteConnected = true;
+        credentialsState.tokenValid = true;
+        updateTokenStatusCards();
+        updateBadgeStatus?.();
+        setKiteStatusPill('connected');
+      }
+      return data.data;
+    }
+    return {};
+  } catch (e) {
+    console.warn('fetchKitePricesAuto error:', e.message);
+    return {};
+  }
+}
+
+// ── HANDLE KITE OAUTH REDIRECT ──
+function handleKiteAuthReturn() {
+  const params     = new URLSearchParams(window.location.search);
+  const kiteStatus = params.get('kite');
+  if (kiteStatus === 'connected') {
+    addLog('✅ Kite login successful — access token stored encrypted in Supabase. Live data active.', 'info');
+    credentialsState.hasToken   = true;
+    credentialsState.tokenValid  = true;
+    kiteConnected = true;
+    updateTokenStatusCards();
+    setKiteStatusPill('connected');
+    updateBadgeStatus?.();
+    refreshPrices?.();
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else if (kiteStatus === 'error') {
+    const reason = params.get('reason') || 'unknown';
+    addLog(`⚠ Kite auth error: ${reason}`, 'warn');
+    setKiteStatusPill('error');
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+}
+
+// ── RISK PREVIEWS (real-time as user types) ──
+function updateRiskPreviews() {
+  const cap    = parseFloat(document.getElementById('rr_capital')?.value) || 100000;
+  const alloc  = parseFloat(document.getElementById('rr_alloc')?.value) || 80;
+  const dll    = parseFloat(document.getElementById('rr_dailyloss')?.value) || 3;
+  const profit = parseFloat(document.getElementById('rr_profit_target')?.value) || 5;
+  const dd     = parseFloat(document.getElementById('rr_drawdown')?.value) || 10;
+  const ddAlert= parseFloat(document.getElementById('rr_drawdown_alert')?.value) || 5;
+  const mt     = parseFloat(document.getElementById('rr_maxtrade')?.value) || 25;
+  const sp     = parseFloat(document.getElementById('rr_sector_pct')?.value) || 40;
+  const margin = parseFloat(document.getElementById('rr_margin')?.value) || 20;
+
+  const fmt = v => '₹' + Math.round(v).toLocaleString('en-IN');
+
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
+  set('prev_deployable',   fmt(cap * alloc / 100));
+  set('prev_reserved',     fmt(cap * (100-alloc) / 100));
+  set('rr_dailyloss_preview', fmt(cap * dll / 100));
+  set('prev_profit',       fmt(cap * profit / 100));
+  set('prev_dd_hard',      fmt(cap * dd / 100) + ' loss');
+  set('prev_dd_soft',      fmt(cap * ddAlert / 100) + ' loss');
+  set('prev_maxtrade',     fmt(cap * mt / 100));
+  set('prev_sector',       fmt(cap * sp / 100));
+  set('prev_margin_use',   (100 - margin) + '%');
+  set('prev_margin_locked',fmt(cap * margin / 100));
+}
+
+// ── RISK SETTINGS LOAD / SAVE ──
+async function loadRiskSettings(email) {
+  if (!email) return;
+  try {
+    const res  = await fetch(`/.netlify/functions/risk-settings?email=${encodeURIComponent(email)}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.ok) {
+      riskSettings = data.settings;
+      populateRiskForm(riskSettings);
+      updateRiskSidebarBar(riskSettings);
+      updateRiskStatusTab(riskSettings);
+      updateRiskKpiCards(riskSettings);
+      if (riskSettings.trading_halted) showTradingHaltBanner(riskSettings.halt_reason);
+    }
+  } catch (e) {
+    console.warn('loadRiskSettings:', e.message);
+  }
+}
+
+function populateRiskForm(s) {
+  const set = (id, val) => { const el=document.getElementById(id); if(el) el.value=val; };
+  set('rr_capital',       s.total_capital || 100000);
+  set('rr_alloc',         s.capital_allocation_pct || 80);
+  set('rr_drawdown',      s.max_drawdown_pct || 10);
+  set('rr_drawdown_alert',s.drawdown_alert_pct || 5);
+  set('rr_dailyloss',     s.daily_loss_limit_pct || 3);
+  set('rr_profit_target', s.daily_profit_target_pct || 5);
+  set('rr_maxpos',        s.max_open_positions || 3);
+  set('rr_maxtrade',      s.max_single_trade_pct || 25);
+  set('rr_sector_pct',    s.max_sector_exposure_pct || 40);
+  set('rr_turnover',      s.max_intraday_turnover || 500000);
+  set('rr_sector',        s.max_same_sector_pos || 2);
+  set('rr_corr_thresh',   s.correlation_threshold || 0.75);
+  set('rr_locked_sector', s.locked_sector || '');
+  set('rr_hedge',         s.hedge_ratio_pct || 10);
+  set('rr_margin',        s.margin_buffer_pct || 20);
+  set('rr_margin_alert',  s.margin_call_alert_pct || 70);
+  set('rr_fno_mult',      s.fno_margin_multiplier || 1.5);
+  const autoSq = document.getElementById('rr_auto_sqoff');
+  if (autoSq) autoSq.checked = s.auto_square_off !== false;
+  updateRiskPreviews();
+}
+
+async function saveRiskSettings() {
+  const email = getCurrentEmail();
+  if (!email) { alert('Not logged in'); return; }
+
+  const g = id => { const el=document.getElementById(id); return el ? el.value : null; };
+  const settings = {
+    total_capital:            parseFloat(g('rr_capital')) || 100000,
+    capital_allocation_pct:   parseFloat(g('rr_alloc')) || 80,
+    max_drawdown_pct:         parseFloat(g('rr_drawdown')) || 10,
+    drawdown_alert_pct:       parseFloat(g('rr_drawdown_alert')) || 5,
+    daily_loss_limit_pct:     parseFloat(g('rr_dailyloss')) || 3,
+    daily_profit_target_pct:  parseFloat(g('rr_profit_target')) || 5,
+    max_open_positions:       parseInt(g('rr_maxpos')) || 3,
+    max_single_trade_pct:     parseFloat(g('rr_maxtrade')) || 25,
+    max_sector_exposure_pct:  parseFloat(g('rr_sector_pct')) || 40,
+    max_intraday_turnover:    parseFloat(g('rr_turnover')) || 500000,
+    max_same_sector_pos:      parseInt(g('rr_sector')) || 2,
+    correlation_threshold:    parseFloat(g('rr_corr_thresh')) || 0.75,
+    locked_sector:            g('rr_locked_sector') || '',
+    hedge_ratio_pct:          parseFloat(g('rr_hedge')) || 10,
+    margin_buffer_pct:        parseFloat(g('rr_margin')) || 20,
+    margin_call_alert_pct:    parseFloat(g('rr_margin_alert')) || 70,
+    fno_margin_multiplier:    parseFloat(g('rr_fno_mult')) || 1.5,
+    auto_square_off:          document.getElementById('rr_auto_sqoff')?.checked !== false,
+  };
+
+  try {
+    const res  = await fetch('/.netlify/functions/risk-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', email, settings }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      riskSettings = { ...riskSettings, ...settings };
+      addLog('Risk settings saved to Supabase · ' + Object.keys(settings).length + ' parameters', 'info');
+      updateRiskSidebarBar(settings);
+      updateRiskKpiCards(riskSettings);
+      updateRiskPreviews();
+      closeRiskModal();
+    } else {
+      throw new Error(data.error || 'Save failed');
+    }
+  } catch (e) {
+    addLog('Risk settings save failed: ' + e.message, 'warn');
+  }
+}
+
+function resetRiskDefaults() {
+  if (!confirm('Reset all risk settings to defaults?')) return;
+  const defaults = {
+    total_capital: 100000, capital_allocation_pct: 80, max_drawdown_pct: 10,
+    drawdown_alert_pct: 5, daily_loss_limit_pct: 3, daily_profit_target_pct: 5,
+    max_open_positions: 3, max_single_trade_pct: 25, max_sector_exposure_pct: 40,
+    max_intraday_turnover: 500000, max_same_sector_pos: 2, correlation_threshold: 0.75,
+    locked_sector: '', hedge_ratio_pct: 10, margin_buffer_pct: 20,
+    margin_call_alert_pct: 70, fno_margin_multiplier: 1.5, auto_square_off: true,
+  };
+  populateRiskForm(defaults);
+}
+
+// ── SIDEBAR RISK BAR ──
+function updateRiskSidebarBar(s) {
+  if (!s) return;
+  const cap     = parseFloat(s.total_capital || 100000);
+  const pnl     = parseFloat(s.todays_pnl || 0);
+  const dllAmt  = cap * (parseFloat(s.daily_loss_limit_pct || 3) / 100);
+  const capAlloc= parseFloat(s.capital_allocation_pct || 80);
+
+  const pnlEl   = document.getElementById('rsb_pnl');
+  const pnlFill = document.getElementById('rsb_pnl_fill');
+  if (pnlEl) pnlEl.textContent = (pnl>=0?'+':'') + '₹' + Math.abs(pnl).toFixed(0);
+  if (pnlFill) {
+    pnlFill.style.width = Math.min(100, Math.abs(pnl)/dllAmt*100) + '%';
+    pnlFill.style.background = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  const capEl   = document.getElementById('rsb_cap');
+  const capFill = document.getElementById('rsb_cap_fill');
+  if (capEl)   capEl.textContent = capAlloc + '%';
+  if (capFill) capFill.style.width = capAlloc + '%';
+  const dllEl   = document.getElementById('rsb_dll');
+  const dllFill = document.getElementById('rsb_dll_fill');
+  if (dllEl)   dllEl.textContent = '₹' + Math.abs(pnl).toFixed(0) + ' / ₹' + dllAmt.toFixed(0);
+  if (dllFill) dllFill.style.width = Math.min(100, Math.abs(pnl<0?pnl:0)/dllAmt*100) + '%';
+
+  const haltEl = document.getElementById('sidebarHaltBanner');
+  const haltR  = document.getElementById('sidebarHaltReason');
+  if (haltEl) {
+    if (s.trading_halted) {
+      haltEl.style.display = '';
+      if (haltR) haltR.textContent = s.halt_reason || 'limit reached';
+    } else { haltEl.style.display = 'none'; }
+  }
+}
+
+// ── RISK STATUS TAB (GAUGES) ──
+function updateRiskStatusTab(s) {
+  if (!s) return;
+  const cap   = parseFloat(s.total_capital || 100000);
+  const pnl   = parseFloat(s.todays_pnl || 0);
+  const dll   = cap * (parseFloat(s.daily_loss_limit_pct || 3) / 100);
+  const mxdd  = parseFloat(s.max_drawdown_pct || 10);
+  const margin= parseFloat(s.margin_used_pct || 0);
+
+  const dllUsed   = pnl < 0 ? Math.min(100, Math.abs(pnl)/dll*100) : 0;
+  const ddPct     = Math.min(100, (Math.abs(Math.min(0,pnl))/cap)*100/mxdd*100);
+  const capDeploy = parseFloat(s.capital_allocation_pct || 80);
+  const exposure  = parseFloat(s.exposure_pct || capDeploy * 0.6);
+
+  const setGauge = (id, pct, val) => {
+    const fill = document.getElementById('rg_'+id);
+    const vEl  = document.getElementById('rg_'+id+'_v');
+    if (fill) fill.style.width = pct + '%';
+    if (vEl)  vEl.textContent  = val;
+  };
+  const pnlColor = pnl >= 0 ? 'var(--green)' : 'var(--red)';
+  setGauge('pnl',      Math.min(100, Math.abs(pnl/cap)*1000), (pnl>=0?'+':'')+'₹'+Math.abs(pnl).toFixed(0));
+  const pg = document.getElementById('rg_pnl'); if(pg) pg.style.background = pnlColor;
+  setGauge('dll',      dllUsed,   dllUsed.toFixed(1)+'%');
+  setGauge('dd',       ddPct,     ddPct.toFixed(1)+'%');
+  setGauge('cap',      capDeploy, capDeploy+'%');
+  setGauge('margin',   margin,    margin.toFixed(1)+'%');
+  setGauge('exposure', Math.min(100,exposure), Math.min(100,exposure).toFixed(1)+'%');
+
+  const hb = document.getElementById('statusHaltBanner');
+  if (hb) {
+    if (s.trading_halted) {
+      hb.className = 'risk-halt-banner active';
+      hb.innerHTML = `<i class="ti ti-ban"></i> <strong>Trading Halted:</strong> ${s.halt_reason||'Risk limit reached'}. Click "Resume Trading" to unlock.`;
+    } else { hb.className = 'risk-halt-banner'; }
+  }
+  const resetBtn = document.getElementById('resetHaltBtn');
+  if (resetBtn) resetBtn.style.display = s.trading_halted ? '' : 'none';
+
+  const limEl = document.getElementById('riskLimitsDisplay');
+  if (limEl) {
+    const items = [
+      ['Capital',      '₹'+parseInt(cap).toLocaleString('en-IN')],
+      ['Daily Loss',   '₹'+Math.round(dll).toLocaleString('en-IN')],
+      ['Max Drawdown', s.max_drawdown_pct+'%'],
+      ['Max Positions',s.max_open_positions],
+      ['Max Trade',    s.max_single_trade_pct+'%'],
+      ['Margin Buffer',s.margin_buffer_pct+'%'],
+      ['Correlation',  '≤'+s.correlation_threshold],
+      ['Profit Target','₹'+Math.round(cap*(s.daily_profit_target_pct||5)/100).toLocaleString('en-IN')],
+    ];
+    limEl.innerHTML = items.map(([k,v])=>`
+      <span class="risk-limit-chip"><span style="color:var(--text3)">${k}</span> <b>${v}</b></span>`).join('');
+  }
+}
+
+// ── KPI CARDS (Status Tab) ──
+function updateRiskKpiCards(s) {
+  if (!s) return;
+  const cap  = parseFloat(s.total_capital || 100000);
+  const pnl  = parseFloat(s.todays_pnl || 0);
+  const dll  = cap * (parseFloat(s.daily_loss_limit_pct || 3) / 100);
+  const mxdd = parseFloat(s.max_drawdown_pct || 10);
+  const capA = parseFloat(s.capital_allocation_pct || 80);
+
+  const dllUsed = pnl < 0 ? Math.min(100, Math.abs(pnl)/dll*100) : 0;
+  const ddPct   = Math.min(100, (Math.abs(Math.min(0,pnl))/cap)*100/mxdd*100);
+
+  const setCard = (valId, subId, val, sub, stateClass) => {
+    const vEl = document.getElementById(valId); if(vEl) vEl.textContent = val;
+    const sEl = document.getElementById(subId); if(sEl) sEl.textContent = sub;
+    const card = vEl?.closest?.('.risk-card');
+    if(card) card.className = 'risk-card ' + stateClass;
+  };
+
+  setCard('sk_pnl', 'sk_pnl_sub',
+    (pnl>=0?'+':'')+'₹'+Math.abs(pnl).toFixed(0),
+    (Math.abs(pnl/cap*100)).toFixed(1)+'% of capital',
+    pnl>=0 ? 'ok' : (dllUsed>80 ? 'danger' : 'warn'));
+
+  setCard('sk_dll', 'sk_dll_sub',
+    dllUsed.toFixed(1)+'%', 'of daily limit',
+    dllUsed > 80 ? 'danger' : dllUsed > 50 ? 'warn' : 'ok');
+
+  setCard('sk_dd', 'sk_dd_sub',
+    ddPct.toFixed(1)+'%', 'of max allowed',
+    ddPct > 80 ? 'danger' : ddPct > 50 ? 'warn' : 'ok');
+
+  setCard('sk_cap', 'sk_cap_sub',
+    capA+'%', 'of allocation',
+    capA > 90 ? 'warn' : 'neutral');
+}
+
+// ── ADVANCED TAB: EXPOSURE CHART ──
+function renderExposureChart() {
+  const container = document.getElementById('exposureChart');
+  if (!container) return;
+  const cap = parseFloat(riskSettings?.total_capital || 100000);
+  // Build from open positions if available, else demo
+  const data = exposureData && Object.keys(exposureData).length > 0
+    ? Object.entries(exposureData).map(([sym,v]) => ({ sym, pct: Math.min(100,(v/cap)*100) }))
+    : [
+        { sym: 'RELIANCE', pct: 18 },
+        { sym: 'HDFCBANK', pct: 22 },
+        { sym: 'TCS',      pct: 14 },
+        { sym: 'NIFTY50',  pct: 26 },
+      ];
+
+  const totalPct = data.reduce((s,d)=>s+d.pct,0);
+  const maxAlloc  = parseFloat(riskSettings?.capital_allocation_pct || 80);
+
+  container.innerHTML = data.map(d => {
+    const color = d.pct > 30 ? 'var(--red)' : d.pct > 20 ? 'var(--amber)' : 'var(--blue)';
+    return `<div class="exposure-bar-row">
+      <span class="exposure-sym">${d.sym}</span>
+      <div class="exposure-bar"><div class="exposure-bar-fill" style="width:${d.pct}%;background:${color}"></div></div>
+      <span class="exposure-pct">${d.pct.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+
+  const tEl = document.getElementById('totalExposurePct');
+  const mEl = document.getElementById('maxExposureDisplay');
+  if (tEl) { tEl.textContent = totalPct.toFixed(1)+'%'; tEl.style.color = totalPct>maxAlloc?'var(--red)':'var(--blue)'; }
+  if (mEl) mEl.textContent = maxAlloc + '%';
+}
+
+// ── ADVANCED TAB: CORRELATION MATRIX ──
+function renderCorrelationMatrix() {
+  const tbody = document.getElementById('corrMatrixBody');
+  if (!tbody) return;
+  const sectors = ['BANK','IT','AUTO','PHARMA','METAL'];
+  // Estimated historical correlation matrix (NSE sector indices)
+  const corr = {
+    BANK:   [1.00, 0.62, 0.71, 0.38, 0.58],
+    IT:     [0.62, 1.00, 0.54, 0.41, 0.45],
+    AUTO:   [0.71, 0.54, 1.00, 0.33, 0.67],
+    PHARMA: [0.38, 0.41, 0.33, 1.00, 0.29],
+    METAL:  [0.58, 0.45, 0.67, 0.29, 1.00],
+  };
+  const thresh = parseFloat(riskSettings?.correlation_threshold || 0.75);
+
+  tbody.innerHTML = sectors.map(row => `
+    <tr>
+      <td style="padding:5px 8px;color:var(--text2);font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border)">${row}</td>
+      ${sectors.map((col,ci) => {
+        const v = corr[row][ci];
+        const cls = row===col ? 'diag' : v >= thresh ? 'high' : v >= 0.5 ? 'med' : 'low';
+        return `<td style="padding:5px 8px;text-align:center;border-bottom:1px solid var(--border)">
+          <span class="corr-cell ${cls}">${v.toFixed(2)}</span>
+        </td>`;
+      }).join('')}
+    </tr>`).join('');
+}
+
+// ── ADVANCED TAB: MARGIN CHECK ──
+function runMarginCheck() {
+  const cap    = parseFloat(riskSettings?.total_capital || 100000);
+  const buffer = parseFloat(riskSettings?.margin_buffer_pct || 20);
+  const alert  = parseFloat(riskSettings?.margin_call_alert_pct || 70);
+  // Simulate — in production, fetch from Kite margins endpoint via Netlify function
+  const used = Math.random() * 60 + 5;
+  const free = 100 - used;
+
+  const mgUsed = document.getElementById('mg_used');
+  const mgAvail = document.getElementById('mg_available');
+  const mgUsedV  = document.getElementById('mg_used_val');
+  const mgAvailV = document.getElementById('mg_available_val');
+  const mpBadge  = document.getElementById('mpBadge');
+  const mpBuf    = document.getElementById('mpBufferPct');
+  const mpAuto   = document.getElementById('mpAutoSqoff');
+
+  if (mgUsed) { mgUsed.style.width = used+'%'; mgUsed.style.background = used>alert?'var(--red)':used>50?'var(--amber)':'var(--green)'; }
+  if (mgAvail){ mgAvail.style.width = free+'%'; }
+  if (mgUsedV) mgUsedV.textContent = used.toFixed(1)+'% used';
+  if (mgAvailV) mgAvailV.textContent = '₹'+Math.round(cap*(free/100)).toLocaleString('en-IN')+' free';
+
+  if (mpBadge) {
+    if (used > alert) {
+      mpBadge.className = 'margin-protect-badge mpb-danger';
+      mpBadge.innerHTML = '<i class="ti ti-alert-triangle"></i> Margin Call Risk';
+      logRiskBreach('MARGIN', `Margin used ${used.toFixed(1)}% exceeds alert threshold ${alert}%`);
+    } else if (used > 50) {
+      mpBadge.className = 'margin-protect-badge mpb-warn';
+      mpBadge.innerHTML = '<i class="ti ti-alert-circle"></i> Margin Warning';
+    } else {
+      mpBadge.className = 'margin-protect-badge mpb-ok';
+      mpBadge.innerHTML = '<i class="ti ti-shield-check"></i> Margin Safe';
+    }
+  }
+  if (mpBuf) mpBuf.textContent = buffer+'%';
+  if (mpAuto) mpAuto.textContent = riskSettings?.auto_square_off !== false ? 'ON' : 'OFF';
+}
+
+// ── RISK BREACH LOG ──
+function logRiskBreach(type, message) {
+  const now = new Date().toLocaleTimeString('en-IN', { timeZone:'Asia/Kolkata' });
+  riskBreaches.unshift({ type, message, time: now });
+  renderBreachLog();
+}
+
+function renderBreachLog() {
+  const el = document.getElementById('riskBreachLog');
+  if (!el) return;
+  if (riskBreaches.length === 0) {
+    el.innerHTML = '<div style="color:var(--text3)">No breaches recorded today.</div>';
+    return;
+  }
+  el.innerHTML = riskBreaches.slice(0,20).map(b =>
+    `<div style="padding:3px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
+      <span style="color:var(--amber);font-size:9px">${b.time}</span>
+      <span style="color:var(--red);font-weight:700">[${b.type}]</span>
+      <span style="color:var(--text2)">${b.message}</span>
+    </div>`).join('');
+}
+
+function clearBreachLog() {
+  riskBreaches = [];
+  renderBreachLog();
+}
+
+// ── TRADING HALT ──
+function showTradingHaltBanner(reason) {
+  const sidebarEl = document.getElementById('sidebarHaltBanner');
+  const sidebarR  = document.getElementById('sidebarHaltReason');
+  if (sidebarEl) sidebarEl.style.display = '';
+  if (sidebarR)  sidebarR.textContent = reason || 'limit reached';
+  logRiskBreach('HALT', reason || 'Trading halted');
+  addLog('⛔ TRADING HALTED: ' + (reason || 'risk limit reached'), 'warn');
+}
+
+async function resetTradingHalt() {
+  const email = getCurrentEmail();
+  if (!email) return;
+  try {
+    await fetch('/.netlify/functions/risk-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset_halt', email }),
+    });
+    if (riskSettings) riskSettings.trading_halted = false;
+    updateRiskSidebarBar(riskSettings || {});
+    updateRiskStatusTab(riskSettings || {});
+    addLog('Trading halt cleared — trading resumed', 'info');
+    const resetBtn = document.getElementById('resetHaltBtn');
+    if (resetBtn) resetBtn.style.display = 'none';
+    const sb = document.getElementById('sidebarHaltBanner');
+    if (sb) sb.style.display = 'none';
+  } catch (e) {
+    addLog('Could not reset halt: ' + e.message, 'warn');
+  }
+}
+
+async function loadRiskStatus() {
+  const email = getCurrentEmail();
+  if (email) await loadRiskSettings(email);
+}
+
+// ── ENHANCED RISK CHECK (all 6 controls) ──
+const _origExecuteTrade = executeTrade;
+async function executeTradeWithRisk(side, price, qty, signalType) {
+  const email = getCurrentEmail();
+  if (email && side === 'BUY') {
+    try {
+      const tradeValue = price * qty;
+      const openCount  = openPosition ? 1 : 0;
+      const cap        = parseFloat(riskSettings?.total_capital || 100000);
+
+      // Client-side pre-checks (fast-fail before server round-trip)
+      if (riskSettings) {
+        const s = riskSettings;
+        // 1. Max drawdown
+        if (s.trading_halted) {
+          addLog('⛔ Trade BLOCKED: Trading is currently halted', 'warn');
+          return;
+        }
+        // 2. Daily loss limit
+        const pnl = parseFloat(s.todays_pnl || 0);
+        const dll = cap * (parseFloat(s.daily_loss_limit_pct || 3) / 100);
+        if (pnl < 0 && Math.abs(pnl) >= dll) {
+          addLog('⛔ Trade BLOCKED: Daily loss limit reached (₹'+dll.toFixed(0)+')', 'warn');
+          showTradingHaltBanner('Daily loss limit reached');
+          logRiskBreach('DAILY_LOSS', 'P&L ₹'+pnl.toFixed(0)+' exceeds limit ₹'+dll.toFixed(0));
+          return;
+        }
+        // 3. Max open positions (exposure)
+        if (openCount >= parseInt(s.max_open_positions || 3)) {
+          addLog('⛔ Trade BLOCKED: Max open positions reached ('+s.max_open_positions+')', 'warn');
+          logRiskBreach('EXPOSURE', 'Max open positions '+s.max_open_positions+' reached');
+          return;
+        }
+        // 4. Capital allocation / single trade exposure
+        const maxTrade = cap * (parseFloat(s.max_single_trade_pct || 25) / 100);
+        if (tradeValue > maxTrade) {
+          addLog(`⛔ Trade BLOCKED: Trade value ₹${tradeValue.toFixed(0)} exceeds max trade ₹${maxTrade.toFixed(0)}`, 'warn');
+          logRiskBreach('EXPOSURE', `Trade ₹${tradeValue.toFixed(0)} > max ₹${maxTrade.toFixed(0)}`);
+          return;
+        }
+        // 5. Margin protection — block if buffer would be breached
+        const marginBuf = parseFloat(s.margin_buffer_pct || 20);
+        const deployable = cap * ((100 - marginBuf) / 100);
+        if (tradeValue > deployable) {
+          addLog(`⛔ Trade BLOCKED: Would breach margin buffer (${marginBuf}% reserved)`, 'warn');
+          logRiskBreach('MARGIN', `Trade ₹${tradeValue.toFixed(0)} would breach margin buffer`);
+          return;
+        }
+        // 6. Correlation / sector check (client-side simplified)
+        const lockedSector = s.locked_sector;
+        if (lockedSector && activeSymbol) {
+          const sectorMap = { HDFCBANK:'BANK', ICICIBANK:'BANK', SBIN:'BANK', KOTAKBANK:'BANK', AXISBANK:'BANK',
+            TCS:'IT', INFY:'IT', WIPRO:'IT', HCLTECH:'IT', TECHM:'IT',
+            TATAMOTORS:'AUTO', MARUTI:'AUTO', BAJAJ:'AUTO', M_M:'AUTO',
+            SUNPHARMA:'PHARMA', DRREDDY:'PHARMA', CIPLA:'PHARMA',
+            TATASTEEL:'METAL', JSWSTEEL:'METAL', HINDALCO:'METAL' };
+          const symSector = sectorMap[activeSymbol?.replace(/[^A-Z]/g,'')];
+          if (symSector === lockedSector) {
+            addLog(`⛔ Trade BLOCKED: ${activeSymbol} is in locked sector (${lockedSector})`, 'warn');
+            logRiskBreach('CORRELATION', `${activeSymbol} in locked sector ${lockedSector}`);
+            return;
+          }
+        }
+      }
+
+      // Server-side risk check
+      const res  = await fetch('/.netlify/functions/risk-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check_trade', email,
+          trade_value: tradeValue, symbol: activeSymbol, open_positions: openCount,
+        }),
+      });
+      const data = await res.json();
+      if (data.blocked) {
+        addLog('⛔ Trade BLOCKED by risk engine: ' + data.reason, 'warn');
+        showTradingHaltBanner(data.reason);
+        logRiskBreach('SERVER', data.reason);
+        return;
+      }
+      if (data.warnings?.length) data.warnings.forEach(w => addLog('⚠ Risk warning: ' + w, 'warn'));
+    } catch (e) {
+      console.warn('Risk check error:', e.message);
+    }
+  }
+
+  _origExecuteTrade(side, price, qty, signalType);
+
+  // After SELL, persist trade to Supabase
+  if (email && side === 'SELL') {
+    const lastTrade = trades[trades.length - 1];
+    if (lastTrade) {
+      fetch('/.netlify/functions/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'log', email,
+          symbol: lastTrade.sym, side: lastTrade.side, qty: lastTrade.qty,
+          price: lastTrade.price, strategy: 'S'+currentStrategy,
+          trigger_reason: lastTrade.sig,
+          entry_price: openPosition ? openPosition.entryPrice : null,
+          exit_price: lastTrade.price,
+          realised_pnl: lastTrade.pnl || 0,
+        }),
+      }).catch(e => console.warn('Trade log error:', e.message));
+
+      // Update today's PnL in risk settings
+      if (riskSettings) {
+        riskSettings.todays_pnl = (parseFloat(riskSettings.todays_pnl||0)) + (lastTrade.pnl||0);
+        updateRiskSidebarBar(riskSettings);
+        updateRiskStatusTab(riskSettings);
+        updateRiskKpiCards(riskSettings);
+
+        // Check drawdown after trade
+        const cap = parseFloat(riskSettings.total_capital || 100000);
+        const pnl = parseFloat(riskSettings.todays_pnl || 0);
+        const dd  = parseFloat(riskSettings.max_drawdown_pct || 10);
+        const ddAlert = parseFloat(riskSettings.drawdown_alert_pct || 5);
+        if (pnl < 0) {
+          const lossP = Math.abs(pnl) / cap * 100;
+          if (lossP >= dd) {
+            riskSettings.trading_halted = true;
+            riskSettings.halt_reason = `Max drawdown ${dd}% breached (actual: ${lossP.toFixed(1)}%)`;
+            showTradingHaltBanner(riskSettings.halt_reason);
+          } else if (lossP >= ddAlert) {
+            addLog(`⚠ Drawdown alert: ${lossP.toFixed(1)}% of max ${dd}%`, 'warn');
+          }
+        }
+      }
+    }
+  }
+}
+setTimeout(()=>{ window.executeTrade = executeTradeWithRisk; }, 500);
+
+// ── TRADE HISTORY (Supabase) ──
+async function loadTradeHistory() {
+  const email = getCurrentEmail();
+  if (!email) { addLog('Log in to load trade history', 'warn'); return; }
+  document.getElementById('noHistory').textContent = 'Loading from Supabase…';
+  try {
+    const res  = await fetch(`/.netlify/functions/trades?email=${encodeURIComponent(email)}&limit=100`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    const tbody = document.getElementById('histBody');
+    const noEl  = document.getElementById('noHistory');
+    const sumEl = document.getElementById('histSummary');
+
+    if (!data.trades.length) {
+      tbody.innerHTML = '';
+      noEl.textContent = 'No trades found in Supabase yet.';
+      sumEl.style.display = 'none';
+      return;
+    }
+    noEl.style.display = 'none';
+    tbody.innerHTML = data.trades.map(t => {
+      const pnl = t.realised_pnl != null ? parseFloat(t.realised_pnl) : null;
+      return `<tr>
+        <td style="font-family:var(--mono);font-size:10px">${new Date(t.created_at).toLocaleString('en-IN',{timeZone:'Asia/Kolkata'})}</td>
+        <td style="color:var(--cyan)">${t.symbol}</td>
+        <td><span class="badge badge-${t.side.toLowerCase()}">${t.side}</span></td>
+        <td>₹${parseFloat(t.price).toFixed(2)}</td>
+        <td>${t.qty}</td>
+        <td style="color:var(--text3)">${t.strategy||'—'}</td>
+        <td><span class="badge badge-${t.trigger_reason==='AUTO'?'buy':t.trigger_reason==='MANUAL'?'recov':'sl'}">${t.trigger_reason||'—'}</span></td>
+        <td style="color:${pnl!=null?(pnl>=0?'var(--green)':'var(--red)'):'var(--text3)'}">
+          ${pnl!=null?(pnl>=0?'+':'')+pnl.toFixed(2):'—'}
+        </td>
+      </tr>`;
+    }).join('');
+
+    const s = data.summary;
+    sumEl.style.display = 'flex';
+    sumEl.innerHTML = [
+      ['Total Trades', s.total_trades],
+      ['Total P&L',    '₹'+parseFloat(s.total_pnl).toFixed(2)],
+      ['Win Rate',     s.win_rate+'%'],
+      ['Wins',         s.wins],
+      ['Losses',       s.losses],
+    ].map(([k,v])=>`<div style="background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:5px 10px">
+      <div style="font-size:9px;color:var(--text3);font-family:var(--mono)">${k}</div>
+      <div style="font-family:var(--mono);font-size:13px">${v}</div>
+    </div>`).join('');
+
+  } catch (e) {
+    document.getElementById('noHistory').textContent = 'Error: ' + e.message;
+  }
+}
+
+// ── RISK MODAL UI ──
+function openRiskModal(tab) {
+  document.getElementById('riskOverlay').classList.add('open');
+  const tabBtns = document.querySelectorAll('.rtab');
+  const tabMap  = { creds: 0, risk: 1, advanced: 2, status: 3 };
+  const idx     = tabMap[tab] ?? 0;
+  showRiskTab(tab, tabBtns[idx]);
+
+  const email = getCurrentEmail();
+  const lbl   = document.getElementById('riskUserLabel');
+  if (lbl) lbl.textContent = email ? ('Logged in as: ' + email) : 'Not logged in';
+
+  if (email) checkCredentials(email);
+  if (tab === 'status' || tab === 'advanced') loadRiskStatus();
+}
+
+function closeRiskModal() {
+  document.getElementById('riskOverlay').classList.remove('open');
+}
+
+function riskOutsideClick(e) {
+  if (e.target === document.getElementById('riskOverlay')) closeRiskModal();
+}
+
+function showRiskTab(name, btn) {
+  document.querySelectorAll('.risk-rc').forEach(el => el.classList.remove('vis'));
+  document.querySelectorAll('.rtab').forEach(el => el.classList.remove('act'));
+  const el = document.getElementById('rrc-' + name);
+  if (el) el.classList.add('vis');
+  if (btn) btn.classList.add('act');
+  if (name === 'status')   { loadRiskStatus(); }
+  if (name === 'advanced') { loadRiskStatus(); setTimeout(()=>{ renderExposureChart(); renderCorrelationMatrix(); runMarginCheck(); }, 300); }
+  if (name === 'creds')    { const email = getCurrentEmail(); if(email) checkCredentials(email); }
+}
+
+// ── UPDATED initRole ──
+const _origInitRole = initRole;
+function initRole(email) {
+  _origInitRole(email);
+  currentUserEmail = email;
+  if (email) {
+    checkCredentials(email);
+    loadRiskSettings(email);
+  }
+  document.getElementById('userCredsSection').style.display = '';
+  document.getElementById('userSection').style.display = 'none';
+}
+// dashboard.html — WebSocket integration
+const RENDER_WS = `wss://${RENDER_BACKEND_URL.replace('https://','')}`;
+let ws;
+
+function connectRenderWS() {
+  ws = new WebSocket(RENDER_WS);
+  
+  ws.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'ticks') processTicks(msg.data);
+  };
+  
+  ws.onclose = () => setTimeout(connectRenderWS, 3000);
+}
+
+async function subscribeSymbol(sym) {
+  // 1. Resolve token from Render
+  const r = await fetch(`${RENDER_BACKEND_URL}/instrument?sym=${sym}`);
+  const { token } = await r.json();
+  
+  // 2. Tell Render to subscribe this token
+  await fetch(`${RENDER_BACKEND_URL}/subscribe`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tokens: [token] }),
+  });
+  
+  return token;
+}
+
+// ── UPDATED fetchKitePrices (override to use auto-resolver) ──
+const _origFetchKitePrices = fetchKitePrices;
+async function fetchKitePrices(symbols) {
+  const result = await fetchKitePricesAuto(symbols);
+  if (Object.keys(result).length > 0) return result;
+  return _origFetchKitePrices(symbols);
+}
 
 window.addEventListener('load', boot);
+
 </script>
 </body>
 </html>

@@ -1,3 +1,8 @@
+// functions/save-token.js
+// Handles Kite OAuth redirect — exchanges request_token for access_token automatically.
+// Only requires KITE_API_KEY and KITE_API_SECRET in Netlify env vars.
+// The access token is stored in a module-level variable (persists for the function's lifetime)
+// AND written to a Netlify env var if NETLIFY_API_TOKEN + NETLIFY_SITE_ID are set.
 
 const crypto = require('crypto');
 
@@ -90,16 +95,6 @@ exports.handler = async (event) => {
           headers: { Location: `/dashboard.html?kite=error&reason=${encodeURIComponent(tokenData.message || 'exchange_failed')}` },
         };
       }
-      const RENDER_URL = process.env.RENDER_BACKEND_URL; // set in Netlify env
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET;
-
-if (RENDER_URL && INTERNAL_SECRET) {
-  await fetch(`${RENDER_URL}/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ access_token: accessToken, secret: INTERNAL_SECRET }),
-  }).catch(e => console.warn('Render token update failed:', e.message));
-}
 
       // Store in memory
       cachedToken     = accessToken;
