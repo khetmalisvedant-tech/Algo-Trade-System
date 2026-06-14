@@ -4155,10 +4155,10 @@ async function fetchKitePrices(symbols) {
   if (Object.keys(result).length > 0) return result;
   return _origFetchKitePrices(symbols);
 }
-document.addEventListner('DOMContentLoaded',function(){
+document.addEventListener('DOMContentLoaded',function(){
   const btn = document.getElementById('setupKiteBtn');
   if(btn){
-    btn.addEventListner('click',function(e){
+    btn.addEventListener('click',function(e){
       e.preventDefault();
       const overlay = document.getElementById('riskOverlay');
       if(!overlay){
@@ -4168,14 +4168,14 @@ document.addEventListner('DOMContentLoaded',function(){
       }
       overlay.classList.add('open');
       document.querySelectorAll('.risk-rc').forEach(el=>el.classList.remove('vis'));
-      document.querySelector('.etab').forEach(el=> el.classList.remove('act'));
+      document.querySelectorAll('.rtab').forEach(el=> el.classList.remove('act'));
       const credsTab = document.getElementById('rrc-creds');
       const firstTab = document.querySelectorAll('.rtab')[0];
       if(credsTab) credsTab.classList.add('vis');
       if(firstTab) firstTab.classList.add('act');
       const email = typeof getCurrentEmail === 'function' ? getCurrentEmail() : null;
-      const lbl = document.getElementById('riskUserlabel');
-      if(ldl) ldl.textContent = email ? ('Logged in as: '+ email):"Not logged in";
+      const lbl = document.getElementById('riskUserLabel');
+      if(lbl) lbl.textContent = email ? ('Logged in as: '+ email):"Not logged in";
       if(email && typeof checkCredentials === 'function') checkCredentials(email);
     })
   }
