@@ -1,99 +1,24 @@
-# ════════════════════════════════════════════════════════════════════════════
-# NETLIFY CONFIGURATION — RSI Algo Trader Dashboard
-# ════════════════════════════════════════════════════════════════════════════
-
 [build]
-  # Publish directory: HTML/CSS/JS files are in root (not in subdirectory)
-  publish = "."
-  # Serverless functions directory
-  functions = "functions"
-  # Build command: optional, remove if you don't have a build step
-  command = ""
+  command = "echo 'Static site, no build needed'"
+  publish = "frontend"
 
 [functions]
-  # Node bundler for serverless functions
+  directory = "functions"
   node_bundler = "esbuild"
-  # Set Node version (match your runtime)
-  node_version = "18.x"
+  memory = 3008
 
-# ════════════════════════════════════════════════════════════════════════════
-# REDIRECTS & ROUTING
-# ════════════════════════════════════════════════════════════════════════════
 
-# Rule 1: Redirect unauthenticated users from /dashboard.html to /index.html (login)
-# Only redirects if user has no Role (not authenticated)
-[[redirects]]
-  from = "/dashboard.html"
-  to = "/index.html"
-  status = 302
-  force = true
-  conditions = { Role = [] }
 
-# Rule 2: SPA fallback — redirect routes without file extensions to index.html
-# This enables client-side routing (handles /routes, /api/*, etc.)
-# Excludes: files with extensions (.js, .css, .html, .json, etc.)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = { TrailingSlash = "ignore" }
 
-# Rule 3: Explicit redirect for Netlify functions (/.netlify/functions/*)
-# Passes through to serverless functions without modification
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+[context.production.environment]
+  FRONTEND_URL = "https://your-production-domain.com"
+  ADMIN_EMAIL = "your-email@gmail.com"
+  URL = "https://your-production-domain.com"
 
-# ════════════════════════════════════════════════════════════════════════════
-# HEADERS
-# ════════════════════════════════════════════════════════════════════════════
-
-# Security headers for API endpoints
-[[headers]]
-  for = "/.netlify/functions/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
-    X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "DENY"
-
-# Cache static assets
-[[headers]]
-  for = "/static/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Don't cache HTML (always fetch latest)
-[[headers]]
-  for = "/*.html"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-
-# ════════════════════════════════════════════════════════════════════════════
-# IDENTITY
-# ════════════════════════════════════════════════════════════════════════════
-
-# Netlify Identity configuration
-[identity]
-  provider = "netlify"
-
-[[identity.registration]]
-  role = "user"
-
-# ════════════════════════════════════════════════════════════════════════════
-# CONTEXT (Environment-specific settings)
-# ════════════════════════════════════════════════════════════════════════════
-
-# Production context
-[context.production]
-  # Production environment variables should be set in Netlify UI
-
-# Deploy preview context (PR previews)
-[context.deploy-preview]
-  # Same config as production for previews
-
-# Branch deploy context
-[context.branch-deploy]
-  # Same config as production for branch deploys
+[context.dev.environment]
+  FRONTEND_URL = "http://localhost:8888"
+  URL = "http://localhost:8888"

@@ -4,7 +4,6 @@
 
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
-const fetch = require('node-fetch');
 
 const supabase = createClient(
   process.env.SUPABASE_URL,

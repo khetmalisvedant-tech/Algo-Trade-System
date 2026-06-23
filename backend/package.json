@@ -1,6 +1,7 @@
 {
   "name": "algo-trade-backend",
   "version": "1.0.0",
+  "type":"module",
   "description": "Algo Trade System Backend",
   "main": "server.js",
   "scripts": {
@@ -15,5 +16,5 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  }  
 }
